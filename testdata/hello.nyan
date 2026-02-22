@@ -1,0 +1,5 @@
+nyan name = "Tama"
+meow greet(who) {
+  bring "Hello, " + who + "!"
+}
+nya(greet(name))

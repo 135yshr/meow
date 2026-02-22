@@ -1,0 +1,17 @@
+meow fizzbuzz(n) {
+  sniff (n % 15 == 0) {
+    bring "FizzBuzz"
+  } scratch sniff (n % 3 == 0) {
+    bring "Fizz"
+  } scratch sniff (n % 5 == 0) {
+    bring "Buzz"
+  } scratch {
+    bring n
+  }
+}
+
+nyan i = 1
+purr (i <= 20) {
+  nya(fizzbuzz(i))
+  i = i + 1
+}

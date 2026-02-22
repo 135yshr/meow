@@ -1,0 +1,12 @@
+meow fib(n) {
+  sniff (n <= 1) {
+    bring n
+  }
+  bring fib(n - 1) + fib(n - 2)
+}
+
+nyan i = 0
+purr (i < 10) {
+  nya(fib(i))
+  i = i + 1
+}

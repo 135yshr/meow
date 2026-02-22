@@ -1,0 +1,131 @@
+package token
+
+import "fmt"
+
+//go:generate stringer -type=TokenType
+type TokenType int
+
+const (
+	// Special
+	ILLEGAL TokenType = iota
+	EOF
+	COMMENT
+
+	// Literals
+	IDENT
+	INT
+	FLOAT
+	STRING
+
+	// Operators
+	PLUS     // +
+	MINUS    // -
+	STAR     // *
+	SLASH    // /
+	PERCENT  // %
+	ASSIGN   // =
+	EQ       // ==
+	NEQ      // !=
+	LT       // <
+	GT       // >
+	LTE      // <=
+	GTE      // >=
+	AND      // &&
+	OR       // ||
+	NOT      // !
+	PIPE     // |>
+	DOTDOT   // ..
+	ARROW    // =>
+
+	// Delimiters
+	LPAREN   // (
+	RPAREN   // )
+	LBRACE   // {
+	RBRACE   // }
+	LBRACKET // [
+	RBRACKET // ]
+	COMMA    // ,
+	NEWLINE  // \n
+
+	// Keywords
+	keywordsStart
+	NYAN     // nyan (let)
+	MEOW     // meow (func)
+	BRING    // bring (return)
+	SNIFF    // sniff (if)
+	SCRATCH  // scratch (else)
+	PURR     // purr (while)
+	PAW      // paw (lambda)
+	NYA      // nya (print)
+	LICK     // lick (map)
+	PICKY    // picky (filter)
+	CURL     // curl (reduce)
+	PEEK     // peek (match)
+	HISS     // hiss (error/throw)
+	FETCH    // fetch (import)
+	FLAUNT   // flaunt (export)
+	CATNAP   // catnap (nil)
+	YARN     // yarn (true)
+	HAIRBALL // hairball (false)
+	keywordsEnd
+)
+
+var keywords = map[string]TokenType{
+	"nyan":     NYAN,
+	"meow":     MEOW,
+	"bring":    BRING,
+	"sniff":    SNIFF,
+	"scratch":  SCRATCH,
+	"purr":     PURR,
+	"paw":      PAW,
+	"nya":      NYA,
+	"lick":     LICK,
+	"picky":    PICKY,
+	"curl":     CURL,
+	"peek":     PEEK,
+	"hiss":     HISS,
+	"fetch":    FETCH,
+	"flaunt":   FLAUNT,
+	"catnap":   CATNAP,
+	"yarn":     YARN,
+	"hairball": HAIRBALL,
+}
+
+// LookupIdent returns the token type for a given identifier.
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	return IDENT
+}
+
+// IsKeyword reports whether the token type is a keyword.
+func (t TokenType) IsKeyword() bool {
+	return t > keywordsStart && t < keywordsEnd
+}
+
+// Position represents a source location.
+type Position struct {
+	File   string
+	Line   int
+	Column int
+}
+
+func (p Position) String() string {
+	if p.File != "" {
+		return fmt.Sprintf("%s:%d:%d", p.File, p.Line, p.Column)
+	}
+	return fmt.Sprintf("%d:%d", p.Line, p.Column)
+}
+
+// AsToken creates a zero-value Token with this position.
+func (p Position) AsToken() Token {
+	return Token{Pos: p}
+}
+
+// Token represents a lexical token with its position.
+type Token struct {
+	Type    TokenType
+	Literal string
+	Pos     Position
+}

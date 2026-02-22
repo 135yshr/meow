@@ -1,0 +1,10 @@
+nyan nums = [1, 2, 3, 4, 5]
+
+nyan doubled = lick(nums, paw(x) { x * 2 })
+nya(doubled)
+
+nyan evens = picky(nums, paw(x) { x % 2 == 0 })
+nya(evens)
+
+nyan sum = curl(nums, 0, paw(acc, x) { acc + x })
+nya(sum)
