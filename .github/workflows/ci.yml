@@ -65,7 +65,7 @@ jobs:
         run: go generate ./...
 
       - name: Install meow
-        run: go install .
+        run: go install ./cmd/meow
 
       - name: Run hello.nyan
         run: |
