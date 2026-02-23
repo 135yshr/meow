@@ -304,15 +304,6 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 	return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, fnName, argStr)
 }
 
-func (g *Generator) genMemberCallWithArgs(member *ast.MemberExpr, args []string) string {
-	obj, ok := member.Object.(*ast.Ident)
-	if !ok {
-		return fmt.Sprintf("/* unsupported member access on %T */", member.Object)
-	}
-	argStr := strings.Join(args, ", ")
-	fnName := strings.ToUpper(member.Member[:1]) + member.Member[1:]
-	return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, fnName, argStr)
-}
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 	params := make([]string, len(e.Params))
@@ -348,38 +339,20 @@ func (g *Generator) genIndex(e *ast.IndexExpr) string {
 }
 
 func (g *Generator) genPipe(e *ast.PipeExpr) string {
-	left := g.genExpr(e.Left)
-	// Pipe: left |=| fn  =>  fn is called with left as first argument
+	var fn ast.Expr
+	var args []ast.Expr
+
 	if call, ok := e.Right.(*ast.CallExpr); ok {
-		if member, mok := call.Fn.(*ast.MemberExpr); mok {
-			args := []string{left}
-			for _, a := range call.Args {
-				args = append(args, g.genExpr(a))
-			}
-			return g.genMemberCallWithArgs(member, args)
-		}
-		ident, isIdent := call.Fn.(*ast.Ident)
-		args := []string{left}
-		for _, a := range call.Args {
-			args = append(args, g.genExpr(a))
-		}
-		argStr := strings.Join(args, ", ")
-		if isIdent {
-			switch ident.Name {
-			case "lick":
-				return fmt.Sprintf("meow.Lick(%s)", argStr)
-			case "picky":
-				return fmt.Sprintf("meow.Picky(%s)", argStr)
-			case "curl":
-				return fmt.Sprintf("meow.Curl(%s)", argStr)
-			default:
-				return fmt.Sprintf("%s(%s)", ident.Name, argStr)
-			}
-		}
-		return fmt.Sprintf("meow.Call(%s, %s)", g.genExpr(call.Fn), argStr)
+		fn = call.Fn
+		args = make([]ast.Expr, 0, len(call.Args)+1)
+		args = append(args, e.Left)
+		args = append(args, call.Args...)
+	} else {
+		fn = e.Right
+		args = []ast.Expr{e.Left}
 	}
-	// fn(left)
-	return fmt.Sprintf("meow.Call(%s, %s)", g.genExpr(e.Right), left)
+
+	return g.genCall(&ast.CallExpr{Token: e.Token, Fn: fn, Args: args})
 }
 
 func (g *Generator) genCatch(e *ast.CatchExpr) string {

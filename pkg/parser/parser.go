@@ -384,13 +384,19 @@ func (p *Parser) parseIdentOrCall() ast.Expr {
 func (p *Parser) parseNyaCall() ast.Expr {
 	tok := p.advance() // consume nya
 	ident := &ast.Ident{Token: tok, Name: "nya"}
-	return p.finishCall(ident)
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(ident)
+	}
+	return ident
 }
 
 func (p *Parser) parseBuiltinCall() ast.Expr {
 	tok := p.advance()
 	ident := &ast.Ident{Token: tok, Name: tok.Literal}
-	return p.finishCall(ident)
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(ident)
+	}
+	return ident
 }
 
 func (p *Parser) finishCall(fn ast.Expr) ast.Expr {

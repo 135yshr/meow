@@ -78,6 +78,24 @@ nya(content)`)
 	}
 }
 
+func TestPipeToNya(t *testing.T) {
+	code := generate(t, `fetch "file"
+nyan lines = file.stalk("data.txt")
+lines |=| lick(paw(line) { "=> " + line }) |=| nya()`)
+	if !strings.Contains(code, "meow.Nya(meow.Lick(") {
+		t.Error("expected piped nya call")
+	}
+}
+
+func TestPipeToBareNya(t *testing.T) {
+	code := generate(t, `fetch "file"
+nyan lines = file.stalk("data.txt")
+lines |=| lick(paw(line) { "=> " + line }) |=| nya`)
+	if !strings.Contains(code, "meow.Nya(meow.Lick(") {
+		t.Error("expected piped bare nya call")
+	}
+}
+
 func TestIfElse(t *testing.T) {
 	code := generate(t, `sniff (x > 0) {
   nya(x)

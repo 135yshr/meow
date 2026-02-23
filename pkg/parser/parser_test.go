@@ -201,6 +201,38 @@ func TestMemberAccess(t *testing.T) {
 	}
 }
 
+func TestPipeToBareBuiltin(t *testing.T) {
+	prog := parse(t, `xs |=| nya`)
+	stmt := prog.Stmts[0].(*ast.ExprStmt)
+	pipe, ok := stmt.Expr.(*ast.PipeExpr)
+	if !ok {
+		t.Fatalf("expected PipeExpr, got %T", stmt.Expr)
+	}
+	ident, ok := pipe.Right.(*ast.Ident)
+	if !ok {
+		t.Fatalf("expected Ident on pipe RHS, got %T", pipe.Right)
+	}
+	if ident.Name != "nya" {
+		t.Errorf("expected 'nya', got %q", ident.Name)
+	}
+}
+
+func TestPipeToBareHiss(t *testing.T) {
+	prog := parse(t, `xs |=| hiss`)
+	stmt := prog.Stmts[0].(*ast.ExprStmt)
+	pipe, ok := stmt.Expr.(*ast.PipeExpr)
+	if !ok {
+		t.Fatalf("expected PipeExpr, got %T", stmt.Expr)
+	}
+	ident, ok := pipe.Right.(*ast.Ident)
+	if !ok {
+		t.Fatalf("expected Ident on pipe RHS, got %T", pipe.Right)
+	}
+	if ident.Name != "hiss" {
+		t.Errorf("expected 'hiss', got %q", ident.Name)
+	}
+}
+
 func TestMatchExpr(t *testing.T) {
 	prog := parse(t, `nyan result = peek(x) {
   0 => "zero",
