@@ -65,31 +65,8 @@
             ":bricks:",
             ":technologist:"
           ]
-        },
-        "releaseNotes": {
-          "template": "{{{commitGroups}}}",
-          "partials": {
-            "commitTemplate": "- {{header}} {{hash}}\n"
-          },
-          "issueResolution": {
-            "template": "{{{host}}}/{{{owner}}}/{{{repository}}}/issues/{{{ref}}}"
-          }
         }
       }
-    ],
-    [
-      "@semantic-release/changelog",
-      {
-        "changelogFile": "CHANGELOG.md"
-      }
-    ],
-    [
-      "@semantic-release/git",
-      {
-        "assets": ["CHANGELOG.md"],
-        "message": ":bookmark: release: v${nextRelease.version}\n\n${nextRelease.notes}"
-      }
-    ],
-    "@semantic-release/github"
+    ]
   ]
 }
