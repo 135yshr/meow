@@ -35,8 +35,9 @@ const (
 	AND     // &&
 	OR      // ||
 	NOT     // !
-	PIPE    // |=|
-	DOTDOT  // ..
+	PIPE       // |=|
+	TILDEARROW // ~>
+	DOTDOT     // ..
 	ARROW   // =>
 
 	// Delimiters

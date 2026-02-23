@@ -83,6 +83,13 @@ func (f *Func) Call(args ...Value) Value {
 	return f.Fn(args...)
 }
 
+// Furball represents an error value caught by Gag.
+type Furball struct{ Message string }
+
+func (e *Furball) Type() string   { return "Furball" }
+func (e *Furball) String() string { return e.Message }
+func (e *Furball) IsTruthy() bool { return false }
+
 // List represents a list value.
 type List struct {
 	// Items is the slice of values in the list.

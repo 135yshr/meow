@@ -13,6 +13,7 @@
 //   - [NilValue]  nil / catnap
 //   - [Func]      callable function
 //   - [List]      ordered collection of values
+//   - [Furball]   error value (caught by Gag)
 //
 // # Constructors
 //
@@ -27,6 +28,10 @@
 // # Built-in Functions
 //
 //   - [Nya]       print values to stdout (like fmt.Println)
+//   - [Hiss]      raise an error with a message
+//   - [Gag]       call a function and recover from panics (returns [Furball] on error)
+//   - [GagOr]     call a function and return a fallback on panic (~> operator)
+//   - [IsFurball]  check if a value is a [Furball]
 //   - [Call]      invoke a Func value
 //   - [Len]       return the length of a String or List
 //   - [ToInt]     convert to Int

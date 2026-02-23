@@ -26,7 +26,9 @@
 //   - If/else, while loops
 //   - List literals and index access
 //   - Pipe expressions (|=|)
+//   - Error recovery expressions (~>)
 //   - Pattern matching (peek)
+//   - Error raising (hiss) and recovery (gag/isFurball)
 //
 // # Usage
 //

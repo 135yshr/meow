@@ -1,0 +1,34 @@
+meow divide(a, b) {
+  sniff (b == 0) {
+    hiss("division by zero")
+  }
+  bring a / b
+}
+
+# gag catches a panic and returns a Furball
+nyan result = gag(paw() { divide(10, 0) })
+sniff (isFurball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+
+# gag returns the value when no error occurs
+nyan ok = gag(paw() { divide(10, 2) })
+sniff (isFurball(ok)) {
+  nya("error:", ok)
+} scratch {
+  nya("ok:", ok)
+}
+
+# ~> with literal fallback
+nyan safe = divide(10, 0) ~> 0
+nya("safe:", safe)
+
+# ~> when no error occurs
+nyan normal = divide(10, 2) ~> 0
+nya("normal:", normal)
+
+# ~> with handler function
+nyan handled = divide(10, 0) ~> paw(err) { 42 }
+nya("handled:", handled)

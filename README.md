@@ -172,6 +172,32 @@ picky(nums, paw(x) { x % 2 == 0 })   # => [2, 4]
 curl(nums, 0, paw(acc, x) { acc + x }) # => 15
 ```
 
+### Error Handling
+
+```
+meow divide(a, b) {
+  sniff (b == 0) { hiss("division by zero") }
+  bring a / b
+}
+
+# Concise error recovery with ~>
+nyan val = divide(10, 0) ~> 0
+nya(val)   # => 0
+
+# With a handler function
+nyan val2 = divide(10, 0) ~> paw(err) { 42 }
+nya(val2)  # => 42
+
+# Verbose style with gag/isFurball
+nyan result = gag(paw() { divide(10, 0) })
+sniff (isFurball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+# => caught: Hiss! division by zero
+```
+
 ### Pattern Matching
 
 ```
@@ -213,6 +239,8 @@ nyan result = peek(score) {
 | `curl` | Reduce list | `curl(nums, 0, paw(a, x) { a + x })` |
 | `peek` | Pattern match | `peek(v) { 0 => "zero", _ => "other" }` |
 | `hiss` | Raise error | `hiss("something went wrong")` |
+| `gag` | Catch errors | `gag(paw() { risky() })` |
+| `isFurball` | Check if error | `isFurball(result)` |
 | `fetch` | Import *(planned)* | — |
 | `flaunt` | Export *(planned)* | — |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
@@ -228,6 +256,7 @@ nyan result = peek(score) {
 | `<` `>` `<=` `>=` | Comparison | `x < 10` |
 | `&&` `\|\|` `!` | Logical | `x > 0 && !done` |
 | `\|=\|` | Pipe | `nums \|=\| lick(double)` |
+| `~>` | Error recovery | `divide(10, 0) ~> 0` |
 | `..` | Range | `1..10` |
 | `=>` | Match arm | `0 => "zero"` |
 | `=` | Assignment | `nyan x = 1` |

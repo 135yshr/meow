@@ -355,6 +355,18 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 						return
 					}
 				}
+			case r == '~':
+				l.advance()
+				if l.peek() == '>' {
+					l.advance()
+					if !yield(l.makeToken(token.TILDEARROW, "~>", pos)) {
+						return
+					}
+				} else {
+					if !yield(l.makeToken(token.ILLEGAL, "~", pos)) {
+						return
+					}
+				}
 			case r == '#':
 				// line comment
 				if !yield(l.readLineComment()) {

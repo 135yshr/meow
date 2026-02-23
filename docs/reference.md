@@ -19,6 +19,8 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `curl` | Combine a list into a single value (reduce) | `curl(nums, 0, paw(a, x) { a + x })` |
 | `peek` | Branch based on a value (pattern match) | `peek(v) { 0 => "zero", _ => "other" }` |
 | `hiss` | Raise an error | `hiss("something went wrong")` |
+| `gag` | Catch errors (try/recover) | `gag(paw() { risky() })` |
+| `isFurball` | Check if a value is an error | `isFurball(result)` |
 | `fetch` | Import *(not yet implemented)* | --- |
 | `flaunt` | Export *(not yet implemented)* | --- |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
@@ -61,6 +63,7 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | Operator | Meaning | Example |
 |----------|---------|---------|
 | `\|=\|` | Pipe (chain operations) | `nums \|=\| lick(double)` |
+| `~>` | Error recovery (catch) | `divide(10, 0) ~> 0` |
 | `..` | Range | `1..10` |
 | `=>` | Match arm separator | `0 => "zero"` |
 | `=` | Assignment | `nyan x = 1` |
@@ -133,6 +136,75 @@ purr (i < 10) {
   nya(i)
   i = i + 1
 }
+```
+
+### Error Handling
+
+Use `hiss` to raise an error and stop execution. The error message
+is prefixed with `Hiss!` automatically.
+
+```
+meow divide(a, b) {
+  sniff (b == 0) {
+    hiss("division by zero")
+  }
+  bring a / b
+}
+
+nya(divide(10, 0))   # => Hiss! division by zero
+```
+
+Multiple arguments are joined with spaces:
+
+```
+hiss("unexpected value:", x)
+```
+
+Use `gag` to catch errors. Wrap risky code in a lambda and pass it
+to `gag`. If the code panics, `gag` returns a `Furball` (error value)
+instead of crashing. Use `isFurball` to check if a value is an error.
+
+```
+nyan result = gag(paw() { divide(10, 0) })
+
+sniff (isFurball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+# => caught: Hiss! division by zero
+```
+
+If the code succeeds, `gag` returns its result normally:
+
+```
+nyan ok = gag(paw() { divide(10, 2) })
+nya(ok)   # => 5
+```
+
+### Error Recovery with `~>`
+
+The `~>` (cat tail arrow) operator provides concise error recovery.
+If the left-hand expression panics, the fallback on the right is used instead.
+The `~` resembles a cat's tail, and `>` points to the fallback.
+
+```
+nyan val = divide(10, 0) ~> 0
+nya(val)   # => 0
+```
+
+When no error occurs, the original result is returned:
+
+```
+nyan val = divide(10, 2) ~> 0
+nya(val)   # => 5
+```
+
+The fallback can also be a handler function that receives the error:
+
+```
+nyan val = divide(10, 0) ~> paw(err) { 42 }
+nya(val)   # => 42
 ```
 
 ### Lambdas
