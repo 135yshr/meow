@@ -81,7 +81,7 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	}
 
 	// Create go.mod in temp dir
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.23\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
