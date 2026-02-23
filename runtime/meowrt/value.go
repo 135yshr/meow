@@ -66,7 +66,11 @@ type Func struct {
 }
 
 // NewFunc creates a new Func value with the given name and implementation.
+// fn must not be nil; passing nil will panic.
 func NewFunc(name string, fn func(args ...Value) Value) *Func {
+	if fn == nil {
+		panic("Hiss! fn must not be nil, nya~")
+	}
 	return &Func{Name: name, Fn: fn}
 }
 
@@ -106,6 +110,7 @@ func (l *List) Len() int {
 }
 
 // Get returns the item at the given index.
+// It panics if index is out of range.
 func (l *List) Get(index int) Value {
 	if index < 0 || index >= len(l.Items) {
 		panic(fmt.Sprintf("Hiss! Index %d out of range, nya~", index))

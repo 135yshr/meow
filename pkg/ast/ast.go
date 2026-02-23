@@ -244,7 +244,7 @@ func (n *LiteralPattern) Pos() token.Position { return n.Token.Pos }
 func (n *LiteralPattern) nodeTag()            {}
 func (n *LiteralPattern) patternTag()         {}
 
-// RangePattern matches a range of values (e.g. 1..10).
+// RangePattern matches an inclusive range of values (e.g. 1..10).
 type RangePattern struct {
 	// Token is the dotdot operator token.
 	Token token.Token
