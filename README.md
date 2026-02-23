@@ -311,6 +311,7 @@ Check the [`examples/`](examples/) directory:
 | [`fibonacci.nyan`](examples/fibonacci.nyan) | Recursive Fibonacci sequence |
 | [`fizzbuzz.nyan`](examples/fizzbuzz.nyan) | Classic FizzBuzz with `sniff`/`scratch` chains |
 | [`list_ops.nyan`](examples/list_ops.nyan) | `lick`, `picky`, `curl` demo |
+| [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `isFurball`, `~>` demo |
 
 ## Project Structure
 

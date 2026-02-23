@@ -1,0 +1,41 @@
+# Error Handling in Meow
+# Demonstrates hiss, gag, isFurball, and the ~> operator
+
+meow divide(a, b) {
+  sniff (b == 0) {
+    hiss("division by zero")
+  }
+  bring a / b
+}
+
+# --- hiss: raise an error ---
+# nya(divide(10, 0))   # would crash with: Hiss! division by zero
+
+# --- gag / isFurball: verbose error recovery ---
+nyan result = gag(paw() { divide(10, 0) })
+sniff (isFurball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+
+nyan ok = gag(paw() { divide(10, 2) })
+sniff (isFurball(ok)) {
+  nya("error:", ok)
+} scratch {
+  nya("ok:", ok)
+}
+
+# --- ~> operator: concise error recovery ---
+
+# fallback to a default value
+nyan safe = divide(10, 0) ~> 0
+nya("safe:", safe)
+
+# no error — original result is returned
+nyan normal = divide(10, 2) ~> 0
+nya("normal:", normal)
+
+# fallback with a handler function
+nyan handled = divide(10, 0) ~> paw(err) { 42 }
+nya("handled:", handled)
