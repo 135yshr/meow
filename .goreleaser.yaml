@@ -1,0 +1,55 @@
+version: 2
+
+release:
+  mode: append
+
+before:
+  hooks:
+    - go install golang.org/x/tools/cmd/stringer@latest
+    - go generate ./...
+
+builds:
+  - binary: meow
+    main: ./cmd/meow
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - linux_amd64
+      - linux_arm64
+      - darwin_amd64
+      - darwin_arm64
+      - windows_amd64
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+homebrew_casks:
+  - name: meow
+    binaries:
+      - meow
+    repository:
+      owner: 135yshr
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    url:
+      verified: github.com/135yshr/meow
+    homepage: https://github.com/135yshr/meow
+    description: The purrfect functional programming language
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
