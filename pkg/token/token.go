@@ -2,6 +2,8 @@ package token
 
 import "fmt"
 
+// TokenType represents the type of a lexical token.
+//
 //go:generate stringer -type=TokenType
 type TokenType int
 
