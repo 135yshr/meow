@@ -82,7 +82,7 @@ go install .
 go install github.com/135yshr/meow@latest
 ```
 
-**Requires Go 1.23+** (for iterator support)
+**Requires Go 1.26+**
 
 ## Quick Start
 
