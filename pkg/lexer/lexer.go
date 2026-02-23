@@ -329,9 +329,10 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 				}
 			case r == '|':
 				l.advance()
-				if l.peek() == '>' {
-					l.advance()
-					if !yield(l.makeToken(token.PIPE, "|>", pos)) {
+				if l.peek() == '=' && l.peekAt(1) == '|' {
+					l.advance() // =
+					l.advance() // |
+					if !yield(l.makeToken(token.PIPE, "|=|", pos)) {
 						return
 					}
 				} else if l.peek() == '|' {

@@ -192,7 +192,7 @@ func (n *IndexExpr) Pos() token.Position { return n.Token.Pos }
 func (n *IndexExpr) nodeTag()            {}
 func (n *IndexExpr) exprTag()            {}
 
-// PipeExpr represents a pipe operation (e.g. xs |> lick(f)).
+// PipeExpr represents a pipe operation (e.g. xs |=| lick(f)).
 type PipeExpr struct {
 	// Token is the pipe operator token.
 	Token token.Token

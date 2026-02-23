@@ -39,7 +39,7 @@ func TestKeywords(t *testing.T) {
 }
 
 func TestOperators(t *testing.T) {
-	input := `+ - * / % = == != < > <= >= && || ! |> .. =>`
+	input := `+ - * / % = == != < > <= >= && || ! |=| .. =>`
 	l := lexer.New(input, "test.nyan")
 	tokens := collect(l)
 	expected := []token.TokenType{

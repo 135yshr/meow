@@ -121,7 +121,7 @@ func TestListLit(t *testing.T) {
 }
 
 func TestPipeExpr(t *testing.T) {
-	prog := parse(t, `xs |> lick(double)`)
+	prog := parse(t, `xs |=| lick(double)`)
 	stmt := prog.Stmts[0].(*ast.ExprStmt)
 	_, ok := stmt.Expr.(*ast.PipeExpr)
 	if !ok {

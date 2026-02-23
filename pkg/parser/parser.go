@@ -216,7 +216,7 @@ const (
 	precAnd   // &&
 	precEq    // == !=
 	precCmp   // < > <= >=
-	precPipe  // |>
+	precPipe  // |=|
 	precAdd   // + -
 	precMul   // * / %
 	precUnary // ! -

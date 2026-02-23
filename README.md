@@ -62,7 +62,7 @@ Hello, Tama!
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
-- **Pipe operator** — Chain operations with `|>`
+- **Pipe operator** — Chain operations with `|=|`
 - **Cat error messages** — `Hiss! "x" is not defined, nya~`
 - **Modern Go internals** — Built with `iter.Seq`, `iter.Pull`, generics, `go:embed`
 
@@ -192,26 +192,56 @@ nyan result = peek(score) {
    block comment ~-
 ```
 
-## Keyword Cheat Sheet
+## Language Cheat Sheet
 
-| Meow | Meaning | Go Equivalent |
-|------|---------|---------------|
-| `nyan` | Variable declaration | `var` / `:=` |
-| `meow` | Function definition | `func` |
-| `bring` | Return value | `return` |
-| `sniff` | If condition | `if` |
-| `scratch` | Else branch | `else` |
-| `purr` | While loop | `for` |
-| `paw` | Lambda | `func(...)` |
-| `nya` | Print | `fmt.Println` |
-| `lick` | Map over list | — |
-| `picky` | Filter list | — |
-| `curl` | Reduce list | — |
-| `peek` | Pattern match | `switch` |
-| `yarn` | True | `true` |
-| `hairball` | False | `false` |
-| `catnap` | Nil | `nil` |
-| `hiss` | Error | `panic` |
+> Full reference: [docs/reference.md](docs/reference.md)
+
+### Keywords
+
+| Meow | Meaning | Go Equivalent | Example |
+|------|---------|---------------|---------|
+| `nyan` | Variable declaration | `var` / `:=` | `nyan x = 42` |
+| `meow` | Function definition | `func` | `meow add(a, b) { bring a + b }` |
+| `bring` | Return value | `return` | `bring x + 1` |
+| `sniff` | If condition | `if` | `sniff (x > 0) { ... }` |
+| `scratch` | Else branch | `else` | `} scratch { ... }` |
+| `purr` | While loop | `for` | `purr (i < 10) { ... }` |
+| `paw` | Lambda | `func(...)` | `paw(x) { x * 2 }` |
+| `nya` | Print | `fmt.Println` | `nya("Hello!")` |
+| `lick` | Map over list | — | `lick(nums, paw(x) { x * 2 })` |
+| `picky` | Filter list | — | `picky(nums, paw(x) { x > 0 })` |
+| `curl` | Reduce list | — | `curl(nums, 0, paw(a, x) { a + x })` |
+| `peek` | Pattern match | `switch` | `peek(v) { 0 => "zero", _ => "other" }` |
+| `hiss` | Error | `panic` | `hiss("something went wrong")` |
+| `fetch` | Import *(planned)* | `import` | — |
+| `flaunt` | Export *(planned)* | `export` | — |
+| `yarn` | True | `true` | `nyan ok = yarn` |
+| `hairball` | False | `false` | `nyan ng = hairball` |
+| `catnap` | Nil | `nil` | `nyan nothing = catnap` |
+
+### Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `+` `-` `*` `/` `%` | Arithmetic | `1 + 2`, `10 % 3` |
+| `==` `!=` | Equality | `x == 0` |
+| `<` `>` `<=` `>=` | Comparison | `x < 10` |
+| `&&` `\|\|` `!` | Logical | `x > 0 && !done` |
+| `\|=\|` | Pipe | `nums \|=\| lick(double)` |
+| `..` | Range | `1..10` |
+| `=>` | Match arm | `0 => "zero"` |
+| `=` | Assignment | `nyan x = 1` |
+
+### Literals & Delimiters
+
+| Token | Meaning |
+|-------|---------|
+| `42`, `3.14` | Integer / Float |
+| `"hello"` | String |
+| `( )` `{ }` `[ ]` | Parens / Braces / Brackets |
+| `,` | Separator |
+| `#` | Line comment |
+| `-~ ... ~-` | Block comment |
 
 ## CLI Usage
 

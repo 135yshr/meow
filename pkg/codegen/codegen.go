@@ -286,7 +286,7 @@ func (g *Generator) genIndex(e *ast.IndexExpr) string {
 
 func (g *Generator) genPipe(e *ast.PipeExpr) string {
 	left := g.genExpr(e.Left)
-	// Pipe: left |> fn  =>  fn is called with left as first argument
+	// Pipe: left |=| fn  =>  fn is called with left as first argument
 	if call, ok := e.Right.(*ast.CallExpr); ok {
 		ident, isIdent := call.Fn.(*ast.Ident)
 		args := []string{left}
