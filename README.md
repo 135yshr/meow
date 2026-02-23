@@ -62,7 +62,7 @@ Hello, Tama!
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
-- **Pipe operator** — Chain operations with `|>`
+- **Pipe operator** — Chain operations with `|=|`
 - **Cat error messages** — `Hiss! "x" is not defined, nya~`
 - **Modern Go internals** — Built with `iter.Seq`, `iter.Pull`, generics, `go:embed`
 
@@ -154,7 +154,7 @@ purr (i < 10) {
 
 ```
 nyan double = paw(x) { x * 2 }
-nya(double(5))   # => 10 (via meow.Call)
+nya(double(5))   # => 10
 ```
 
 ### Lists
@@ -170,6 +170,32 @@ picky(nums, paw(x) { x % 2 == 0 })   # => [2, 4]
 
 # reduce
 curl(nums, 0, paw(acc, x) { acc + x }) # => 15
+```
+
+### Error Handling
+
+```
+meow divide(a, b) {
+  sniff (b == 0) { hiss("division by zero") }
+  bring a / b
+}
+
+# Concise error recovery with ~>
+nyan val = divide(10, 0) ~> 0
+nya(val)   # => 0
+
+# With a handler function
+nyan val2 = divide(10, 0) ~> paw(err) { 42 }
+nya(val2)  # => 42
+
+# Verbose style with gag/isFurball
+nyan result = gag(paw() { divide(10, 0) })
+sniff (isFurball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+# => caught: Hiss! division by zero
 ```
 
 ### Pattern Matching
@@ -192,26 +218,59 @@ nyan result = peek(score) {
    block comment ~-
 ```
 
-## Keyword Cheat Sheet
+## Language Cheat Sheet
 
-| Meow | Meaning | Go Equivalent |
-|------|---------|---------------|
-| `nyan` | Variable declaration | `var` / `:=` |
-| `meow` | Function definition | `func` |
-| `bring` | Return value | `return` |
-| `sniff` | If condition | `if` |
-| `scratch` | Else branch | `else` |
-| `purr` | While loop | `for` |
-| `paw` | Lambda | `func(...)` |
-| `nya` | Print | `fmt.Println` |
-| `lick` | Map over list | — |
-| `picky` | Filter list | — |
-| `curl` | Reduce list | — |
-| `peek` | Pattern match | `switch` |
-| `yarn` | True | `true` |
-| `hairball` | False | `false` |
-| `catnap` | Nil | `nil` |
-| `hiss` | Error | `panic` |
+> Full reference: [docs/reference.md](docs/reference.md)
+
+### Keywords
+
+| Meow | Meaning | Example |
+|------|---------|---------|
+| `nyan` | Variable declaration | `nyan x = 42` |
+| `meow` | Function definition | `meow add(a, b) { bring a + b }` |
+| `bring` | Return value | `bring x + 1` |
+| `sniff` | If condition | `sniff (x > 0) { ... }` |
+| `scratch` | Else branch | `} scratch { ... }` |
+| `purr` | While loop | `purr (i < 10) { ... }` |
+| `paw` | Lambda (anonymous function) | `paw(x) { x * 2 }` |
+| `nya` | Print | `nya("Hello!")` |
+| `lick` | Map over list | `lick(nums, paw(x) { x * 2 })` |
+| `picky` | Filter list | `picky(nums, paw(x) { x > 0 })` |
+| `curl` | Reduce list | `curl(nums, 0, paw(a, x) { a + x })` |
+| `peek` | Pattern match | `peek(v) { 0 => "zero", _ => "other" }` |
+| `hiss` | Raise error | `hiss("something went wrong")` |
+| `gag` | Catch errors | `gag(paw() { risky() })` |
+| `isFurball` | Check if error | `isFurball(result)` |
+| `fetch` | Import *(planned)* | — |
+| `flaunt` | Export *(planned)* | — |
+| `yarn` | True (boolean literal) | `nyan ok = yarn` |
+| `hairball` | False (boolean literal) | `nyan ng = hairball` |
+| `catnap` | Nil (empty value) | `nyan nothing = catnap` |
+
+### Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `+` `-` `*` `/` `%` | Arithmetic | `1 + 2`, `10 % 3` |
+| `==` `!=` | Equality | `x == 0` |
+| `<` `>` `<=` `>=` | Comparison | `x < 10` |
+| `&&` `\|\|` `!` | Logical | `x > 0 && !done` |
+| `\|=\|` | Pipe | `nums \|=\| lick(double)` |
+| `~>` | Error recovery | `divide(10, 0) ~> 0` |
+| `..` | Range | `1..10` |
+| `=>` | Match arm | `0 => "zero"` |
+| `=` | Assignment | `nyan x = 1` |
+
+### Literals & Delimiters
+
+| Token | Meaning |
+|-------|---------|
+| `42`, `3.14` | Integer / Float |
+| `"hello"` | String |
+| `( )` `{ }` `[ ]` | Parens / Braces / Brackets |
+| `,` | Separator |
+| `#` | Line comment |
+| `-~ ... ~-` | Block comment |
 
 ## CLI Usage
 
@@ -252,6 +311,7 @@ Check the [`examples/`](examples/) directory:
 | [`fibonacci.nyan`](examples/fibonacci.nyan) | Recursive Fibonacci sequence |
 | [`fizzbuzz.nyan`](examples/fizzbuzz.nyan) | Classic FizzBuzz with `sniff`/`scratch` chains |
 | [`list_ops.nyan`](examples/list_ops.nyan) | `lick`, `picky`, `curl` demo |
+| [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `isFurball`, `~>` demo |
 
 ## Project Structure
 

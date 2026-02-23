@@ -1,6 +1,9 @@
 package meowrt
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Nya prints a value (the Meow print function).
 func Nya(args ...Value) Value {
@@ -16,6 +19,18 @@ func Nya(args ...Value) Value {
 	}
 	fmt.Println()
 	return NewNil()
+}
+
+// Hiss raises an error with the given message.
+func Hiss(args ...Value) Value {
+	parts := make([]string, len(args))
+	for i, v := range args {
+		parts[i] = v.String()
+	}
+	if len(parts) == 0 {
+		panic("Hiss!")
+	}
+	panic(fmt.Sprintf("Hiss! %s", strings.Join(parts, " ")))
 }
 
 // Call invokes a function value with the given arguments.
@@ -71,4 +86,45 @@ func ToFloat(v Value) Value {
 // ToString converts a value to a string.
 func ToString(v Value) Value {
 	return NewString(v.String())
+}
+
+// Gag calls fn (a zero-argument Func) and recovers from any panic,
+// returning the panic message wrapped in a Furball.
+// If fn succeeds, its return value is returned as-is.
+func Gag(fn Value) Value {
+	f, ok := fn.(*Func)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! gag expects a function, got %s, nya~", fn.Type()))
+	}
+	var result Value
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				result = &Furball{Message: fmt.Sprintf("%v", r)}
+			}
+		}()
+		result = f.Call()
+	}()
+	return result
+}
+
+// GagOr calls fn (a zero-argument Func) and recovers from any panic.
+// If the call succeeds, its return value is returned as-is.
+// If it panics, the fallback is used: if fallback is a Func it is called
+// with the Furball as argument; otherwise fallback is returned directly.
+func GagOr(fn Value, fallback Value) Value {
+	result := Gag(fn)
+	if _, ok := result.(*Furball); ok {
+		if f, fok := fallback.(*Func); fok {
+			return f.Call(result)
+		}
+		return fallback
+	}
+	return result
+}
+
+// IsFurball returns NewBool(true) if v is a Furball, NewBool(false) otherwise.
+func IsFurball(v Value) Value {
+	_, ok := v.(*Furball)
+	return NewBool(ok)
 }

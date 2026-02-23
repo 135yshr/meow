@@ -1,5 +1,3 @@
-// Package lexer implements the lexical scanner for the Meow language.
-// It converts source text into a stream of tokens using [iter.Seq].
 package lexer
 
 import (
@@ -329,9 +327,10 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 				}
 			case r == '|':
 				l.advance()
-				if l.peek() == '>' {
-					l.advance()
-					if !yield(l.makeToken(token.PIPE, "|>", pos)) {
+				if l.peek() == '=' && l.peekAt(1) == '|' {
+					l.advance() // =
+					l.advance() // |
+					if !yield(l.makeToken(token.PIPE, "|=|", pos)) {
 						return
 					}
 				} else if l.peek() == '|' {
@@ -353,6 +352,18 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 					}
 				} else {
 					if !yield(l.makeToken(token.ILLEGAL, ".", pos)) {
+						return
+					}
+				}
+			case r == '~':
+				l.advance()
+				if l.peek() == '>' {
+					l.advance()
+					if !yield(l.makeToken(token.TILDEARROW, "~>", pos)) {
+						return
+					}
+				} else {
+					if !yield(l.makeToken(token.ILLEGAL, "~", pos)) {
 						return
 					}
 				}

@@ -1,5 +1,3 @@
-// Package parser implements a Pratt (precedence-climbing) recursive descent
-// parser for the Meow language. It consumes tokens via [iter.Pull] and produces an AST.
 package parser
 
 import (
@@ -212,11 +210,12 @@ func (p *Parser) consumeTerminator() {
 
 const (
 	precNone  = iota
+	precCatch // ~>
 	precOr    // ||
 	precAnd   // &&
 	precEq    // == !=
 	precCmp   // < > <= >=
-	precPipe  // |>
+	precPipe  // |=|
 	precAdd   // + -
 	precMul   // * / %
 	precUnary // ! -
@@ -242,6 +241,8 @@ func (p *Parser) infixPrec(typ token.TokenType) int {
 		return precEq
 	case token.LT, token.GT, token.LTE, token.GTE:
 		return precCmp
+	case token.TILDEARROW:
+		return precCatch
 	case token.PIPE:
 		return precPipe
 	case token.PLUS, token.MINUS:
@@ -286,6 +287,8 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return p.parseIdentOrCall()
 	case token.NYA:
 		return p.parseNyaCall()
+	case token.HISS:
+		return p.parseBuiltinCall()
 	case token.LICK, token.PICKY, token.CURL:
 		return p.parseBuiltinCall()
 	case token.LPAREN:
@@ -312,6 +315,10 @@ func (p *Parser) parseInfix(left ast.Expr, prec int) ast.Expr {
 	if tok.Type == token.PIPE {
 		right := p.parseExpr(prec)
 		return &ast.PipeExpr{Token: tok, Left: left, Right: right}
+	}
+	if tok.Type == token.TILDEARROW {
+		right := p.parseExpr(prec)
+		return &ast.CatchExpr{Token: tok, Left: left, Right: right}
 	}
 	right := p.parseExpr(prec)
 	return &ast.BinaryExpr{Token: tok, Op: tok.Type, Left: left, Right: right}

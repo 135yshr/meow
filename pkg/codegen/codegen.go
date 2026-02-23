@@ -1,5 +1,3 @@
-// Package codegen translates the Meow AST into Go source code.
-// The generated code depends on the meowrt runtime package for dynamic typing.
 package codegen
 
 import (
@@ -156,6 +154,8 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		return g.genIndex(e)
 	case *ast.PipeExpr:
 		return g.genPipe(e)
+	case *ast.CatchExpr:
+		return g.genCatch(e)
 	case *ast.MatchExpr:
 		return g.genMatch(e)
 	default:
@@ -225,6 +225,8 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 		switch ident.Name {
 		case "nya":
 			return fmt.Sprintf("meow.Nya(%s)", argStr)
+		case "hiss":
+			return fmt.Sprintf("meow.Hiss(%s)", argStr)
 		case "lick":
 			return fmt.Sprintf("meow.Lick(%s)", argStr)
 		case "picky":
@@ -245,6 +247,10 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToFloat(%s)", argStr)
 		case "toString":
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
+		case "gag":
+			return fmt.Sprintf("meow.Gag(%s)", argStr)
+		case "isFurball":
+			return fmt.Sprintf("meow.IsFurball(%s)", argStr)
 		default:
 			return fmt.Sprintf("%s(%s)", ident.Name, argStr)
 		}
@@ -268,6 +274,7 @@ func (g *Generator) genLambdaParamBindings(params []string) string {
 	var lines []string
 	for i, p := range params {
 		lines = append(lines, fmt.Sprintf("%s := args[%d]", p, i))
+		lines = append(lines, fmt.Sprintf("_ = %s", p))
 	}
 	return strings.Join(lines, "\n\t")
 }
@@ -286,7 +293,7 @@ func (g *Generator) genIndex(e *ast.IndexExpr) string {
 
 func (g *Generator) genPipe(e *ast.PipeExpr) string {
 	left := g.genExpr(e.Left)
-	// Pipe: left |> fn  =>  fn is called with left as first argument
+	// Pipe: left |=| fn  =>  fn is called with left as first argument
 	if call, ok := e.Right.(*ast.CallExpr); ok {
 		ident, isIdent := call.Fn.(*ast.Ident)
 		args := []string{left}
@@ -310,6 +317,15 @@ func (g *Generator) genPipe(e *ast.PipeExpr) string {
 	}
 	// fn(left)
 	return fmt.Sprintf("meow.Call(%s, %s)", g.genExpr(e.Right), left)
+}
+
+func (g *Generator) genCatch(e *ast.CatchExpr) string {
+	left := g.genExpr(e.Left)
+	right := g.genExpr(e.Right)
+	return fmt.Sprintf(
+		"meow.GagOr(meow.NewFunc(\"~>\", func(args ...meow.Value) meow.Value {\n"+
+			"\treturn %s\n"+
+			"}), %s)", left, right)
 }
 
 func (g *Generator) genMatch(e *ast.MatchExpr) string {

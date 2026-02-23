@@ -1,5 +1,3 @@
-// Package token defines the lexical token types, keywords, and source positions
-// used throughout the Meow language compiler.
 package token
 
 import "fmt"
@@ -37,8 +35,9 @@ const (
 	AND     // &&
 	OR      // ||
 	NOT     // !
-	PIPE    // |>
-	DOTDOT  // ..
+	PIPE       // |=|
+	TILDEARROW // ~>
+	DOTDOT     // ..
 	ARROW   // =>
 
 	// Delimiters

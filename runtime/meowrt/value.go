@@ -1,6 +1,3 @@
-// Package meowrt provides the runtime support for compiled Meow programs.
-// It defines the dynamic [Value] interface and concrete types used for all
-// values at runtime, along with built-in functions and operators.
 package meowrt
 
 import (
@@ -85,6 +82,13 @@ func (f *Func) IsTruthy() bool { return true }
 func (f *Func) Call(args ...Value) Value {
 	return f.Fn(args...)
 }
+
+// Furball represents an error value caught by Gag.
+type Furball struct{ Message string }
+
+func (e *Furball) Type() string   { return "Furball" }
+func (e *Furball) String() string { return e.Message }
+func (e *Furball) IsTruthy() bool { return false }
 
 // List represents a list value.
 type List struct {

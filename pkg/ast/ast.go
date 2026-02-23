@@ -1,5 +1,3 @@
-// Package ast defines the abstract syntax tree nodes for the Meow language.
-// It contains expression, statement, and pattern node types produced by the parser.
 package ast
 
 import "github.com/135yshr/meow/pkg/token"
@@ -192,7 +190,7 @@ func (n *IndexExpr) Pos() token.Position { return n.Token.Pos }
 func (n *IndexExpr) nodeTag()            {}
 func (n *IndexExpr) exprTag()            {}
 
-// PipeExpr represents a pipe operation (e.g. xs |> lick(f)).
+// PipeExpr represents a pipe operation (e.g. xs |=| lick(f)).
 type PipeExpr struct {
 	// Token is the pipe operator token.
 	Token token.Token
@@ -205,6 +203,20 @@ type PipeExpr struct {
 func (n *PipeExpr) Pos() token.Position { return n.Token.Pos }
 func (n *PipeExpr) nodeTag()            {}
 func (n *PipeExpr) exprTag()            {}
+
+// CatchExpr represents an error recovery expression (expr ~> fallback).
+type CatchExpr struct {
+	// Token is the ~> operator token.
+	Token token.Token
+	// Left is the expression that may fail.
+	Left Expr
+	// Right is the fallback expression.
+	Right Expr
+}
+
+func (n *CatchExpr) Pos() token.Position { return n.Token.Pos }
+func (n *CatchExpr) nodeTag()            {}
+func (n *CatchExpr) exprTag()            {}
 
 // MatchExpr represents a peek (pattern match) expression.
 type MatchExpr struct {

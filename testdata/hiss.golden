@@ -1,0 +1,5 @@
+caught: Hiss! division by zero
+ok: 5
+safe: 0
+normal: 5
+handled: 42
