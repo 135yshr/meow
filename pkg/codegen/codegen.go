@@ -1,3 +1,5 @@
+// Package codegen translates the Meow AST into Go source code.
+// The generated code depends on the meowrt runtime package for dynamic typing.
 package codegen
 
 import (

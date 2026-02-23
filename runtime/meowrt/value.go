@@ -1,3 +1,6 @@
+// Package meowrt provides the runtime support for compiled Meow programs.
+// It defines the dynamic [Value] interface and concrete types used for all
+// values at runtime, along with built-in functions and operators.
 package meowrt
 
 import (
@@ -15,66 +18,81 @@ type Value interface {
 // Int represents an integer value.
 type Int struct{ Val int64 }
 
-func NewInt(v int64) *Int       { return &Int{Val: v} }
-func (i *Int) Type() string     { return "Int" }
-func (i *Int) String() string   { return fmt.Sprintf("%d", i.Val) }
-func (i *Int) IsTruthy() bool   { return i.Val != 0 }
+// NewInt creates a new Int value.
+func NewInt(v int64) *Int     { return &Int{Val: v} }
+func (i *Int) Type() string   { return "Int" }
+func (i *Int) String() string { return fmt.Sprintf("%d", i.Val) }
+func (i *Int) IsTruthy() bool { return i.Val != 0 }
 
 // Float represents a floating-point value.
 type Float struct{ Val float64 }
 
-func NewFloat(v float64) *Float   { return &Float{Val: v} }
-func (f *Float) Type() string     { return "Float" }
-func (f *Float) String() string   { return fmt.Sprintf("%g", f.Val) }
-func (f *Float) IsTruthy() bool   { return f.Val != 0 }
+// NewFloat creates a new Float value.
+func NewFloat(v float64) *Float { return &Float{Val: v} }
+func (f *Float) Type() string   { return "Float" }
+func (f *Float) String() string { return fmt.Sprintf("%g", f.Val) }
+func (f *Float) IsTruthy() bool { return f.Val != 0 }
 
 // String represents a string value.
 type String struct{ Val string }
 
-func NewString(v string) *String  { return &String{Val: v} }
-func (s *String) Type() string    { return "String" }
-func (s *String) String() string  { return s.Val }
-func (s *String) IsTruthy() bool  { return s.Val != "" }
+// NewString creates a new String value.
+func NewString(v string) *String { return &String{Val: v} }
+func (s *String) Type() string   { return "String" }
+func (s *String) String() string { return s.Val }
+func (s *String) IsTruthy() bool { return s.Val != "" }
 
 // Bool represents a boolean value.
 type Bool struct{ Val bool }
 
-func NewBool(v bool) *Bool      { return &Bool{Val: v} }
-func (b *Bool) Type() string    { return "Bool" }
-func (b *Bool) String() string  { return fmt.Sprintf("%t", b.Val) }
-func (b *Bool) IsTruthy() bool  { return b.Val }
+// NewBool creates a new Bool value.
+func NewBool(v bool) *Bool     { return &Bool{Val: v} }
+func (b *Bool) Type() string   { return "Bool" }
+func (b *Bool) String() string { return fmt.Sprintf("%t", b.Val) }
+func (b *Bool) IsTruthy() bool { return b.Val }
 
 // NilValue represents a nil/catnap value.
 type NilValue struct{}
 
-func NewNil() *NilValue           { return &NilValue{} }
-func (n *NilValue) Type() string  { return "Nil" }
+// NewNil creates a new NilValue.
+func NewNil() *NilValue            { return &NilValue{} }
+func (n *NilValue) Type() string   { return "Nil" }
 func (n *NilValue) String() string { return "catnap" }
 func (n *NilValue) IsTruthy() bool { return false }
 
 // Func represents a function value.
 type Func struct {
+	// Name is the function name for display purposes.
 	Name string
-	Fn   func(args ...Value) Value
+	// Fn is the underlying Go function implementation.
+	Fn func(args ...Value) Value
 }
 
+// NewFunc creates a new Func value with the given name and implementation.
+// fn must not be nil; passing nil will panic.
 func NewFunc(name string, fn func(args ...Value) Value) *Func {
+	if fn == nil {
+		panic("Hiss! fn must not be nil, nya~")
+	}
 	return &Func{Name: name, Fn: fn}
 }
 
-func (f *Func) Type() string    { return "Func" }
-func (f *Func) String() string  { return fmt.Sprintf("<meow %s>", f.Name) }
-func (f *Func) IsTruthy() bool  { return true }
+func (f *Func) Type() string   { return "Func" }
+func (f *Func) String() string { return fmt.Sprintf("<meow %s>", f.Name) }
+func (f *Func) IsTruthy() bool { return true }
 
+// Call invokes the function with the given arguments.
 func (f *Func) Call(args ...Value) Value {
 	return f.Fn(args...)
 }
 
 // List represents a list value.
 type List struct {
+	// Items is the slice of values in the list.
 	Items []Value
 }
 
+// NewList creates a new List value from the given items.
 func NewList(items ...Value) *List {
 	return &List{Items: items}
 }
@@ -89,10 +107,13 @@ func (l *List) String() string {
 	return "[" + strings.Join(parts, ", ") + "]"
 }
 
+// Len returns the number of items in the list.
 func (l *List) Len() int {
 	return len(l.Items)
 }
 
+// Get returns the item at the given index.
+// It panics if index is out of range.
 func (l *List) Get(index int) Value {
 	if index < 0 || index >= len(l.Items) {
 		panic(fmt.Sprintf("Hiss! Index %d out of range, nya~", index))

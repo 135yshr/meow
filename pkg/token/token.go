@@ -1,7 +1,11 @@
+// Package token defines the lexical token types, keywords, and source positions
+// used throughout the Meow language compiler.
 package token
 
 import "fmt"
 
+// TokenType represents the type of a lexical token.
+//
 //go:generate stringer -type=TokenType
 type TokenType int
 
@@ -18,24 +22,24 @@ const (
 	STRING
 
 	// Operators
-	PLUS     // +
-	MINUS    // -
-	STAR     // *
-	SLASH    // /
-	PERCENT  // %
-	ASSIGN   // =
-	EQ       // ==
-	NEQ      // !=
-	LT       // <
-	GT       // >
-	LTE      // <=
-	GTE      // >=
-	AND      // &&
-	OR       // ||
-	NOT      // !
-	PIPE     // |>
-	DOTDOT   // ..
-	ARROW    // =>
+	PLUS    // +
+	MINUS   // -
+	STAR    // *
+	SLASH   // /
+	PERCENT // %
+	ASSIGN  // =
+	EQ      // ==
+	NEQ     // !=
+	LT      // <
+	GT      // >
+	LTE     // <=
+	GTE     // >=
+	AND     // &&
+	OR      // ||
+	NOT     // !
+	PIPE    // |>
+	DOTDOT  // ..
+	ARROW   // =>
 
 	// Delimiters
 	LPAREN   // (
@@ -106,8 +110,11 @@ func (t TokenType) IsKeyword() bool {
 
 // Position represents a source location.
 type Position struct {
-	File   string
-	Line   int
+	// File is the source file name.
+	File string
+	// Line is the 1-based line number.
+	Line int
+	// Column is the 1-based column number.
 	Column int
 }
 
@@ -125,7 +132,10 @@ func (p Position) AsToken() Token {
 
 // Token represents a lexical token with its position.
 type Token struct {
-	Type    TokenType
+	// Type is the token type.
+	Type TokenType
+	// Literal is the raw text of the token.
 	Literal string
-	Pos     Position
+	// Pos is the source location of the token.
+	Pos Position
 }

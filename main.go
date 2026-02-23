@@ -1,3 +1,4 @@
+// Command meow is the entry point for the Meow language compiler.
 package main
 
 import (

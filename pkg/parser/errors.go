@@ -8,7 +8,9 @@ import (
 
 // ParseError represents a parser error with a cat-themed message.
 type ParseError struct {
-	Pos     token.Position
+	// Pos is the source location where the error occurred.
+	Pos token.Position
+	// Message is the error description.
 	Message string
 }
 

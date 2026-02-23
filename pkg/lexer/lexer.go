@@ -1,3 +1,5 @@
+// Package lexer implements the lexical scanner for the Meow language.
+// It converts source text into a stream of tokens using [iter.Seq].
 package lexer
 
 import (
@@ -10,11 +12,11 @@ import (
 
 // Lexer tokenizes Meow source code.
 type Lexer struct {
-	input   string
-	file    string
-	pos     int
-	line    int
-	col     int
+	input string
+	file  string
+	pos   int
+	line  int
+	col   int
 }
 
 // New creates a new Lexer for the given source.
