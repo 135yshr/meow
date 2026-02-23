@@ -12,11 +12,11 @@ import (
 
 // Lexer tokenizes Meow source code.
 type Lexer struct {
-	input   string
-	file    string
-	pos     int
-	line    int
-	col     int
+	input string
+	file  string
+	pos   int
+	line  int
+	col   int
 }
 
 // New creates a new Lexer for the given source.

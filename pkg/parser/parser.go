@@ -211,16 +211,16 @@ func (p *Parser) consumeTerminator() {
 // --- Expression Parsing (Pratt parser) ---
 
 const (
-	precNone   = iota
-	precOr     // ||
-	precAnd    // &&
-	precEq     // == !=
-	precCmp    // < > <= >=
-	precPipe   // |>
-	precAdd    // + -
-	precMul    // * / %
-	precUnary  // ! -
-	precCall   // () []
+	precNone  = iota
+	precOr    // ||
+	precAnd   // &&
+	precEq    // == !=
+	precCmp   // < > <= >=
+	precPipe  // |>
+	precAdd   // + -
+	precMul   // * / %
+	precUnary // ! -
+	precCall  // () []
 )
 
 func (p *Parser) prefixPrec(typ token.TokenType) int {
