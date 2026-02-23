@@ -1,7 +1,6 @@
 version: 2
 
-release:
-  mode: append
+release: {}
 
 before:
   hooks:
@@ -49,7 +48,23 @@ homebrew_casks:
 
 changelog:
   sort: asc
+  groups:
+    - title: "Added"
+      regexp: "\\bfeat\\b"
+      order: 0
+    - title: "Fixed"
+      regexp: "\\bfix\\b"
+      order: 1
+    - title: "Changed"
+      regexp: "\\b(refactor|style|perf|chore|ci|build)\\b"
+      order: 2
+    - title: "Removed"
+      regexp: "\\b(remove|delete)\\b"
+      order: 3
+    - title: "Other"
+      order: 999
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+      - "Merge"
