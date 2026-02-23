@@ -50,6 +50,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Record existing tags
+        id: before
+        run: echo "latest=$(git tag -l 'v*' | sort -V | tail -1)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -63,16 +67,42 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
+      - name: Get new tag
+        id: tag
+        run: |
+          LATEST=$(git tag -l 'v*' | sort -V | tail -1)
+          BEFORE="${{ steps.before.outputs.latest }}"
+          if [ "$LATEST" != "$BEFORE" ]; then
+            echo "new_tag=$LATEST" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Go
+        if: steps.tag.outputs.new_tag != ''
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        if: steps.tag.outputs.new_tag != ''
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+
       - name: Comment result
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
             const sha = '${{ steps.pr.outputs.merge_sha }}';
+            const tag = '${{ steps.tag.outputs.new_tag }}';
             const success = '${{ job.status }}' === 'success';
             const emoji = success ? '✅' : '❌';
             const body = success
-              ? `${emoji} Release triggered successfully! (${sha.substring(0, 7)})\nGoReleaser will build binaries shortly.`
+              ? `${emoji} Released ${tag} successfully! (${sha.substring(0, 7)})`
               : `${emoji} Release failed. Check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
