@@ -63,6 +63,21 @@ func TestArithmetic(t *testing.T) {
 	}
 }
 
+func TestFetchAndMemberCall(t *testing.T) {
+	code := generate(t, `fetch "file"
+nyan content = file.snoop("data.txt")
+nya(content)`)
+	if !strings.Contains(code, `import meow_file "github.com/135yshr/meow/runtime/file"`) {
+		t.Error("expected meow_file import")
+	}
+	if !strings.Contains(code, `meow_file.Snoop(meow.NewString("data.txt"))`) {
+		t.Error("expected meow_file.Snoop call")
+	}
+	if !strings.Contains(code, `meow.Nya(content)`) {
+		t.Error("expected meow.Nya")
+	}
+}
+
 func TestIfElse(t *testing.T) {
 	code := generate(t, `sniff (x > 0) {
   nya(x)

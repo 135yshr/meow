@@ -108,6 +108,52 @@ nya(name)`
 	}
 }
 
+func TestDotToken(t *testing.T) {
+	input := `file.snoop`
+	l := lexer.New(input, "test.nyan")
+	tokens := collect(l)
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.IDENT, "file"},
+		{token.DOT, "."},
+		{token.IDENT, "snoop"},
+		{token.EOF, ""},
+	}
+	if len(tokens) != len(expected) {
+		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
+	}
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
+		}
+	}
+}
+
+func TestDotDotStillWorks(t *testing.T) {
+	input := `1..10`
+	l := lexer.New(input, "test.nyan")
+	tokens := collect(l)
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.INT, "1"},
+		{token.DOTDOT, ".."},
+		{token.INT, "10"},
+		{token.EOF, ""},
+	}
+	if len(tokens) != len(expected) {
+		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
+	}
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
+		}
+	}
+}
+
 func TestComments(t *testing.T) {
 	input := `# line comment
 nyan x = 1

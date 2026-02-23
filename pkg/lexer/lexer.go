@@ -351,7 +351,7 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 						return
 					}
 				} else {
-					if !yield(l.makeToken(token.ILLEGAL, ".", pos)) {
+					if !yield(l.makeToken(token.DOT, ".", pos)) {
 						return
 					}
 				}

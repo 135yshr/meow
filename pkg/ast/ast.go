@@ -282,7 +282,33 @@ func (n *WildcardPattern) Pos() token.Position { return n.Token.Pos }
 func (n *WildcardPattern) nodeTag()            {}
 func (n *WildcardPattern) patternTag()         {}
 
+// MemberExpr represents member access (e.g. file.snoop).
+type MemberExpr struct {
+	// Token is the DOT token.
+	Token token.Token
+	// Object is the left-hand expression (e.g. file).
+	Object Expr
+	// Member is the member name (e.g. snoop).
+	Member string
+}
+
+func (n *MemberExpr) Pos() token.Position { return n.Token.Pos }
+func (n *MemberExpr) nodeTag()            {}
+func (n *MemberExpr) exprTag()            {}
+
 // --- Statements ---
+
+// FetchStmt represents a package import (fetch "file").
+type FetchStmt struct {
+	// Token is the fetch keyword token.
+	Token token.Token
+	// Path is the package name.
+	Path string
+}
+
+func (n *FetchStmt) Pos() token.Position { return n.Token.Pos }
+func (n *FetchStmt) nodeTag()            {}
+func (n *FetchStmt) stmtTag()            {}
 
 // VarStmt represents a variable declaration (nyan x = ...).
 type VarStmt struct {

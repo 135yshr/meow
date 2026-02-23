@@ -37,6 +37,7 @@ const (
 	NOT     // !
 	PIPE       // |=|
 	TILDEARROW // ~>
+	DOT        // .
 	DOTDOT     // ..
 	ARROW   // =>
 

@@ -95,6 +95,8 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseIfStmt()
 	case token.PURR:
 		return p.parseWhileStmt()
+	case token.FETCH:
+		return p.parseFetchStmt()
 	default:
 		return p.parseExprStmtOrAssign()
 	}
@@ -184,6 +186,23 @@ func (p *Parser) parseWhileStmt() *ast.WhileStmt {
 	p.expect(token.RPAREN)
 	body := p.parseBlock()
 	return &ast.WhileStmt{Token: tok, Condition: cond, Body: body}
+}
+
+func (p *Parser) parseFetchStmt() *ast.FetchStmt {
+	tok := p.advance() // consume fetch
+	path := p.expect(token.STRING)
+	p.consumeTerminator()
+	return &ast.FetchStmt{Token: tok, Path: path.Literal}
+}
+
+func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
+	dot := p.advance() // consume .
+	member := p.expect(token.IDENT)
+	expr := &ast.MemberExpr{Token: dot, Object: object, Member: member.Literal}
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(expr)
+	}
+	return expr
 }
 
 func (p *Parser) parseExprStmtOrAssign() ast.Stmt {
@@ -350,6 +369,9 @@ func (p *Parser) parseString() ast.Expr {
 func (p *Parser) parseIdentOrCall() ast.Expr {
 	tok := p.advance()
 	ident := &ast.Ident{Token: tok, Name: tok.Literal}
+	if p.cur.Type == token.DOT {
+		return p.parseMemberAccess(ident)
+	}
 	if p.cur.Type == token.LPAREN {
 		return p.finishCall(ident)
 	}

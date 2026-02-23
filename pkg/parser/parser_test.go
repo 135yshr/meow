@@ -155,6 +155,52 @@ func TestNyaCall(t *testing.T) {
 	}
 }
 
+func TestFetchStmt(t *testing.T) {
+	prog := parse(t, `fetch "file"`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	f, ok := prog.Stmts[0].(*ast.FetchStmt)
+	if !ok {
+		t.Fatalf("expected FetchStmt, got %T", prog.Stmts[0])
+	}
+	if f.Path != "file" {
+		t.Errorf("expected path 'file', got %q", f.Path)
+	}
+}
+
+func TestMemberAccess(t *testing.T) {
+	prog := parse(t, `nyan content = file.snoop("data.txt")`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	v, ok := prog.Stmts[0].(*ast.VarStmt)
+	if !ok {
+		t.Fatalf("expected VarStmt, got %T", prog.Stmts[0])
+	}
+	call, ok := v.Value.(*ast.CallExpr)
+	if !ok {
+		t.Fatalf("expected CallExpr, got %T", v.Value)
+	}
+	member, ok := call.Fn.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected MemberExpr, got %T", call.Fn)
+	}
+	ident, ok := member.Object.(*ast.Ident)
+	if !ok {
+		t.Fatalf("expected Ident, got %T", member.Object)
+	}
+	if ident.Name != "file" {
+		t.Errorf("expected object 'file', got %q", ident.Name)
+	}
+	if member.Member != "snoop" {
+		t.Errorf("expected member 'snoop', got %q", member.Member)
+	}
+	if len(call.Args) != 1 {
+		t.Errorf("expected 1 arg, got %d", len(call.Args))
+	}
+}
+
 func TestMatchExpr(t *testing.T) {
 	prog := parse(t, `nyan result = peek(x) {
   0 => "zero",
