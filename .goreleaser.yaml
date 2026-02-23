@@ -1,5 +1,8 @@
 version: 2
 
+release:
+  mode: append
+
 builds:
   - binary: meow
     main: .

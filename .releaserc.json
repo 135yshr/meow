@@ -1,0 +1,95 @@
+{
+  "branches": ["release"],
+  "plugins": [
+    [
+      "semantic-release-gitmoji",
+      {
+        "releaseRules": {
+          "major": [":boom:"],
+          "minor": [":sparkles:", ":rocket:"],
+          "patch": [
+            ":bug:",
+            ":ambulance:",
+            ":memo:",
+            ":lipstick:",
+            ":zap:",
+            ":recycle:",
+            ":wrench:",
+            ":construction_worker:",
+            ":white_check_mark:",
+            ":lock:",
+            ":arrow_up:",
+            ":arrow_down:",
+            ":pushpin:",
+            ":heavy_plus_sign:",
+            ":heavy_minus_sign:",
+            ":globe_with_meridians:",
+            ":pencil2:",
+            ":rewind:",
+            ":twisted_rightwards_arrows:",
+            ":package:",
+            ":alien:",
+            ":truck:",
+            ":page_facing_up:",
+            ":bento:",
+            ":wheelchair:",
+            ":bulb:",
+            ":beers:",
+            ":speech_balloon:",
+            ":card_file_box:",
+            ":loud_sound:",
+            ":mute:",
+            ":busts_in_silhouette:",
+            ":children_crossing:",
+            ":building_construction:",
+            ":iphone:",
+            ":clown_face:",
+            ":egg:",
+            ":see_no_evil:",
+            ":camera_flash:",
+            ":alembic:",
+            ":mag:",
+            ":label:",
+            ":seedling:",
+            ":triangular_flag_on_post:",
+            ":goal_net:",
+            ":dizzy:",
+            ":wastebasket:",
+            ":passport_control:",
+            ":adhesive_bandage:",
+            ":monocle_face:",
+            ":coffin:",
+            ":test_tube:",
+            ":necktie:",
+            ":stethoscope:",
+            ":bricks:",
+            ":technologist:"
+          ]
+        },
+        "releaseNotes": {
+          "template": "{{{commitGroups}}}",
+          "partials": {
+            "commitTemplate": "- {{header}} {{hash}}\n"
+          },
+          "issueResolution": {
+            "template": "{{{host}}}/{{{owner}}}/{{{repository}}}/issues/{{{ref}}}"
+          }
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md"],
+        "message": ":bookmark: release: v${nextRelease.version}\n\n${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
