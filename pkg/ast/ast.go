@@ -1,3 +1,5 @@
+// Package ast defines the abstract syntax tree nodes for the Meow language.
+// It contains expression, statement, and pattern node types produced by the parser.
 package ast
 
 import "github.com/135yshr/meow/pkg/token"

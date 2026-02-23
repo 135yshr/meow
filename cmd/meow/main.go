@@ -1,3 +1,4 @@
+// Command meow provides the CLI for compiling and running .nyan files.
 package main
 
 import (

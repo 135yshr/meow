@@ -1,3 +1,5 @@
+// Package compiler orchestrates the Meow compilation pipeline:
+// lexing, parsing, code generation, and invoking go build to produce a binary.
 package compiler
 
 import (

@@ -1,3 +1,6 @@
+// Package meowrt provides the runtime support for compiled Meow programs.
+// It defines the dynamic [Value] interface and concrete types used for all
+// values at runtime, along with built-in functions and operators.
 package meowrt
 
 import (
