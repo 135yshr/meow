@@ -13,14 +13,16 @@
 //
 // # Usage
 //
-//	c := compiler.New(logger)
-//
 //	// Transpile only
+//	c := compiler.New(logger)
 //	goCode, err := c.CompileToGo(source, "hello.nyan")
+//	_ = goCode
 //
 //	// Build a binary
+//	c := compiler.New(logger)
 //	err := c.Build("hello.nyan", "hello")
 //
 //	// Compile and run
+//	c := compiler.New(logger)
 //	err := c.Run("hello.nyan")
 package compiler

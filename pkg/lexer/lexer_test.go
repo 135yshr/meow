@@ -39,21 +39,27 @@ func TestKeywords(t *testing.T) {
 }
 
 func TestOperators(t *testing.T) {
-	input := `+ - * / % = == != < > <= >= && || ! |=| .. =>`
+	input := `+ - * / % = == != < > <= >= && || ! |=| ~> .. =>`
 	l := lexer.New(input, "test.nyan")
 	tokens := collect(l)
-	expected := []token.TokenType{
-		token.PLUS, token.MINUS, token.STAR, token.SLASH, token.PERCENT,
-		token.ASSIGN, token.EQ, token.NEQ, token.LT, token.GT,
-		token.LTE, token.GTE, token.AND, token.OR, token.NOT,
-		token.PIPE, token.DOTDOT, token.ARROW, token.EOF,
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.PLUS, "+"}, {token.MINUS, "-"}, {token.STAR, "*"},
+		{token.SLASH, "/"}, {token.PERCENT, "%"}, {token.ASSIGN, "="},
+		{token.EQ, "=="}, {token.NEQ, "!="}, {token.LT, "<"},
+		{token.GT, ">"}, {token.LTE, "<="}, {token.GTE, ">="},
+		{token.AND, "&&"}, {token.OR, "||"}, {token.NOT, "!"},
+		{token.PIPE, "|=|"}, {token.TILDEARROW, "~>"},
+		{token.DOTDOT, ".."}, {token.ARROW, "=>"}, {token.EOF, ""},
 	}
 	if len(tokens) != len(expected) {
 		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
 	}
-	for i, tok := range tokens {
-		if tok.Type != expected[i] {
-			t.Errorf("token[%d]: expected %v, got %v (%q)", i, expected[i], tok.Type, tok.Literal)
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
 		}
 	}
 }
