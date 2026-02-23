@@ -1,0 +1,7 @@
+fetch "file"
+
+# Read entire file as a single string
+file.snoop("examples/data.txt") |=| nya
+
+# Read file line by line and print with prefix
+file.stalk("examples/data.txt") |=| lick(paw(line) { "=> " + line }) |=| nya
