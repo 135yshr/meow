@@ -13,7 +13,7 @@ jobs:
   release:
     if: >
       github.event.issue.pull_request &&
-      github.event.comment.body == '/release' &&
+      startsWith(github.event.comment.body, '/release') &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     steps:
