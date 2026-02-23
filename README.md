@@ -154,7 +154,7 @@ purr (i < 10) {
 
 ```
 nyan double = paw(x) { x * 2 }
-nya(double(5))   # => 10 (via meow.Call)
+nya(double(5))   # => 10
 ```
 
 ### Lists
@@ -198,26 +198,26 @@ nyan result = peek(score) {
 
 ### Keywords
 
-| Meow | Meaning | Go Equivalent | Example |
-|------|---------|---------------|---------|
-| `nyan` | Variable declaration | `var` / `:=` | `nyan x = 42` |
-| `meow` | Function definition | `func` | `meow add(a, b) { bring a + b }` |
-| `bring` | Return value | `return` | `bring x + 1` |
-| `sniff` | If condition | `if` | `sniff (x > 0) { ... }` |
-| `scratch` | Else branch | `else` | `} scratch { ... }` |
-| `purr` | While loop | `for` | `purr (i < 10) { ... }` |
-| `paw` | Lambda | `func(...)` | `paw(x) { x * 2 }` |
-| `nya` | Print | `fmt.Println` | `nya("Hello!")` |
-| `lick` | Map over list | — | `lick(nums, paw(x) { x * 2 })` |
-| `picky` | Filter list | — | `picky(nums, paw(x) { x > 0 })` |
-| `curl` | Reduce list | — | `curl(nums, 0, paw(a, x) { a + x })` |
-| `peek` | Pattern match | `switch` | `peek(v) { 0 => "zero", _ => "other" }` |
-| `hiss` | Error | `panic` | `hiss("something went wrong")` |
-| `fetch` | Import *(planned)* | `import` | — |
-| `flaunt` | Export *(planned)* | `export` | — |
-| `yarn` | True | `true` | `nyan ok = yarn` |
-| `hairball` | False | `false` | `nyan ng = hairball` |
-| `catnap` | Nil | `nil` | `nyan nothing = catnap` |
+| Meow | Meaning | Example |
+|------|---------|---------|
+| `nyan` | Variable declaration | `nyan x = 42` |
+| `meow` | Function definition | `meow add(a, b) { bring a + b }` |
+| `bring` | Return value | `bring x + 1` |
+| `sniff` | If condition | `sniff (x > 0) { ... }` |
+| `scratch` | Else branch | `} scratch { ... }` |
+| `purr` | While loop | `purr (i < 10) { ... }` |
+| `paw` | Lambda (anonymous function) | `paw(x) { x * 2 }` |
+| `nya` | Print | `nya("Hello!")` |
+| `lick` | Map over list | `lick(nums, paw(x) { x * 2 })` |
+| `picky` | Filter list | `picky(nums, paw(x) { x > 0 })` |
+| `curl` | Reduce list | `curl(nums, 0, paw(a, x) { a + x })` |
+| `peek` | Pattern match | `peek(v) { 0 => "zero", _ => "other" }` |
+| `hiss` | Raise error | `hiss("something went wrong")` |
+| `fetch` | Import *(planned)* | — |
+| `flaunt` | Export *(planned)* | — |
+| `yarn` | True (boolean literal) | `nyan ok = yarn` |
+| `hairball` | False (boolean literal) | `nyan ng = hairball` |
+| `catnap` | Nil (empty value) | `nyan nothing = catnap` |
 
 ### Operators
 

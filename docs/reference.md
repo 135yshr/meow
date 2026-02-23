@@ -4,26 +4,26 @@ Meow 言語の全命令文・構文の一覧です。
 
 ## Keywords (キーワード)
 
-| Meow | 意味 | Go 相当 | 用例 |
-|------|------|---------|------|
-| `nyan` | 変数宣言 | `var` / `:=` | `nyan x = 42` |
-| `meow` | 関数定義 | `func` | `meow add(a, b) { bring a + b }` |
-| `bring` | 戻り値 | `return` | `bring x + 1` |
-| `sniff` | 条件分岐 (if) | `if` | `sniff (x > 0) { ... }` |
-| `scratch` | 条件分岐 (else) | `else` | `} scratch { ... }` |
-| `purr` | ループ | `for` | `purr (i < 10) { ... }` |
-| `paw` | ラムダ式 | `func(...)` | `paw(x) { x * 2 }` |
-| `nya` | 出力 | `fmt.Println` | `nya("Hello!")` |
-| `lick` | リスト変換 (map) | --- | `lick(nums, paw(x) { x * 2 })` |
-| `picky` | リスト絞り込み (filter) | --- | `picky(nums, paw(x) { x > 0 })` |
-| `curl` | リスト集約 (reduce) | --- | `curl(nums, 0, paw(a, x) { a + x })` |
-| `peek` | パターンマッチ | `switch` | `peek(v) { 0 => "zero", _ => "other" }` |
-| `hiss` | エラー送出 | `panic` | `hiss("something went wrong")` |
-| `fetch` | インポート *(未実装)* | `import` | --- |
-| `flaunt` | エクスポート *(未実装)* | `export` | --- |
-| `yarn` | 真 | `true` | `nyan ok = yarn` |
-| `hairball` | 偽 | `false` | `nyan ng = hairball` |
-| `catnap` | 空値 | `nil` | `nyan nothing = catnap` |
+| Meow | 意味 | 用例 |
+|------|------|------|
+| `nyan` | 変数宣言 | `nyan x = 42` |
+| `meow` | 関数定義 | `meow add(a, b) { bring a + b }` |
+| `bring` | 戻り値を返す | `bring x + 1` |
+| `sniff` | 条件分岐 (if) | `sniff (x > 0) { ... }` |
+| `scratch` | 条件分岐 (else) | `} scratch { ... }` |
+| `purr` | ループ | `purr (i < 10) { ... }` |
+| `paw` | ラムダ式 (無名関数) | `paw(x) { x * 2 }` |
+| `nya` | 値を出力する | `nya("Hello!")` |
+| `lick` | リストの各要素を変換する (map) | `lick(nums, paw(x) { x * 2 })` |
+| `picky` | リストから条件に合う要素を選ぶ (filter) | `picky(nums, paw(x) { x > 0 })` |
+| `curl` | リストを1つの値にまとめる (reduce) | `curl(nums, 0, paw(a, x) { a + x })` |
+| `peek` | 値に応じて処理を分岐する (パターンマッチ) | `peek(v) { 0 => "zero", _ => "other" }` |
+| `hiss` | エラーを発生させる | `hiss("something went wrong")` |
+| `fetch` | インポート *(未実装)* | --- |
+| `flaunt` | エクスポート *(未実装)* | --- |
+| `yarn` | 真 (真偽値リテラル) | `nyan ok = yarn` |
+| `hairball` | 偽 (真偽値リテラル) | `nyan ng = hairball` |
+| `catnap` | 空値 (値が無いことを表す) | `nyan nothing = catnap` |
 
 ## Operators (演算子)
 

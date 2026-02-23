@@ -5,24 +5,24 @@
 //
 // All keywords use cat-themed names:
 //
-//	nyan      variable declaration      (Go: var / :=)
-//	meow      function definition       (Go: func)
-//	bring     return value              (Go: return)
-//	sniff     if condition              (Go: if)
-//	scratch   else branch               (Go: else)
-//	purr      while loop                (Go: for)
-//	paw       lambda expression         (Go: func(...))
-//	nya       print                     (Go: fmt.Println)
+//	nyan      variable declaration
+//	meow      function definition
+//	bring     return value
+//	sniff     if condition
+//	scratch   else branch
+//	purr      while loop
+//	paw       lambda expression
+//	nya       print
 //	lick      map over list
 //	picky     filter list
 //	curl      reduce list
-//	peek      pattern match             (Go: switch)
-//	hiss      error / throw             (Go: panic)
-//	fetch     import (planned)          (Go: import)
+//	peek      pattern match
+//	hiss      error / throw
+//	fetch     import (planned)
 //	flaunt    export (planned)
-//	yarn      true literal              (Go: true)
-//	hairball  false literal             (Go: false)
-//	catnap    nil literal               (Go: nil)
+//	yarn      true literal
+//	hairball  false literal
+//	catnap    nil literal
 //
 // # Operators
 //
