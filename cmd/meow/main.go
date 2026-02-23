@@ -8,6 +8,12 @@ import (
 	"github.com/135yshr/meow/compiler"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -35,6 +41,8 @@ func main() {
 	c := compiler.New(logger)
 
 	switch args[0] {
+	case "version":
+		fmt.Printf("meow version %s (commit: %s, built: %s)\n", version, commit, date)
 	case "run":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hiss! Please specify a .nyan file, nya~")
@@ -95,6 +103,7 @@ Usage:
   meow run <file.nyan>              Run a .nyan file
   meow build <file.nyan> [-o name]  Build a binary
   meow transpile <file.nyan>        Show generated Go code
+  meow version                      Show version info
   meow <file.nyan>                  Shorthand for 'meow run'
 
 Flags:
