@@ -49,6 +49,7 @@ jobs:
         run: go vet ./...
 
   e2e:
+    needs: [test, lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
