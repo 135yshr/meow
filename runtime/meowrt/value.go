@@ -59,8 +59,10 @@ func (n *NilValue) IsTruthy() bool { return false }
 
 // Func represents a function value.
 type Func struct {
+	// Name is the function name for display purposes.
 	Name string
-	Fn   func(args ...Value) Value
+	// Fn is the underlying Go function implementation.
+	Fn func(args ...Value) Value
 }
 
 // NewFunc creates a new Func value with the given name and implementation.
@@ -79,6 +81,7 @@ func (f *Func) Call(args ...Value) Value {
 
 // List represents a list value.
 type List struct {
+	// Items is the slice of values in the list.
 	Items []Value
 }
 

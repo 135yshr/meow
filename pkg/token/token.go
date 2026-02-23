@@ -108,8 +108,11 @@ func (t TokenType) IsKeyword() bool {
 
 // Position represents a source location.
 type Position struct {
-	File   string
-	Line   int
+	// File is the source file name.
+	File string
+	// Line is the 1-based line number.
+	Line int
+	// Column is the 1-based column number.
 	Column int
 }
 
@@ -127,7 +130,10 @@ func (p Position) AsToken() Token {
 
 // Token represents a lexical token with its position.
 type Token struct {
-	Type    TokenType
+	// Type is the token type.
+	Type TokenType
+	// Literal is the raw text of the token.
 	Literal string
-	Pos     Position
+	// Pos is the source location of the token.
+	Pos Position
 }
