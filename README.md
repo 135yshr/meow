@@ -68,6 +68,12 @@ Hello, Tama!
 
 ## Installation
 
+### Homebrew
+
+```bash
+brew install 135yshr/homebrew-tap/meow
+```
+
 ### From Source
 
 ```bash
@@ -349,7 +355,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, or just a better
 - [ ] `fetch` / `flaunt` (import/export) for multi-file support
 - [ ] REPL mode (`meow repl`)
 - [ ] Syntax highlighting for popular editors
-- [ ] Homebrew formula
+- [x] Homebrew formula
 - [ ] Playground website
 
 ## Running Tests
