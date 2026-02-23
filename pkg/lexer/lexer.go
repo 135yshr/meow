@@ -1,5 +1,3 @@
-// Package lexer implements the lexical scanner for the Meow language.
-// It converts source text into a stream of tokens using [iter.Seq].
 package lexer
 
 import (

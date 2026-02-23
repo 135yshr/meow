@@ -1,5 +1,3 @@
-// Package parser implements a Pratt (precedence-climbing) recursive descent
-// parser for the Meow language. It consumes tokens via [iter.Pull] and produces an AST.
 package parser
 
 import (
