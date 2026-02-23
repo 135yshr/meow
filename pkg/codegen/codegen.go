@@ -21,6 +21,15 @@ var stdPackages = map[string]string{
 	"file": "github.com/135yshr/meow/runtime/file",
 }
 
+// capitalizeFirst returns s with its first byte uppercased.
+// Returns s unchanged if s is empty.
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
 // New creates a new code generator.
 func New() *Generator {
 	return &Generator{}
@@ -32,7 +41,10 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			g.funcs = append(g.funcs, g.genFuncDecl(fn))
 		} else {
-			code := g.genStmt(stmt)
+			code, err := g.genStmtOrError(stmt)
+			if err != nil {
+				return "", err
+			}
 			if code != "" {
 				g.topLevel = append(g.topLevel, code)
 			}
@@ -98,16 +110,6 @@ func (g *Generator) genStmt(stmt ast.Stmt) string {
 			return fmt.Sprintf("return %s", g.genExpr(s.Value))
 		}
 		return "return meow.NewNil()"
-	case *ast.FetchStmt:
-		path, ok := stdPackages[s.Path]
-		if !ok {
-			return fmt.Sprintf("/* unknown package: %s */", s.Path)
-		}
-		if g.imports == nil {
-			g.imports = make(map[string]string)
-		}
-		g.imports[s.Path] = path
-		return ""
 	case *ast.ExprStmt:
 		return g.genExpr(s.Expr)
 	case *ast.IfStmt:
@@ -117,6 +119,21 @@ func (g *Generator) genStmt(stmt ast.Stmt) string {
 	default:
 		return fmt.Sprintf("/* unsupported stmt: %T */", stmt)
 	}
+}
+
+func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
+	if s, ok := stmt.(*ast.FetchStmt); ok {
+		path, ok := stdPackages[s.Path]
+		if !ok {
+			return "", fmt.Errorf("unknown package: %s", s.Path)
+		}
+		if g.imports == nil {
+			g.imports = make(map[string]string)
+		}
+		g.imports[s.Path] = path
+		return "", nil
+	}
+	return g.genStmt(stmt), nil
 }
 
 func (g *Generator) genIf(s *ast.IfStmt) string {
@@ -189,8 +206,7 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 	case *ast.MemberExpr:
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
-			fnName := strings.ToUpper(e.Member[:1]) + e.Member[1:]
-			return fmt.Sprintf("meow_%s.%s", obj.Name, fnName)
+			return fmt.Sprintf("meow_%s.%s", obj.Name, capitalizeFirst(e.Member))
 		}
 		return "/* unsupported member access */"
 	default:
@@ -301,15 +317,16 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 	if !ok {
 		return fmt.Sprintf("/* unsupported member access on %T */", member.Object)
 	}
+	if _, imported := g.imports[obj.Name]; !imported {
+		return fmt.Sprintf("/* package %s not imported */", obj.Name)
+	}
 	args := make([]string, len(rawArgs))
 	for i, a := range rawArgs {
 		args[i] = g.genExpr(a)
 	}
 	argStr := strings.Join(args, ", ")
-	fnName := strings.ToUpper(member.Member[:1]) + member.Member[1:]
-	return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, fnName, argStr)
+	return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, capitalizeFirst(member.Member), argStr)
 }
-
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 	params := make([]string, len(e.Params))

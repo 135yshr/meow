@@ -25,6 +25,22 @@ func TestSnoop(t *testing.T) {
 	}
 }
 
+func TestSnoopCRLF(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "crlf.txt")
+	if err := os.WriteFile(path, []byte("hello world\r\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := file.Snoop(meowrt.NewString(path))
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "hello world" {
+		t.Errorf("expected %q, got %q", "hello world", s.Val)
+	}
+}
+
 func TestSnoopNotFound(t *testing.T) {
 	defer func() {
 		r := recover()
@@ -61,9 +77,12 @@ func TestStalk(t *testing.T) {
 	}
 	expected := []string{"alpha", "beta", "gamma"}
 	for i, want := range expected {
-		got := lst.Get(i).(*meowrt.String).Val
-		if got != want {
-			t.Errorf("line[%d]: expected %q, got %q", i, want, got)
+		str, ok := lst.Get(i).(*meowrt.String)
+		if !ok {
+			t.Fatalf("line[%d]: expected *meowrt.String, got %T", i, lst.Get(i))
+		}
+		if str.Val != want {
+			t.Errorf("line[%d]: expected %q, got %q", i, want, str.Val)
 		}
 	}
 }
@@ -86,7 +105,8 @@ func TestStalkEmpty(t *testing.T) {
 
 func TestStalkNotFound(t *testing.T) {
 	defer func() {
-		if recover() == nil {
+		r := recover()
+		if r == nil {
 			t.Fatal("expected panic")
 		}
 	}()
@@ -95,7 +115,8 @@ func TestStalkNotFound(t *testing.T) {
 
 func TestStalkNonString(t *testing.T) {
 	defer func() {
-		if recover() == nil {
+		r := recover()
+		if r == nil {
 			t.Fatal("expected panic")
 		}
 	}()
