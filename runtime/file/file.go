@@ -19,7 +19,7 @@ func Snoop(path meowrt.Value) meowrt.Value {
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
-	return meowrt.NewString(strings.TrimRight(string(data), "\n"))
+	return meowrt.NewString(strings.TrimRight(string(data), "\r\n"))
 }
 
 // Stalk reads a file line by line and returns a List of Strings.
@@ -36,6 +36,7 @@ func Stalk(path meowrt.Value) meowrt.Value {
 
 	var lines []meowrt.Value
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 	for scanner.Scan() {
 		lines = append(lines, meowrt.NewString(scanner.Text()))
 	}

@@ -83,3 +83,21 @@ func TestStalkEmpty(t *testing.T) {
 		t.Errorf("expected 0 lines, got %d", lst.Len())
 	}
 }
+
+func TestStalkNotFound(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+	file.Stalk(meowrt.NewString("/nonexistent/path.txt"))
+}
+
+func TestStalkNonString(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+	file.Stalk(meowrt.NewInt(42))
+}
