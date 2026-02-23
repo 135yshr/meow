@@ -21,20 +21,21 @@ builds:
       - windows_amd64
 
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
-brews:
+homebrew_casks:
   - repository:
       owner: 135yshr
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    directory: Formula
+    directory: Casks
     homepage: https://github.com/135yshr/meow
     description: The purrfect functional programming language
-    license: MIT
 
 changelog:
   sort: asc
