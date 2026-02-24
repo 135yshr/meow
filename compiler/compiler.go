@@ -139,6 +139,12 @@ func (c *Compiler) Run(nyanPath string) error {
 
 // CompileTestToGo compiles a .nyan file to Go source in test mode.
 func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
+	// First pass: extract catwalk output expectations from comments.
+	c.logger.Debug("extracting catwalk outputs", "file", filename)
+	l1 := lexer.New(source, filename)
+	catwalkOutputs := codegen.ExtractCatwalkOutputs(l1.Tokens())
+
+	// Second pass: normal lex + parse.
 	c.logger.Debug("lexing", "file", filename)
 	l := lexer.New(source, filename)
 
@@ -155,6 +161,9 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 
 	c.logger.Debug("generating test Go code", "file", filename)
 	gen := codegen.NewTest()
+	if len(catwalkOutputs) > 0 {
+		gen.SetCatwalkOutput(catwalkOutputs)
+	}
 	raw, err := gen.GenerateTest(prog)
 	if err != nil {
 		return "", err

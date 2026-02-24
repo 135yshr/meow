@@ -1,0 +1,54 @@
+# catwalk テストのサンプル
+# catwalk_ プレフィックスの関数は、# Output: ブロックで出力を検証します。
+# 実行: meow test examples/catwalk_example_test.nyan
+
+# 基本的な出力検証
+meow catwalk_hello() {
+  nya("Hello, Tama!")
+  # Output:
+  # Hello, Tama!
+}
+
+# 関数の戻り値を出力して検証
+meow greet(who) {
+  bring "Hello, " + who + "!"
+}
+
+meow catwalk_greet() {
+  nya(greet("Mochi"))
+  nya(greet("Sora"))
+  # Output:
+  # Hello, Mochi!
+  # Hello, Sora!
+}
+
+# 算術結果の検証
+meow catwalk_arithmetic() {
+  nya(2 + 3)
+  nya(10 * 4)
+  nya(100 / 5)
+  # Output:
+  # 5
+  # 40
+  # 20
+}
+
+# ループの出力検証
+meow catwalk_countdown() {
+  nyan i = 3
+  purr (i > 0) {
+    nya(i)
+    i = i - 1
+  }
+  nya("Go!")
+  # Output:
+  # 3
+  # 2
+  # 1
+  # Go!
+}
+
+# test_ と catwalk_ は同じファイルで共存できます
+meow test_addition() {
+  expect(1 + 2, 3)
+}
