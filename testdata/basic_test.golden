@@ -1,0 +1,6 @@
+  PASS: test_addition
+  PASS: test_string
+  PASS: test_truthy
+  PASS: test_falsy
+
+All 4 tests passed, nya~!

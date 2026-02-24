@@ -139,6 +139,88 @@ nyan res = http.pounce("https://example.com", {"maxBodyBytes": 2097152})`)
 	}
 }
 
+func generateTest(t *testing.T, input string) string {
+	t.Helper()
+	l := lexer.New(input, "test_file.nyan")
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		for _, e := range errs {
+			t.Errorf("parse error: %s", e)
+		}
+		t.FailNow()
+	}
+	g := codegen.NewTest()
+	code, err := g.GenerateTest(prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return code
+}
+
+func TestGenerateTestMode(t *testing.T) {
+	code := generateTest(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}
+
+meow test_bool() {
+  judge(yarn)
+}
+
+meow helper() {
+  bring 42
+}`)
+	if !strings.Contains(code, `import meow_testing "github.com/135yshr/meow/runtime/testing"`) {
+		t.Error("expected meow_testing import")
+	}
+	if !strings.Contains(code, `meow_testing.Run(meow.NewString("test_add")`) {
+		t.Error("expected Run call for test_add")
+	}
+	if !strings.Contains(code, `meow_testing.Run(meow.NewString("test_bool")`) {
+		t.Error("expected Run call for test_bool")
+	}
+	if strings.Contains(code, `meow_testing.Run(meow.NewString("helper")`) {
+		t.Error("helper should not be auto-run as test")
+	}
+	if !strings.Contains(code, `meow_testing.Report()`) {
+		t.Error("expected Report call")
+	}
+	if !strings.Contains(code, `meow_testing.Expect(`) {
+		t.Error("expected Expect call in generated code")
+	}
+	if !strings.Contains(code, `meow_testing.Judge(`) {
+		t.Error("expected Judge call in generated code")
+	}
+}
+
+func TestGenerateImplicitReturn(t *testing.T) {
+	code := generate(t, `meow greet(who) {
+  nya(who)
+}`)
+	if !strings.Contains(code, "return meow.NewNil()") {
+		t.Error("expected implicit nil return when function does not end with bring")
+	}
+}
+
+func TestGenerateNoImplicitReturnWhenExplicit(t *testing.T) {
+	code := generate(t, `meow greet(who) {
+  bring "Hello, " + who + "!"
+}`)
+	if strings.Count(code, "return ") != 1 {
+		t.Error("expected only explicit return, no implicit nil return")
+	}
+}
+
+func TestGenerateTestRefuse(t *testing.T) {
+	code := generateTest(t, `meow test_falsy() {
+  refuse(hairball)
+}`)
+	if !strings.Contains(code, `meow_testing.Refuse(`) {
+		t.Error("expected Refuse call")
+	}
+}
+
 func TestIfElse(t *testing.T) {
 	code := generate(t, `sniff (x > 0) {
   nya(x)
