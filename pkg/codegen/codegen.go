@@ -159,10 +159,12 @@ func (g *Generator) emit() string {
 	b.WriteString("\n")
 
 	if len(g.mutations) > 0 {
-		b.WriteString("var __mutant int\n\n")
+		b.WriteString("var __mutant int = -1\n\n")
 		b.WriteString("func init() {\n")
 		b.WriteString("\tif s := os.Getenv(\"MEOW_MUTANT\"); s != \"\" {\n")
-		b.WriteString("\t\t__mutant, _ = strconv.Atoi(s)\n")
+		b.WriteString("\t\tif v, err := strconv.Atoi(s); err == nil {\n")
+		b.WriteString("\t\t\t__mutant = v\n")
+		b.WriteString("\t\t}\n")
 		b.WriteString("\t}\n")
 		b.WriteString("}\n\n")
 	}

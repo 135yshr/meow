@@ -68,12 +68,99 @@ func BuildSchema(prog *ast.Program, mutants []Mutant) map[ast.Expr][]MutationEnt
 					}
 				}
 			})
+
+		case NegationRemoval:
+			// After Apply, Op is ILLEGAL. Record Right as the mutation result.
+			walkExprs(prog, func(expr ast.Expr) {
+				if ue, ok := expr.(*ast.UnaryExpr); ok {
+					if ue.Pos() == m.Pos {
+						entry.Expr = ue.Right
+						schema[ue] = append(schema[ue], entry)
+					}
+				}
+			})
+
+		case CatchRemove:
+			// After Apply, Right is nil. Record Left as the mutation result.
+			walkExprs(prog, func(expr ast.Expr) {
+				if ce, ok := expr.(*ast.CatchExpr); ok {
+					if ce.Pos() == m.Pos {
+						entry.Expr = ce.Left
+						schema[ce] = append(schema[ce], entry)
+					}
+				}
+			})
+
+		case PipeRemove:
+			// After Apply, Right is nil. Record Left as the mutation result.
+			walkExprs(prog, func(expr ast.Expr) {
+				if pe, ok := expr.(*ast.PipeExpr); ok {
+					if pe.Pos() == m.Pos {
+						entry.Expr = pe.Left
+						schema[pe] = append(schema[pe], entry)
+					}
+				}
+			})
+
+		case ConditionNegate:
+			// Undo to capture original condition pointer as schema key,
+			// then Apply to capture the negated condition as entry.Expr.
+			m.Undo()
+			walkStmts(prog, func(stmt ast.Stmt) {
+				if ifStmt, ok := stmt.(*ast.IfStmt); ok && ifStmt.Pos() == m.Pos {
+					key := ifStmt.Condition
+					m.Apply()
+					entry.Expr = ifStmt.Condition
+					schema[key] = append(schema[key], entry)
+				}
+			})
+
+		case ReturnNil:
+			// Undo to capture original value pointer as schema key,
+			// then Apply to capture the nil literal as entry.Expr.
+			m.Undo()
+			walkStmts(prog, func(stmt ast.Stmt) {
+				if retStmt, ok := stmt.(*ast.ReturnStmt); ok && retStmt.Pos() == m.Pos && retStmt.Value != nil {
+					key := retStmt.Value
+					m.Apply()
+					entry.Expr = &ast.NilLit{Token: retStmt.Token}
+					schema[key] = append(schema[key], entry)
+				}
+			})
 		}
 
 		m.Undo()
 	}
 
 	return schema
+}
+
+// walkStmts walks all statements in the program, calling fn for each.
+func walkStmts(prog *ast.Program, fn func(ast.Stmt)) {
+	for _, stmt := range prog.Stmts {
+		walkStmtTree(stmt, fn)
+	}
+}
+
+func walkStmtTree(stmt ast.Stmt, fn func(ast.Stmt)) {
+	fn(stmt)
+	switch s := stmt.(type) {
+	case *ast.FuncStmt:
+		for _, body := range s.Body {
+			walkStmtTree(body, fn)
+		}
+	case *ast.IfStmt:
+		for _, body := range s.Body {
+			walkStmtTree(body, fn)
+		}
+		for _, body := range s.ElseBody {
+			walkStmtTree(body, fn)
+		}
+	case *ast.WhileStmt:
+		for _, body := range s.Body {
+			walkStmtTree(body, fn)
+		}
+	}
 }
 
 // walkExprs walks all expressions in the program, calling fn for each.

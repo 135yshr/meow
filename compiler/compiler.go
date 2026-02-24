@@ -345,25 +345,6 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	}
 	fmt.Printf("Found %d mutations, nya~\n", len(mutants))
 
-	// Build schema
-	schema := mutation.BuildSchema(prog, mutants)
-
-	// Re-parse (schema modifies AST temporarily)
-	l = lexer.New(string(source), filepath.Base(sourcePath))
-	p = parser.New(l.Tokens())
-	prog, errs = p.Parse()
-	if len(errs) > 0 {
-		var msgs []string
-		for _, e := range errs {
-			msgs = append(msgs, e.Error())
-		}
-		return fmt.Errorf("%s", strings.Join(msgs, "\n"))
-	}
-
-	// Re-enumerate on fresh AST to get schema keys that match
-	mutants = mutation.Enumerate(prog)
-	schema = mutation.BuildSchema(prog, mutants)
-
 	// Read test files and combine
 	var testSource strings.Builder
 	for _, tp := range testPaths {
@@ -388,9 +369,9 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 		return fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
-	// Re-enumerate on the combined AST
+	// Enumerate on the combined AST and build schema
 	mutants = mutation.Enumerate(combinedProg)
-	schema = mutation.BuildSchema(combinedProg, mutants)
+	schema := mutation.BuildSchema(combinedProg, mutants)
 
 	// Generate mutated test binary
 	gen := codegen.NewTest()
