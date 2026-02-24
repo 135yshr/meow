@@ -196,13 +196,14 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 	}
 
 	combined := string(source)
-	companionPath := companionSourcePath(nyanPath)
-	companionData, err := os.ReadFile(companionPath)
-	if err == nil {
-		c.logger.Debug("including companion source", "file", companionPath)
-		combined = string(companionData) + "\n" + combined
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("Hiss! Cannot read companion %s, nya~: %w", companionPath, err)
+	if companionPath := companionSourcePath(nyanPath); companionPath != "" {
+		companionData, err := os.ReadFile(companionPath)
+		if err == nil {
+			c.logger.Debug("including companion source", "file", companionPath)
+			combined = string(companionData) + "\n" + combined
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("Hiss! Cannot read companion %s, nya~: %w", companionPath, err)
+		}
 	}
 
 	goCode, err := c.CompileTestToGo(combined, filepath.Base(nyanPath))
@@ -486,6 +487,9 @@ func readGoVersion(path string) string {
 func companionSourcePath(testPath string) string {
 	dir := filepath.Dir(testPath)
 	base := filepath.Base(testPath)
+	if !strings.HasSuffix(base, "_test.nyan") {
+		return ""
+	}
 	name := strings.TrimSuffix(base, "_test.nyan")
 	return filepath.Join(dir, name+".nyan")
 }
