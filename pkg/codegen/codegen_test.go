@@ -234,3 +234,91 @@ func TestIfElse(t *testing.T) {
 		t.Error("expected else clause")
 	}
 }
+
+func generateTestWithCoverage(t *testing.T, input, filename string) string {
+	t.Helper()
+	l := lexer.New(input, filename)
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		for _, e := range errs {
+			t.Errorf("parse error: %s", e)
+		}
+		t.FailNow()
+	}
+	g := codegen.NewTest()
+	g.EnableCoverage(filename)
+	code, err := g.GenerateTest(prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return code
+}
+
+func TestCoverageImports(t *testing.T) {
+	code := generateTestWithCoverage(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}`, "basic_test.nyan")
+	if !strings.Contains(code, `import meow_coverage "github.com/135yshr/meow/runtime/coverage"`) {
+		t.Errorf("expected meow_coverage import, got:\n%s", code)
+	}
+	if !strings.Contains(code, `import "os"`) {
+		t.Errorf("expected os import for coverage, got:\n%s", code)
+	}
+}
+
+func TestCoverageHitCalls(t *testing.T) {
+	code := generateTestWithCoverage(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}`, "basic_test.nyan")
+	if !strings.Contains(code, "meow_coverage.Hit(0)") {
+		t.Errorf("expected Hit(0) call, got:\n%s", code)
+	}
+	if !strings.Contains(code, "meow_coverage.Hit(1)") {
+		t.Errorf("expected Hit(1) call, got:\n%s", code)
+	}
+}
+
+func TestCoverageRegisterInInit(t *testing.T) {
+	code := generateTestWithCoverage(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}`, "basic_test.nyan")
+	if !strings.Contains(code, "func init()") {
+		t.Errorf("expected init function, got:\n%s", code)
+	}
+	if !strings.Contains(code, `meow_coverage.Register("basic_test.nyan"`) {
+		t.Errorf("expected Register call with filename, got:\n%s", code)
+	}
+}
+
+func TestCoverageReportInMain(t *testing.T) {
+	code := generateTestWithCoverage(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}`, "basic_test.nyan")
+	if !strings.Contains(code, "meow_coverage.Report(os.Stdout)") {
+		t.Errorf("expected coverage Report call, got:\n%s", code)
+	}
+	if !strings.Contains(code, `os.Getenv("MEOW_COVERPROFILE")`) {
+		t.Errorf("expected MEOW_COVERPROFILE env check, got:\n%s", code)
+	}
+	// Report should come before meow_testing.Report
+	reportIdx := strings.Index(code, "meow_coverage.Report(os.Stdout)")
+	testingReportIdx := strings.Index(code, "meow_testing.Report()")
+	if reportIdx > testingReportIdx {
+		t.Error("coverage Report should appear before testing Report")
+	}
+}
+
+func TestCoverageDisabledByDefault(t *testing.T) {
+	code := generateTest(t, `meow test_add() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}`)
+	if strings.Contains(code, "meow_coverage") {
+		t.Error("coverage should not appear when not enabled")
+	}
+}

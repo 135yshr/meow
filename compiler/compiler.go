@@ -19,7 +19,9 @@ import (
 
 // Compiler orchestrates the compilation pipeline.
 type Compiler struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	coverEnabled bool
+	coverProfile string
 }
 
 // New creates a new Compiler.
@@ -28,6 +30,12 @@ func New(logger *slog.Logger) *Compiler {
 		logger = slog.Default()
 	}
 	return &Compiler{logger: logger}
+}
+
+// EnableCoverage activates statement coverage for test runs.
+func (c *Compiler) EnableCoverage(profile string) {
+	c.coverEnabled = true
+	c.coverProfile = profile
 }
 
 // CompileToGo compiles a .nyan file to Go source code.
@@ -161,6 +169,9 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 
 	c.logger.Debug("generating test Go code", "file", filename)
 	gen := codegen.NewTest()
+	if c.coverEnabled {
+		gen.EnableCoverage(filename)
+	}
 	if len(catwalkOutputs) > 0 {
 		gen.SetCatwalkOutput(catwalkOutputs)
 	}
@@ -331,6 +342,9 @@ func (c *Compiler) RunTest(nyanPath string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
+	if c.coverProfile != "" {
+		cmd.Env = append(os.Environ(), "MEOW_COVERPROFILE="+c.coverProfile)
+	}
 	return cmd.Run()
 }
 
