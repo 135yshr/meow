@@ -1,0 +1,25 @@
+meow catwalk_hello() {
+  nya("Hello, Tama!")
+  # Output:
+  # Hello, Tama!
+}
+
+meow catwalk_arithmetic() {
+  nya(1 + 2)
+  # Output:
+  # 3
+}
+
+meow catwalk_multi_line() {
+  nya("line1")
+  nya("line2")
+  nya("line3")
+  # Output:
+  # line1
+  # line2
+  # line3
+}
+
+meow test_basic() {
+  expect(1 + 1, 2)
+}

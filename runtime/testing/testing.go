@@ -1,6 +1,7 @@
 package meowtest
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -121,6 +122,85 @@ func Run(args ...meowrt.Value) meowrt.Value {
 		}()
 		fn.Call()
 	}()
+
+	status := "PASS"
+	if !passed {
+		status = "FAIL"
+	}
+	fmt.Fprintf(output, "  %s: %s", status, name.Val)
+	if msg != "" {
+		fmt.Fprintf(output, " - %s", msg)
+	}
+	fmt.Fprintln(output)
+
+	results = append(results, testResult{name: name.Val, passed: passed, msg: msg})
+	return meowrt.NewBool(passed)
+}
+
+// Catwalk executes a named function, captures its stdout output, and compares
+// it with the expected output string. This is the Meow equivalent of Go's
+// Example tests with // Output: comments.
+// Usage: Catwalk(name, fn, expected)
+func Catwalk(args ...meowrt.Value) meowrt.Value {
+	if len(args) < 3 {
+		panic("Hiss! catwalk expects 3 arguments (name, fn, expected), nya~")
+	}
+	name, ok := args[0].(*meowrt.String)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! catwalk expects a String name, got %s, nya~", args[0].Type()))
+	}
+	fn, ok := args[1].(*meowrt.Func)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! catwalk expects a Func, got %s, nya~", args[1].Type()))
+	}
+	expected, ok := args[2].(*meowrt.String)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! catwalk expects a String expected, got %s, nya~", args[2].Type()))
+	}
+
+	// Capture stdout using os.Pipe.
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(fmt.Sprintf("Hiss! cannot create pipe, nya~: %v", err))
+	}
+	os.Stdout = w
+
+	// Read pipe output in a goroutine to prevent deadlock.
+	captured := make(chan string)
+	go func() {
+		var buf bytes.Buffer
+		buf.ReadFrom(r)
+		captured <- buf.String()
+	}()
+
+	passed := true
+	var msg string
+	func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				passed = false
+				if tf, ok := rec.(testFailure); ok {
+					msg = tf.message
+				} else {
+					msg = fmt.Sprintf("panic: %v", rec)
+				}
+			}
+		}()
+		fn.Call()
+	}()
+
+	// Close writer and restore stdout.
+	w.Close()
+	os.Stdout = oldStdout
+	got := <-captured
+	r.Close()
+
+	// Compare output if function didn't panic.
+	if passed && got != expected.Val {
+		passed = false
+		msg = fmt.Sprintf("output mismatch:\ngot:\n%swant:\n%s", got, expected.Val)
+	}
 
 	status := "PASS"
 	if !passed {

@@ -12,13 +12,15 @@ import (
 
 // Generator produces Go source code from a Meow AST.
 type Generator struct {
-	funcs     []string
-	topLevel  []string
-	indent    int
-	imports   map[string]string // meow pkg name → Go import path
-	testMode  bool
-	testFuncs []string // names of test_ prefixed functions
-	mutations map[ast.Expr][]mutation.MutationEntry
+	funcs         []string
+	topLevel      []string
+	indent        int
+	imports       map[string]string // meow pkg name → Go import path
+	testMode      bool
+	testFuncs     []string // names of test_ prefixed functions
+	catwalkFuncs  []string // names of catwalk_ prefixed functions
+	catwalkOutput CatwalkOutput
+	mutations     map[ast.Expr][]mutation.MutationEntry
 }
 
 var stdPackages = map[string]string{
@@ -46,6 +48,11 @@ func NewTest() *Generator {
 	return &Generator{testMode: true}
 }
 
+// SetCatwalkOutput sets the expected output map for catwalk_ functions.
+func (g *Generator) SetCatwalkOutput(co CatwalkOutput) {
+	g.catwalkOutput = co
+}
+
 // SetMutations sets the mutation schema for schemata-based mutation testing.
 func (g *Generator) SetMutations(m map[ast.Expr][]mutation.MutationEntry) {
 	g.mutations = m
@@ -70,7 +77,8 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 }
 
 // GenerateTest produces Go source code from a Program AST in test mode.
-// It auto-imports the testing package and wraps test_ functions with Run/Report.
+// It auto-imports the testing package and wraps test_ functions with Run/Report
+// and catwalk_ functions with Catwalk.
 func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
 	for _, stmt := range prog.Stmts {
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
@@ -80,6 +88,16 @@ func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
 					return "", fmt.Errorf("test function %s must not take parameters", fn.Name)
 				}
 				g.testFuncs = append(g.testFuncs, fn.Name)
+			} else if strings.HasPrefix(fn.Name, "catwalk_") {
+				if len(fn.Params) != 0 {
+					return "", fmt.Errorf("catwalk function %s must not take parameters", fn.Name)
+				}
+				if g.catwalkOutput != nil {
+					if _, ok := g.catwalkOutput[fn.Name]; !ok {
+						return "", fmt.Errorf("catwalk function %s has no # Output: block", fn.Name)
+					}
+				}
+				g.catwalkFuncs = append(g.catwalkFuncs, fn.Name)
 			}
 		} else {
 			code, err := g.genStmtOrError(stmt)
@@ -140,6 +158,15 @@ func (g *Generator) emitTest() string {
 		fmt.Fprintf(&b, "\tmeow_testing.Run(meow.NewString(%q), meow.NewFunc(%q, func(args ...meow.Value) meow.Value {\n", name, name)
 		fmt.Fprintf(&b, "\t\treturn %s()\n", name)
 		fmt.Fprintf(&b, "\t}))\n")
+	}
+	for _, name := range g.catwalkFuncs {
+		expected := ""
+		if g.catwalkOutput != nil {
+			expected = g.catwalkOutput[name]
+		}
+		fmt.Fprintf(&b, "\tmeow_testing.Catwalk(meow.NewString(%q), meow.NewFunc(%q, func(args ...meow.Value) meow.Value {\n", name, name)
+		fmt.Fprintf(&b, "\t\treturn %s()\n", name)
+		fmt.Fprintf(&b, "\t}), meow.NewString(%q))\n", expected)
 	}
 	b.WriteString("\tmeow_testing.Report()\n")
 	b.WriteString("}\n")

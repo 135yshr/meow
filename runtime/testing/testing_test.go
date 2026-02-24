@@ -262,3 +262,67 @@ func TestRunBadArgs(t *testing.T) {
 	}()
 	meowtest.Run(meowrt.NewInt(1), meowrt.NewInt(2))
 }
+
+func TestCatwalkPass(t *testing.T) {
+	buf, _ := setup(t)
+	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
+		fmt.Print("Hello, Tama!\n")
+		return meowrt.NewNil()
+	})
+	result := meowtest.Catwalk(
+		meowrt.NewString("catwalk_hello"),
+		fn,
+		meowrt.NewString("Hello, Tama!\n"),
+	)
+	b, ok := result.(*meowrt.Bool)
+	if !ok || !b.Val {
+		t.Errorf("expected true, got %v", result)
+	}
+	if !strings.Contains(buf.String(), "PASS: catwalk_hello") {
+		t.Errorf("expected PASS output, got: %s", buf.String())
+	}
+}
+
+func TestCatwalkFail(t *testing.T) {
+	buf, _ := setup(t)
+	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
+		fmt.Print("wrong output\n")
+		return meowrt.NewNil()
+	})
+	result := meowtest.Catwalk(
+		meowrt.NewString("catwalk_mismatch"),
+		fn,
+		meowrt.NewString("expected output\n"),
+	)
+	b, ok := result.(*meowrt.Bool)
+	if !ok || b.Val {
+		t.Errorf("expected false, got %v", result)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "FAIL: catwalk_mismatch") {
+		t.Errorf("expected FAIL output, got: %s", out)
+	}
+	if !strings.Contains(out, "output mismatch") {
+		t.Errorf("expected output mismatch message, got: %s", out)
+	}
+}
+
+func TestCatwalkPanic(t *testing.T) {
+	buf, _ := setup(t)
+	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
+		panic("Hiss! something broke, nya~")
+	})
+	result := meowtest.Catwalk(
+		meowrt.NewString("catwalk_panic"),
+		fn,
+		meowrt.NewString("anything\n"),
+	)
+	b, ok := result.(*meowrt.Bool)
+	if !ok || b.Val {
+		t.Errorf("expected false, got %v", result)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "FAIL: catwalk_panic") {
+		t.Errorf("expected FAIL output, got: %s", out)
+	}
+}
