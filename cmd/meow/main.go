@@ -112,23 +112,40 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 	fuzz := false
 	fuzzTime := ""
 	mutate := false
+	cover := false
+	coverProfile := ""
 
 	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "-fuzz":
+		switch {
+		case args[i] == "-fuzz":
 			fuzz = true
-		case "-fuzztime":
+		case args[i] == "-fuzztime":
 			if i+1 < len(args) {
 				i++
 				fuzzTime = args[i]
 			}
-		case "-mutate":
+		case args[i] == "-mutate":
 			mutate = true
+		case args[i] == "-cover":
+			cover = true
+		case strings.HasPrefix(args[i], "-coverprofile="):
+			coverProfile = strings.TrimPrefix(args[i], "-coverprofile=")
+			cover = true
+		case args[i] == "-coverprofile":
+			if i+1 < len(args) {
+				i++
+				coverProfile = args[i]
+				cover = true
+			}
 		default:
 			if len(args[i]) > 0 && args[i][0] != '-' {
 				files = append(files, args[i])
 			}
 		}
+	}
+
+	if cover {
+		c.EnableCoverage(coverProfile)
 	}
 
 	if fuzz {
@@ -179,6 +196,13 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 	if len(files) == 0 {
 		fmt.Fprintln(os.Stderr, "Hiss! No test files found, nya~")
 		os.Exit(1)
+	}
+
+	if coverProfile != "" {
+		if err := os.WriteFile(coverProfile, []byte("mode: set\n"), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Hiss! Cannot write coverage profile header, nya~: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	hasFailure := false
@@ -319,6 +343,8 @@ Flags:
   -fuzz                  Run fuzz tests
   -fuzztime <duration>   Fuzz test duration (default: 10s)
   -mutate                Run mutation tests (requires source and test files)
+  -cover                 Enable statement coverage
+  -coverprofile=<file>   Write coverage profile to file (Go-compatible format)
 
 Examples:
   meow test
@@ -328,7 +354,9 @@ Examples:
   meow test math_test.nyan
   meow test -fuzz math_test.nyan
   meow test -fuzz -fuzztime 30s math_test.nyan
-  meow test -mutate math.nyan math_test.nyan`,
+  meow test -mutate math.nyan math_test.nyan
+  meow test -cover math_test.nyan
+  meow test -coverprofile=coverage.out ./...`,
 
 		"version": `Usage: meow version
 
