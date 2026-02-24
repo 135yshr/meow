@@ -49,6 +49,7 @@ const (
 	LBRACKET // [
 	RBRACKET // ]
 	COMMA    // ,
+	COLON    // :
 	NEWLINE  // \n
 
 	// Keywords

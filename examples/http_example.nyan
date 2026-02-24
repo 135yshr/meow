@@ -14,3 +14,11 @@ http.swat("https://httpbin.org/delete") |=| nya
 
 # OPTIONS request — prowl around to check allowed methods
 http.prowl("https://httpbin.org/get") |=| nya
+
+# GET with options — set max body size to 2 MiB
+nyan res = http.pounce("https://httpbin.org/get", {"maxBodyBytes": 2097152})
+nya(res)
+
+# POST with options — set max body size to 4 MiB
+nyan postRes = http.toss("https://httpbin.org/post", "{\"name\":\"Tama\"}", "application/json", {"maxBodyBytes": 4194304})
+nya(postRes)

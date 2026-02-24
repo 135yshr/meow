@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	meowhttp "github.com/135yshr/meow/runtime/http"
@@ -51,6 +52,9 @@ func newTestServer() *httptest.Server {
 		}
 		w.Header().Set("Allow", "GET, POST, OPTIONS")
 		w.Write([]byte("prowl ok"))
+	})
+	mux.HandleFunc("/large", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(strings.Repeat("x", 2048)))
 	})
 	return httptest.NewServer(mux)
 }
@@ -186,4 +190,86 @@ func TestProwlNonString(t *testing.T) {
 		}
 	}()
 	meowhttp.Prowl(meowrt.NewInt(42))
+}
+
+func TestPounceWithOptions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(4096),
+	})
+	result := meowhttp.Pounce(meowrt.NewString(srv.URL+"/get"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "pounce ok" {
+		t.Errorf("expected %q, got %q", "pounce ok", s.Val)
+	}
+}
+
+func TestPounceExceedsMaxBodyBytes(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for body exceeding maxBodyBytes")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic, got %T", r)
+		}
+		if !strings.Contains(msg, "exceeds") {
+			t.Errorf("expected truncation error, got %q", msg)
+		}
+	}()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(16),
+	})
+	// /large returns 2048 bytes, limit is 16
+	meowhttp.Pounce(meowrt.NewString(srv.URL+"/large"), opts)
+}
+
+func TestTossWithOptions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(4096),
+	})
+	result := meowhttp.Toss(
+		meowrt.NewString(srv.URL+"/post"),
+		meowrt.NewString(`{"name":"Tama"}`),
+		meowrt.NewString("application/json"),
+		opts,
+	)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `toss:application/json:{"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestSwatWithOptions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(4096),
+	})
+	result := meowhttp.Swat(meowrt.NewString(srv.URL+"/delete"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "swat ok" {
+		t.Errorf("expected %q, got %q", "swat ok", s.Val)
+	}
 }

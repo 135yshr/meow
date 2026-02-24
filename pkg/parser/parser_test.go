@@ -233,6 +233,33 @@ func TestPipeToBareHiss(t *testing.T) {
 	}
 }
 
+func TestMapLit(t *testing.T) {
+	prog := parse(t, `nyan m = {"name": "Tama", "age": 3}`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	m, ok := v.Value.(*ast.MapLit)
+	if !ok {
+		t.Fatalf("expected MapLit, got %T", v.Value)
+	}
+	if len(m.Keys) != 2 {
+		t.Errorf("expected 2 keys, got %d", len(m.Keys))
+	}
+	if len(m.Vals) != 2 {
+		t.Errorf("expected 2 vals, got %d", len(m.Vals))
+	}
+}
+
+func TestEmptyMapLit(t *testing.T) {
+	prog := parse(t, `nyan m = {}`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	m, ok := v.Value.(*ast.MapLit)
+	if !ok {
+		t.Fatalf("expected MapLit, got %T", v.Value)
+	}
+	if len(m.Keys) != 0 {
+		t.Errorf("expected 0 keys, got %d", len(m.Keys))
+	}
+}
+
 func TestMatchExpr(t *testing.T) {
 	prog := parse(t, `nyan result = peek(x) {
   0 => "zero",

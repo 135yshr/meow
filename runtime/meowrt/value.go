@@ -124,3 +124,29 @@ func (l *List) Get(index int) Value {
 	}
 	return l.Items[index]
 }
+
+// Map represents a map value with string keys.
+type Map struct {
+	Items map[string]Value
+}
+
+// NewMap creates a new Map value from the given items.
+func NewMap(items map[string]Value) *Map {
+	return &Map{Items: items}
+}
+
+func (m *Map) Type() string   { return "Map" }
+func (m *Map) IsTruthy() bool { return len(m.Items) > 0 }
+func (m *Map) String() string {
+	parts := make([]string, 0, len(m.Items))
+	for k, v := range m.Items {
+		parts = append(parts, k+": "+v.String())
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
+
+// Get returns the value for the given key and whether it was found.
+func (m *Map) Get(key string) (Value, bool) {
+	v, ok := m.Items[key]
+	return v, ok
+}

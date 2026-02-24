@@ -202,6 +202,8 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		return g.genPipe(e)
 	case *ast.CatchExpr:
 		return g.genCatch(e)
+	case *ast.MapLit:
+		return g.genMap(e)
 	case *ast.MatchExpr:
 		return g.genMatch(e)
 	case *ast.MemberExpr:
@@ -356,6 +358,22 @@ func (g *Generator) genList(e *ast.ListLit) string {
 		items[i] = g.genExpr(item)
 	}
 	return fmt.Sprintf("meow.NewList(%s)", strings.Join(items, ", "))
+}
+
+func (g *Generator) genMap(e *ast.MapLit) string {
+	if len(e.Keys) == 0 {
+		return "meow.NewMap(map[string]meow.Value{})"
+	}
+	entries := make([]string, len(e.Keys))
+	for i := range e.Keys {
+		key, ok := e.Keys[i].(*ast.StringLit)
+		if !ok {
+			entries[i] = fmt.Sprintf("/* unsupported map key: %T */", e.Keys[i])
+			continue
+		}
+		entries[i] = fmt.Sprintf("%q: %s", key.Value, g.genExpr(e.Vals[i]))
+	}
+	return fmt.Sprintf("meow.NewMap(map[string]meow.Value{%s})", strings.Join(entries, ", "))
 }
 
 func (g *Generator) genIndex(e *ast.IndexExpr) string {

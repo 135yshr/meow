@@ -320,6 +320,8 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return p.parseLambda()
 	case token.LBRACKET:
 		return p.parseListLit()
+	case token.LBRACE:
+		return p.parseMapLit()
 	case token.PEEK:
 		return p.parseMatch()
 	default:
@@ -455,6 +457,34 @@ func (p *Parser) parseListLit() ast.Expr {
 	p.skipNewlines()
 	p.expect(token.RBRACKET)
 	return &ast.ListLit{Token: tok, Items: items}
+}
+
+func (p *Parser) parseMapLit() ast.Expr {
+	tok := p.advance() // consume {
+	var keys, vals []ast.Expr
+	p.skipNewlines()
+	if p.cur.Type != token.RBRACE {
+		key := p.parseExpr(0)
+		p.expect(token.COLON)
+		val := p.parseExpr(0)
+		keys = append(keys, key)
+		vals = append(vals, val)
+		for p.cur.Type == token.COMMA {
+			p.advance()
+			p.skipNewlines()
+			if p.cur.Type == token.RBRACE {
+				break
+			}
+			key = p.parseExpr(0)
+			p.expect(token.COLON)
+			val = p.parseExpr(0)
+			keys = append(keys, key)
+			vals = append(vals, val)
+		}
+	}
+	p.skipNewlines()
+	p.expect(token.RBRACE)
+	return &ast.MapLit{Token: tok, Keys: keys, Vals: vals}
 }
 
 func (p *Parser) parseIndex(left ast.Expr) ast.Expr {

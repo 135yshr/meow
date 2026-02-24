@@ -117,6 +117,28 @@ nya(res)`)
 	}
 }
 
+func TestMapLitGen(t *testing.T) {
+	code := generate(t, `nyan opts = {"maxBodyBytes": 2097152}`)
+	if !strings.Contains(code, `meow.NewMap(map[string]meow.Value{"maxBodyBytes": meow.NewInt(2097152)})`) {
+		t.Errorf("expected Map codegen, got:\n%s", code)
+	}
+}
+
+func TestEmptyMapLitGen(t *testing.T) {
+	code := generate(t, `nyan m = {}`)
+	if !strings.Contains(code, `meow.NewMap(map[string]meow.Value{})`) {
+		t.Errorf("expected empty Map codegen, got:\n%s", code)
+	}
+}
+
+func TestMapAsArgGen(t *testing.T) {
+	code := generate(t, `fetch "http"
+nyan res = http.pounce("https://example.com", {"maxBodyBytes": 2097152})`)
+	if !strings.Contains(code, `meow_http.Pounce(meow.NewString("https://example.com"), meow.NewMap(map[string]meow.Value{"maxBodyBytes": meow.NewInt(2097152)}))`) {
+		t.Errorf("expected Map arg codegen, got:\n%s", code)
+	}
+}
+
 func TestIfElse(t *testing.T) {
 	code := generate(t, `sniff (x > 0) {
   nya(x)
