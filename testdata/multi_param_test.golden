@@ -4,5 +4,8 @@
   PASS: test_empty_function
   PASS: test_single_param
   PASS: test_nested_calls
+  PASS: test_add3_individual_params
+  PASS: test_add4_individual_params
+  PASS: test_clamp_just_outside
 
-All 6 tests passed, nya~!
+All 9 tests passed, nya~!

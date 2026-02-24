@@ -26,3 +26,17 @@ meow test_pipe_filter_then_map() {
   nyan result = nums |=| picky(paw(x) { x % 2 == 0 }) |=| lick(paw(x) { x * 10 })
   expect(result, [20, 40, 60])
 }
+
+meow test_double_specific_values() {
+  expect(0 |=| double, 0)
+  expect(1 |=| double, 2)
+  expect(-1 |=| double, -2)
+  expect(3 |=| double, 6)
+}
+
+meow test_add_one_specific_values() {
+  expect(0 |=| add_one, 1)
+  expect(-1 |=| add_one, 0)
+  expect(1 |=| add_one, 2)
+  expect(99 |=| add_one, 100)
+}

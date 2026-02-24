@@ -4,5 +4,11 @@
   PASS: test_conditional_return
   PASS: test_abs
   PASS: test_fibonacci
+  PASS: test_factorial_small
+  PASS: test_greet_various
+  PASS: test_max_val_negative
+  PASS: test_min_val_negative
+  PASS: test_abs_boundary
+  PASS: test_fib_sequence
 
-All 6 tests passed, nya~!
+All 12 tests passed, nya~!

@@ -685,19 +685,27 @@ func (g *Generator) genMatch(e *ast.MatchExpr) string {
 }
 
 func (g *Generator) genMutatedExpr(original ast.Expr, entries []mutation.MutationEntry) string {
-	// Save mutations temporarily and clear to avoid recursion
-	saved := g.mutations
-	g.mutations = nil
+	// Remove this expression's entries to avoid self-recursion
+	delete(g.mutations, original)
 
 	var b strings.Builder
 	b.WriteString("func() meow.Value {\n")
+
+	// Mutation branches: generate without child mutations
+	// (each branch represents only its specific mutation, not combinations)
+	saved := g.mutations
+	g.mutations = nil
 	for _, entry := range entries {
 		fmt.Fprintf(&b, "\t\tif __mutant == %d { return %s }\n", entry.ID, g.genExpr(entry.Expr))
 	}
+	g.mutations = saved
+
+	// Default branch: child mutations remain active
 	fmt.Fprintf(&b, "\t\treturn %s\n", g.genExpr(original))
 	b.WriteString("\t}()")
 
-	g.mutations = saved
+	// Restore this entry
+	g.mutations[original] = entries
 	return b.String()
 }
 

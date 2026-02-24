@@ -3,5 +3,7 @@
   PASS: test_pipe_with_lambda
   PASS: test_pipe_with_list
   PASS: test_pipe_filter_then_map
+  PASS: test_double_specific_values
+  PASS: test_add_one_specific_values
 
-All 5 tests passed, nya~!
+All 7 tests passed, nya~!

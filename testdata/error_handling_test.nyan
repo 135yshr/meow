@@ -44,3 +44,44 @@ meow test_chained_error_recovery() {
   expect(a, 0)
   expect(b, 0)
 }
+
+meow test_divide_by_one() {
+  expect(divide(10, 1), 10)
+  expect(divide(0, 1), 0)
+  expect(divide(100, 1), 100)
+}
+
+meow test_risky_chain_zero() {
+  expect(risky_chain(0), 0)
+}
+
+meow test_risky_chain_positive_values() {
+  expect(risky_chain(5), 10)
+  expect(risky_chain(1), 2)
+  expect(risky_chain(3), 6)
+  expect(risky_chain(10), 20)
+}
+
+meow test_divide_error_is_furball() {
+  nyan result = gag(paw() { divide(10, 0) })
+  judge(isFurball(result))
+  nyan result2 = gag(paw() { divide(5, 0) })
+  judge(isFurball(result2))
+}
+
+meow test_risky_chain_negative_is_furball() {
+  nyan result = gag(paw() { risky_chain(-1) })
+  judge(isFurball(result))
+  nyan result2 = gag(paw() { risky_chain(-100) })
+  judge(isFurball(result2))
+}
+
+meow test_divide_error_message() {
+  nyan err = gag(paw() { divide(10, 0) })
+  expect(toString(err), "Hiss! division by zero")
+}
+
+meow test_risky_chain_error_message() {
+  nyan err = gag(paw() { risky_chain(-1) })
+  expect(toString(err), "Hiss! negative input")
+}

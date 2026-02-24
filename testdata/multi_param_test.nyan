@@ -34,3 +34,24 @@ meow test_single_param() {
 meow test_nested_calls() {
   expect(add3(add3(1, 2, 3), add3(4, 5, 6), add3(7, 8, 9)), 45)
 }
+
+meow test_add3_individual_params() {
+  expect(add3(1, 0, 0), 1)
+  expect(add3(0, 1, 0), 1)
+  expect(add3(0, 0, 1), 1)
+  expect(add3(5, -5, 0), 0)
+}
+
+meow test_add4_individual_params() {
+  expect(add4(1, 0, 0, 0), 1)
+  expect(add4(0, 1, 0, 0), 1)
+  expect(add4(0, 0, 1, 0), 1)
+  expect(add4(0, 0, 0, 1), 1)
+}
+
+meow test_clamp_just_outside() {
+  expect(clamp(-1, 0, 10), 0)
+  expect(clamp(11, 0, 10), 10)
+  expect(clamp(1, 0, 10), 1)
+  expect(clamp(9, 0, 10), 9)
+}

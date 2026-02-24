@@ -13,5 +13,9 @@
   PASS: test_chained_list_ops
   PASS: test_map_empty_list
   PASS: test_filter_empty_list
+  PASS: test_find_max_basic
+  PASS: test_find_max_single
+  PASS: test_find_max_equal
+  PASS: test_find_max_large
 
-All 15 tests passed, nya~!
+All 19 tests passed, nya~!
