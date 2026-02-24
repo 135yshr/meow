@@ -1,0 +1,21 @@
+meow test_addition() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}
+
+meow test_string() {
+  nyan greeting = "Hello, " + "World!"
+  expect(greeting, "Hello, World!")
+}
+
+meow test_truthy() {
+  judge(yarn)
+  judge(42)
+  judge("non-empty")
+}
+
+meow test_falsy() {
+  refuse(hairball)
+  refuse(0)
+  refuse("")
+}

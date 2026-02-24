@@ -26,7 +26,11 @@ func TestGoldenFiles(t *testing.T) {
 	c := compiler.New(nil)
 
 	for _, nyanFile := range entries {
-		name := strings.TrimSuffix(filepath.Base(nyanFile), ".nyan")
+		base := filepath.Base(nyanFile)
+		if strings.HasSuffix(base, "_test.nyan") {
+			continue
+		}
+		name := strings.TrimSuffix(base, ".nyan")
 		t.Run(name, func(t *testing.T) {
 			goldenFile := strings.TrimSuffix(nyanFile, ".nyan") + ".golden"
 
@@ -43,6 +47,61 @@ func TestGoldenFiles(t *testing.T) {
 			}
 
 			// Run binary and capture output
+			cmd := exec.Command(tmpBin.Name())
+			var stdout bytes.Buffer
+			cmd.Stdout = &stdout
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("run failed: %v", err)
+			}
+
+			got := stdout.String()
+
+			if *update {
+				if err := os.WriteFile(goldenFile, []byte(got), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+
+			want, err := os.ReadFile(goldenFile)
+			if err != nil {
+				t.Fatalf("cannot read golden file: %v", err)
+			}
+
+			if got != string(want) {
+				t.Errorf("output mismatch:\ngot:\n%s\nwant:\n%s", got, string(want))
+			}
+		})
+	}
+}
+
+func TestGoldenTestFiles(t *testing.T) {
+	entries, err := filepath.Glob(filepath.Join("..", "testdata", "*_test.nyan"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) == 0 {
+		t.Skip("no test data files found")
+	}
+
+	c := compiler.New(nil)
+
+	for _, nyanFile := range entries {
+		name := strings.TrimSuffix(filepath.Base(nyanFile), ".nyan")
+		t.Run(name, func(t *testing.T) {
+			goldenFile := strings.TrimSuffix(nyanFile, ".nyan") + ".golden"
+
+			tmpBin, err := os.CreateTemp("", "meow-test-golden-*")
+			if err != nil {
+				t.Fatal(err)
+			}
+			tmpBin.Close()
+			defer os.Remove(tmpBin.Name())
+
+			if err := c.BuildTest(nyanFile, tmpBin.Name()); err != nil {
+				t.Fatalf("build failed: %v", err)
+			}
+
 			cmd := exec.Command(tmpBin.Name())
 			var stdout bytes.Buffer
 			cmd.Stdout = &stdout
