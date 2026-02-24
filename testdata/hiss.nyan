@@ -7,7 +7,7 @@ meow divide(a, b) {
 
 # gag catches a panic and returns a Furball
 nyan result = gag(paw() { divide(10, 0) })
-sniff (isFurball(result)) {
+sniff (is_furball(result)) {
   nya("caught:", result)
 } scratch {
   nya("ok:", result)
@@ -15,7 +15,7 @@ sniff (isFurball(result)) {
 
 # gag returns the value when no error occurs
 nyan ok = gag(paw() { divide(10, 2) })
-sniff (isFurball(ok)) {
+sniff (is_furball(ok)) {
   nya("error:", ok)
 } scratch {
   nya("ok:", ok)

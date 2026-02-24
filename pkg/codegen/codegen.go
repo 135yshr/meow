@@ -538,15 +538,15 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.Tail(%s)", argStr)
 		case "append":
 			return fmt.Sprintf("meow.Append(%s)", argStr)
-		case "toInt":
+		case "to_int":
 			return fmt.Sprintf("meow.ToInt(%s)", argStr)
-		case "toFloat":
+		case "to_float":
 			return fmt.Sprintf("meow.ToFloat(%s)", argStr)
-		case "toString":
+		case "to_string":
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
-		case "isFurball":
+		case "is_furball":
 			return fmt.Sprintf("meow.IsFurball(%s)", argStr)
 		case "judge":
 			g.ensureImport("testing")

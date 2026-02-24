@@ -20,7 +20,7 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `peek` | Branch based on a value (pattern match) | `peek(v) { 0 => "zero", _ => "other" }` |
 | `hiss` | Raise an error | `hiss("something went wrong")` |
 | `gag` | Catch errors (try/recover) | `gag(paw() { risky() })` |
-| `isFurball` | Check if a value is an error | `isFurball(result)` |
+| `is_furball` | Check if a value is an error | `is_furball(result)` |
 | `fetch` | Import *(not yet implemented)* | --- |
 | `flaunt` | Export *(not yet implemented)* | --- |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
@@ -162,12 +162,12 @@ hiss("unexpected value:", x)
 
 Use `gag` to catch errors. Wrap risky code in a lambda and pass it
 to `gag`. If the code panics, `gag` returns a `Furball` (error value)
-instead of crashing. Use `isFurball` to check if a value is an error.
+instead of crashing. Use `is_furball` to check if a value is an error.
 
 ```meow
 nyan result = gag(paw() { divide(10, 0) })
 
-sniff (isFurball(result)) {
+sniff (is_furball(result)) {
   nya("caught:", result)
 } scratch {
   nya("ok:", result)

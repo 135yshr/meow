@@ -1,21 +1,21 @@
-# Error handling test (hiss, gag, isFurball, ~>)
+# Error handling test (hiss, gag, is_furball, ~>)
 
 meow test_gag_catches_error() {
   nyan result = gag(paw() { divide(10, 0) })
-  judge(isFurball(result))
+  judge(is_furball(result))
 }
 
 meow test_gag_returns_value() {
   nyan result = gag(paw() { divide(10, 2) })
-  refuse(isFurball(result))
+  refuse(is_furball(result))
   expect(result, 5)
 }
 
 meow test_is_furball_on_normal_values() {
-  refuse(isFurball(42))
-  refuse(isFurball("hello"))
-  refuse(isFurball(yarn))
-  refuse(isFurball([1, 2, 3]))
+  refuse(is_furball(42))
+  refuse(is_furball("hello"))
+  refuse(is_furball(yarn))
+  refuse(is_furball([1, 2, 3]))
 }
 
 meow test_error_recovery_with_literal() {
@@ -64,24 +64,24 @@ meow test_risky_chain_positive_values() {
 
 meow test_divide_error_is_furball() {
   nyan result = gag(paw() { divide(10, 0) })
-  judge(isFurball(result))
+  judge(is_furball(result))
   nyan result2 = gag(paw() { divide(5, 0) })
-  judge(isFurball(result2))
+  judge(is_furball(result2))
 }
 
 meow test_risky_chain_negative_is_furball() {
   nyan result = gag(paw() { risky_chain(-1) })
-  judge(isFurball(result))
+  judge(is_furball(result))
   nyan result2 = gag(paw() { risky_chain(-100) })
-  judge(isFurball(result2))
+  judge(is_furball(result2))
 }
 
 meow test_divide_error_message() {
   nyan err = gag(paw() { divide(10, 0) })
-  expect(toString(err), "Hiss! division by zero")
+  expect(to_string(err), "Hiss! division by zero")
 }
 
 meow test_risky_chain_error_message() {
   nyan err = gag(paw() { risky_chain(-1) })
-  expect(toString(err), "Hiss! negative input")
+  expect(to_string(err), "Hiss! negative input")
 }

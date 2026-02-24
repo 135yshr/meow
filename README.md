@@ -194,9 +194,9 @@ nya(val)   # => 0
 nyan val2 = divide(10, 0) ~> paw(err) { 42 }
 nya(val2)  # => 42
 
-# Verbose style with gag/isFurball
+# Verbose style with gag/is_furball
 nyan result = gag(paw() { divide(10, 0) })
-sniff (isFurball(result)) {
+sniff (is_furball(result)) {
   nya("caught:", result)
 } scratch {
   nya("ok:", result)
@@ -246,7 +246,7 @@ nyan result = peek(score) {
 | `peek` | Pattern match | `peek(v) { 0 => "zero", _ => "other" }` |
 | `hiss` | Raise error | `hiss("something went wrong")` |
 | `gag` | Catch errors | `gag(paw() { risky() })` |
-| `isFurball` | Check if error | `isFurball(result)` |
+| `is_furball` | Check if error | `is_furball(result)` |
 | `fetch` | Import *(planned)* | — |
 | `flaunt` | Export *(planned)* | — |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
@@ -326,7 +326,7 @@ Check the [`examples/`](examples/) directory:
 | [`fibonacci.nyan`](examples/fibonacci.nyan) | Recursive Fibonacci sequence |
 | [`fizzbuzz.nyan`](examples/fizzbuzz.nyan) | Classic FizzBuzz with `sniff`/`scratch` chains |
 | [`list_ops.nyan`](examples/list_ops.nyan) | `lick`, `picky`, `curl` demo |
-| [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `isFurball`, `~>` demo |
+| [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `is_furball`, `~>` demo |
 
 ## Project Structure
 
