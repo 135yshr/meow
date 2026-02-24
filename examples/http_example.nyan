@@ -1,4 +1,16 @@
 fetch "http"
 
-nyan res = http.pounce("https://httpbin.org/get")
-nya(res)
+# GET request — pounce on a URL
+http.pounce("https://httpbin.org/get") |=| nya
+
+# POST request — toss data (url, body, content-type)
+http.toss("https://httpbin.org/post", "{\"name\":\"Tama\"}", "application/json") |=| nya
+
+# PUT request — knead data into place
+http.knead("https://httpbin.org/put", "{\"name\":\"Mochi\"}", "application/json") |=| nya
+
+# DELETE request — swat a resource away
+http.swat("https://httpbin.org/delete") |=| nya
+
+# OPTIONS request — prowl around to check allowed methods
+http.prowl("https://httpbin.org/get") |=| nya
