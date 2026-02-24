@@ -197,9 +197,12 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 
 	combined := string(source)
 	companionPath := companionSourcePath(nyanPath)
-	if companionData, err := os.ReadFile(companionPath); err == nil {
+	companionData, err := os.ReadFile(companionPath)
+	if err == nil {
 		c.logger.Debug("including companion source", "file", companionPath)
 		combined = string(companionData) + "\n" + combined
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("Hiss! Cannot read companion %s, nya~: %w", companionPath, err)
 	}
 
 	goCode, err := c.CompileTestToGo(combined, filepath.Base(nyanPath))
