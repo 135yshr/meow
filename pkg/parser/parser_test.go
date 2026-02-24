@@ -57,7 +57,7 @@ func TestFuncStmt(t *testing.T) {
 	if fn.Name != "greet" {
 		t.Errorf("expected name 'greet', got %q", fn.Name)
 	}
-	if len(fn.Params) != 1 || fn.Params[0] != "name" {
+	if len(fn.Params) != 1 || fn.Params[0].Name != "name" {
 		t.Errorf("expected params [name], got %v", fn.Params)
 	}
 }
@@ -257,6 +257,94 @@ func TestEmptyMapLit(t *testing.T) {
 	}
 	if len(m.Keys) != 0 {
 		t.Errorf("expected 0 keys, got %d", len(m.Keys))
+	}
+}
+
+func TestTypedVarStmt(t *testing.T) {
+	prog := parse(t, `nyan x int = 42`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	if v.Name != "x" {
+		t.Errorf("expected name 'x', got %q", v.Name)
+	}
+	if v.TypeAnn == nil {
+		t.Fatal("expected type annotation, got nil")
+	}
+	bt, ok := v.TypeAnn.(*ast.BasicType)
+	if !ok {
+		t.Fatalf("expected BasicType, got %T", v.TypeAnn)
+	}
+	if bt.Name != "int" {
+		t.Errorf("expected type 'int', got %q", bt.Name)
+	}
+}
+
+func TestUntypedVarStmt(t *testing.T) {
+	prog := parse(t, `nyan x = 42`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	if v.TypeAnn != nil {
+		t.Errorf("expected no type annotation, got %v", v.TypeAnn)
+	}
+}
+
+func TestTypedFuncStmt(t *testing.T) {
+	prog := parse(t, `meow add(a int, b int) int {
+  bring a + b
+}`)
+	fn := prog.Stmts[0].(*ast.FuncStmt)
+	if fn.Name != "add" {
+		t.Errorf("expected name 'add', got %q", fn.Name)
+	}
+	if len(fn.Params) != 2 {
+		t.Fatalf("expected 2 params, got %d", len(fn.Params))
+	}
+	if fn.Params[0].Name != "a" {
+		t.Errorf("expected param 'a', got %q", fn.Params[0].Name)
+	}
+	if fn.Params[0].TypeAnn == nil {
+		t.Fatal("expected type annotation on param a")
+	}
+	if fn.Params[0].TypeAnn.(*ast.BasicType).Name != "int" {
+		t.Errorf("expected type 'int', got %q", fn.Params[0].TypeAnn.(*ast.BasicType).Name)
+	}
+	if fn.Params[1].Name != "b" {
+		t.Errorf("expected param 'b', got %q", fn.Params[1].Name)
+	}
+	if fn.ReturnType == nil {
+		t.Fatal("expected return type annotation")
+	}
+	if fn.ReturnType.(*ast.BasicType).Name != "int" {
+		t.Errorf("expected return type 'int', got %q", fn.ReturnType.(*ast.BasicType).Name)
+	}
+}
+
+func TestUntypedFuncStmt(t *testing.T) {
+	prog := parse(t, `meow greet(name) {
+  bring name
+}`)
+	fn := prog.Stmts[0].(*ast.FuncStmt)
+	if fn.Params[0].TypeAnn != nil {
+		t.Errorf("expected no type annotation, got %v", fn.Params[0].TypeAnn)
+	}
+	if fn.ReturnType != nil {
+		t.Errorf("expected no return type, got %v", fn.ReturnType)
+	}
+}
+
+func TestTypedLambda(t *testing.T) {
+	prog := parse(t, `nyan double = paw(x int) { x * 2 }`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	lambda := v.Value.(*ast.LambdaExpr)
+	if len(lambda.Params) != 1 {
+		t.Fatalf("expected 1 param, got %d", len(lambda.Params))
+	}
+	if lambda.Params[0].Name != "x" {
+		t.Errorf("expected param 'x', got %q", lambda.Params[0].Name)
+	}
+	if lambda.Params[0].TypeAnn == nil {
+		t.Fatal("expected type annotation on lambda param")
+	}
+	if lambda.Params[0].TypeAnn.(*ast.BasicType).Name != "int" {
+		t.Errorf("expected type 'int', got %q", lambda.Params[0].TypeAnn.(*ast.BasicType).Name)
 	}
 }
 

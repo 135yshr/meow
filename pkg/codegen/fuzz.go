@@ -16,7 +16,7 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 		name   string
 		fn     *ast.FuncStmt
 		seeds  [][]ast.Expr
-		params []string
+		params []ast.Param
 	}
 
 	var funcs []fuzzFunc
@@ -103,7 +103,7 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 				if expectedType == "" {
 					expectedType = typ
 				} else if typ != expectedType {
-					return "", "", fmt.Errorf("fuzz function %s: seed %d has type %s for parameter %s but previous seeds have type %s", ff.name, seedIdx+1, typ, ff.params[paramIdx], expectedType)
+					return "", "", fmt.Errorf("fuzz function %s: seed %d has type %s for parameter %s but previous seeds have type %s", ff.name, seedIdx+1, typ, ff.params[paramIdx].Name, expectedType)
 				}
 			}
 		}
@@ -128,7 +128,7 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 		fuzzParamTypes := make([]string, len(ff.params))
 		for i, p := range ff.params {
 			typ := g.inferFuzzType(ff.seeds, i)
-			fuzzParams[i] = fmt.Sprintf("%s_raw %s", p, typ)
+			fuzzParams[i] = fmt.Sprintf("%s_raw %s", p.Name, typ)
 			fuzzParamTypes[i] = typ
 		}
 
@@ -136,8 +136,8 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 
 		// Convert raw params to meow values
 		for i, p := range ff.params {
-			converter := g.fuzzConverter(fuzzParamTypes[i], p+"_raw")
-			fmt.Fprintf(&fb, "\t\t%s := %s\n", p, converter)
+			converter := g.fuzzConverter(fuzzParamTypes[i], p.Name+"_raw")
+			fmt.Fprintf(&fb, "\t\t%s := %s\n", p.Name, converter)
 		}
 
 		// Generate body (excluding seed calls)

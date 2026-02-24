@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/mutation"
 	"github.com/135yshr/meow/pkg/token"
+	"github.com/135yshr/meow/pkg/types"
 )
 
 // Generator produces Go source code from a Meow AST.
@@ -24,6 +26,7 @@ type Generator struct {
 	coverEnabled  bool
 	coverFilename string
 	coverBlocks   []coverBlock
+	typeInfo *checker.TypeInfo
 }
 
 type coverBlock struct {
@@ -53,6 +56,11 @@ func New() *Generator {
 // NewTest creates a code generator in test mode.
 func NewTest() *Generator {
 	return &Generator{testMode: true}
+}
+
+// SetTypeInfo stores type checking results for use in code generation.
+func (g *Generator) SetTypeInfo(ti *checker.TypeInfo) {
+	g.typeInfo = ti
 }
 
 // SetCatwalkOutput sets the expected output map for catwalk_ functions.
@@ -267,10 +275,13 @@ func (g *Generator) emit() string {
 }
 
 func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
+	if g.isFullyTypedFunc(fn) {
+		return g.genTypedFuncDecl(fn)
+	}
 	var b strings.Builder
 	params := make([]string, len(fn.Params))
 	for i, p := range fn.Params {
-		params[i] = p + " meow.Value"
+		params[i] = p.Name + " meow.Value"
 	}
 	fmt.Fprintf(&b, "func %s(%s) meow.Value {\n", fn.Name, strings.Join(params, ", "))
 	for _, stmt := range fn.Body {
@@ -283,6 +294,295 @@ func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
 	}
 	b.WriteString("}")
 	return b.String()
+}
+
+func (g *Generator) isFullyTypedFunc(fn *ast.FuncStmt) bool {
+	if g.typeInfo == nil {
+		return false
+	}
+	ft, ok := g.typeInfo.FuncTypes[fn.Name]
+	if !ok {
+		return false
+	}
+	if types.IsAny(ft.Return) {
+		return false
+	}
+	for _, p := range ft.Params {
+		if types.IsAny(p) {
+			return false
+		}
+	}
+	return true
+}
+
+func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
+	ft := g.typeInfo.FuncTypes[fn.Name]
+	var b strings.Builder
+	params := make([]string, len(fn.Params))
+	for i, p := range fn.Params {
+		params[i] = p.Name + " " + goTypeString(ft.Params[i])
+	}
+	fmt.Fprintf(&b, "func %s(%s) %s {\n", fn.Name, strings.Join(params, ", "), goTypeString(ft.Return))
+	for _, stmt := range fn.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genTypedStmt(stmt))
+		b.WriteString("\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func goTypeString(t types.Type) string {
+	switch t.(type) {
+	case types.IntType:
+		return "int64"
+	case types.FloatType:
+		return "float64"
+	case types.StringType:
+		return "string"
+	case types.BoolType:
+		return "bool"
+	default:
+		return "meow.Value"
+	}
+}
+
+func (g *Generator) genTypedStmt(stmt ast.Stmt) string {
+	switch s := stmt.(type) {
+	case *ast.VarStmt:
+		return g.genTypedVarStmt(s)
+	case *ast.AssignStmt:
+		return g.genTypedAssignStmt(s)
+	case *ast.ReturnStmt:
+		return g.genTypedReturnStmt(s)
+	case *ast.ExprStmt:
+		return g.genTypedExprStmt(s)
+	case *ast.IfStmt:
+		return g.genTypedIf(s)
+	case *ast.WhileStmt:
+		return g.genTypedWhile(s)
+	default:
+		return g.genStmt(stmt)
+	}
+}
+
+func (g *Generator) genTypedVarStmt(s *ast.VarStmt) string {
+	t := g.getExprType(s.Value)
+	if t != nil && !types.IsAny(t) {
+		return fmt.Sprintf("var %s %s = %s", s.Name, goTypeString(t), g.genTypedExpr(s.Value))
+	}
+	return fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
+}
+
+func (g *Generator) genTypedAssignStmt(s *ast.AssignStmt) string {
+	t := g.getExprType(s.Value)
+	if t != nil && !types.IsAny(t) {
+		return fmt.Sprintf("%s = %s", s.Name, g.genTypedExpr(s.Value))
+	}
+	return fmt.Sprintf("%s = %s", s.Name, g.genExpr(s.Value))
+}
+
+func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
+	if s.Value == nil {
+		return "return"
+	}
+	t := g.getExprType(s.Value)
+	if t != nil && !types.IsAny(t) {
+		return fmt.Sprintf("return %s", g.genTypedExpr(s.Value))
+	}
+	return fmt.Sprintf("return %s", g.genExpr(s.Value))
+}
+
+func (g *Generator) genTypedExprStmt(s *ast.ExprStmt) string {
+	// Expression statements (like nya() calls) use boxed form
+	return g.genExpr(s.Expr)
+}
+
+func (g *Generator) genTypedIf(s *ast.IfStmt) string {
+	var b strings.Builder
+	cond := g.genExpr(s.Condition)
+	fmt.Fprintf(&b, "if (%s).IsTruthy() {\n", cond)
+	for _, stmt := range s.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genTypedStmt(stmt))
+		b.WriteString("\n")
+	}
+	if len(s.ElseBody) > 0 {
+		b.WriteString("} else {\n")
+		for _, stmt := range s.ElseBody {
+			b.WriteString("\t")
+			b.WriteString(g.genTypedStmt(stmt))
+			b.WriteString("\n")
+		}
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func (g *Generator) genTypedWhile(s *ast.WhileStmt) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "for (%s).IsTruthy() {\n", g.genExpr(s.Condition))
+	for _, stmt := range s.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genTypedStmt(stmt))
+		b.WriteString("\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func (g *Generator) getExprType(expr ast.Expr) types.Type {
+	if g.typeInfo == nil {
+		return nil
+	}
+	return g.typeInfo.ExprTypes[expr]
+}
+
+func (g *Generator) genTypedExpr(expr ast.Expr) string {
+	t := g.getExprType(expr)
+	if t == nil || types.IsAny(t) {
+		return g.genExpr(expr)
+	}
+	switch e := expr.(type) {
+	case *ast.IntLit:
+		return fmt.Sprintf("int64(%d)", e.Value)
+	case *ast.FloatLit:
+		return fmt.Sprintf("float64(%g)", e.Value)
+	case *ast.StringLit:
+		return fmt.Sprintf("%q", e.Value)
+	case *ast.BoolLit:
+		if e.Value {
+			return "true"
+		}
+		return "false"
+	case *ast.Ident:
+		return e.Name
+	case *ast.UnaryExpr:
+		return g.genTypedUnary(e)
+	case *ast.BinaryExpr:
+		return g.genTypedBinary(e)
+	case *ast.CallExpr:
+		return g.genTypedCall(e)
+	default:
+		return g.genExpr(expr)
+	}
+}
+
+func (g *Generator) genTypedUnary(e *ast.UnaryExpr) string {
+	switch e.Op {
+	case token.MINUS:
+		return fmt.Sprintf("(-%s)", g.genTypedExpr(e.Right))
+	case token.NOT:
+		return fmt.Sprintf("(!%s)", g.genTypedExpr(e.Right))
+	}
+	return g.genUnary(e)
+}
+
+func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
+	left := g.genTypedExpr(e.Left)
+	right := g.genTypedExpr(e.Right)
+	switch e.Op {
+	case token.PLUS:
+		return fmt.Sprintf("(%s + %s)", left, right)
+	case token.MINUS:
+		return fmt.Sprintf("(%s - %s)", left, right)
+	case token.STAR:
+		return fmt.Sprintf("(%s * %s)", left, right)
+	case token.SLASH:
+		return fmt.Sprintf("(%s / %s)", left, right)
+	case token.PERCENT:
+		return fmt.Sprintf("(%s %% %s)", left, right)
+	case token.EQ:
+		return fmt.Sprintf("(%s == %s)", left, right)
+	case token.NEQ:
+		return fmt.Sprintf("(%s != %s)", left, right)
+	case token.LT:
+		return fmt.Sprintf("(%s < %s)", left, right)
+	case token.GT:
+		return fmt.Sprintf("(%s > %s)", left, right)
+	case token.LTE:
+		return fmt.Sprintf("(%s <= %s)", left, right)
+	case token.GTE:
+		return fmt.Sprintf("(%s >= %s)", left, right)
+	case token.AND:
+		return fmt.Sprintf("(%s && %s)", left, right)
+	case token.OR:
+		return fmt.Sprintf("(%s || %s)", left, right)
+	}
+	return g.genBinary(e)
+}
+
+func (g *Generator) genTypedCall(e *ast.CallExpr) string {
+	ident, isIdent := e.Fn.(*ast.Ident)
+	if !isIdent {
+		return g.genCall(e)
+	}
+
+	// Builtin functions that need boxing
+	switch ident.Name {
+	case "nya":
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		return fmt.Sprintf("meow.Nya(%s)", strings.Join(args, ", "))
+	case "hiss":
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		return fmt.Sprintf("meow.Hiss(%s)", strings.Join(args, ", "))
+	case "judge", "expect", "refuse":
+		g.ensureImport("testing")
+		fn := capitalizeFirst(ident.Name)
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
+	}
+
+	// Typed user-defined functions
+	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
+		if !types.IsAny(ft.Return) {
+			allParamsTyped := true
+			for _, p := range ft.Params {
+				if types.IsAny(p) {
+					allParamsTyped = false
+					break
+				}
+			}
+			if allParamsTyped {
+				args := make([]string, len(e.Args))
+				for i, a := range e.Args {
+					args[i] = g.genTypedExpr(a)
+				}
+				return fmt.Sprintf("%s(%s)", ident.Name, strings.Join(args, ", "))
+			}
+		}
+	}
+
+	return g.genCall(e)
+}
+
+func (g *Generator) boxValue(expr ast.Expr) string {
+	t := g.getExprType(expr)
+	if t == nil || types.IsAny(t) {
+		return g.genExpr(expr)
+	}
+	typed := g.genTypedExpr(expr)
+	switch t.(type) {
+	case types.IntType:
+		return fmt.Sprintf("meow.NewInt(%s)", typed)
+	case types.FloatType:
+		return fmt.Sprintf("meow.NewFloat(%s)", typed)
+	case types.StringType:
+		return fmt.Sprintf("meow.NewString(%s)", typed)
+	case types.BoolType:
+		return fmt.Sprintf("meow.NewBool(%s)", typed)
+	default:
+		return g.genExpr(expr)
+	}
 }
 
 func (g *Generator) blockAlwaysReturns(stmts []ast.Stmt) bool {
@@ -585,7 +885,7 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 	params := make([]string, len(e.Params))
 	for i, p := range e.Params {
-		params[i] = p + " meow.Value"
+		params[i] = p.Name + " meow.Value"
 	}
 	body := g.genExpr(e.Body)
 	return fmt.Sprintf("meow.NewFunc(\"lambda\", func(args ...meow.Value) meow.Value {\n"+
@@ -594,11 +894,11 @@ func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 		"})", g.genLambdaParamBindings(e.Params), body)
 }
 
-func (g *Generator) genLambdaParamBindings(params []string) string {
+func (g *Generator) genLambdaParamBindings(params []ast.Param) string {
 	var lines []string
 	for i, p := range params {
-		lines = append(lines, fmt.Sprintf("%s := args[%d]", p, i))
-		lines = append(lines, fmt.Sprintf("_ = %s", p))
+		lines = append(lines, fmt.Sprintf("%s := args[%d]", p.Name, i))
+		lines = append(lines, fmt.Sprintf("_ = %s", p.Name))
 	}
 	return strings.Join(lines, "\n\t")
 }

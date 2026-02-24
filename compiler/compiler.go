@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/codegen"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/mutation"
@@ -54,8 +55,20 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
 	c.logger.Debug("generating Go code", "file", filename)
 	gen := codegen.New()
+	gen.SetTypeInfo(typeInfo)
 	raw, err := gen.Generate(prog)
 	if err != nil {
 		return "", err
@@ -167,8 +180,20 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
 	c.logger.Debug("generating test Go code", "file", filename)
 	gen := codegen.NewTest()
+	gen.SetTypeInfo(typeInfo)
 	if c.coverEnabled {
 		gen.EnableCoverage(filename)
 	}
@@ -271,8 +296,20 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 		return "", "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
 	c.logger.Debug("generating fuzz Go code", "file", filename)
 	gen := codegen.New()
+	gen.SetTypeInfo(typeInfo)
 	helpers, fuzzTests, err = gen.GenerateFuzz(prog)
 	if err != nil {
 		return "", "", err

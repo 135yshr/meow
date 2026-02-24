@@ -2,84 +2,91 @@ package meowrt
 
 import "fmt"
 
-func toFloat(v Value) float64 {
-	switch v := v.(type) {
+// Add performs addition on same-type operands only.
+// int+int→int, float+float→float, string+string→string.
+func Add(a, b Value) Value {
+	switch a := a.(type) {
 	case *Int:
-		return float64(v.Val)
+		if b, ok := b.(*Int); ok {
+			return NewInt(a.Val + b.Val)
+		}
 	case *Float:
-		return v.Val
-	default:
-		panic(fmt.Sprintf("Hiss! Cannot convert %s to number, nya~", v.Type()))
+		if b, ok := b.(*Float); ok {
+			return NewFloat(a.Val + b.Val)
+		}
+	case *String:
+		if b, ok := b.(*String); ok {
+			return NewString(a.Val + b.Val)
+		}
 	}
+	panic(fmt.Sprintf("Hiss! Cannot add %s and %s, nya~", a.Type(), b.Type()))
 }
 
-func isNumeric(v Value) bool {
-	switch v.(type) {
-	case *Int, *Float:
-		return true
-	default:
-		return false
+// Sub performs subtraction on same-type operands only.
+// int-int→int, float-float→float.
+func Sub(a, b Value) Value {
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewInt(a.Val - b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewFloat(a.Val - b.Val)
+		}
 	}
+	panic(fmt.Sprintf("Hiss! Cannot subtract %s and %s, nya~", a.Type(), b.Type()))
 }
 
-func bothInt(a, b Value) (*Int, *Int, bool) {
+// Mul performs multiplication on same-type operands only.
+// int*int→int, float*float→float.
+func Mul(a, b Value) Value {
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewInt(a.Val * b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewFloat(a.Val * b.Val)
+		}
+	}
+	panic(fmt.Sprintf("Hiss! Cannot multiply %s and %s, nya~", a.Type(), b.Type()))
+}
+
+// Div performs division on same-type operands only.
+// int/int→int, float/float→float.
+func Div(a, b Value) Value {
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			if b.Val == 0 {
+				panic("Hiss! Division by zero, nya~")
+			}
+			return NewInt(a.Val / b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			if b.Val == 0 {
+				panic("Hiss! Division by zero, nya~")
+			}
+			return NewFloat(a.Val / b.Val)
+		}
+	}
+	panic(fmt.Sprintf("Hiss! Cannot divide %s and %s, nya~", a.Type(), b.Type()))
+}
+
+// Mod performs modulo on integers only.
+func Mod(a, b Value) Value {
 	ai, aok := a.(*Int)
 	bi, bok := b.(*Int)
-	return ai, bi, aok && bok
-}
-
-// Add performs addition or string concatenation.
-func Add(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewInt(ai.Val + bi.Val)
-	}
-	if isNumeric(a) && isNumeric(b) {
-		return NewFloat(toFloat(a) + toFloat(b))
-	}
-	// String concatenation
-	return NewString(a.String() + b.String())
-}
-
-// Sub performs subtraction.
-func Sub(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewInt(ai.Val - bi.Val)
-	}
-	return NewFloat(toFloat(a) - toFloat(b))
-}
-
-// Mul performs multiplication.
-func Mul(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewInt(ai.Val * bi.Val)
-	}
-	return NewFloat(toFloat(a) * toFloat(b))
-}
-
-// Div performs division.
-func Div(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		if bi.Val == 0 {
-			panic("Hiss! Division by zero, nya~")
-		}
-		return NewInt(ai.Val / bi.Val)
-	}
-	fb := toFloat(b)
-	if fb == 0 {
-		panic("Hiss! Division by zero, nya~")
-	}
-	return NewFloat(toFloat(a) / fb)
-}
-
-// Mod performs modulo.
-func Mod(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
+	if aok && bok {
 		if bi.Val == 0 {
 			panic("Hiss! Division by zero, nya~")
 		}
 		return NewInt(ai.Val % bi.Val)
 	}
-	panic("Hiss! Modulo requires integers, nya~")
+	panic(fmt.Sprintf("Hiss! Cannot modulo %s and %s, nya~", a.Type(), b.Type()))
 }
 
 // Negate negates a value.
@@ -99,53 +106,114 @@ func Not(v Value) Value {
 	return NewBool(!v.IsTruthy())
 }
 
-// Equal checks equality.
+// Equal checks equality between same-type operands only.
 func Equal(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewBool(ai.Val == bi.Val)
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val == b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewBool(a.Val == b.Val)
+		}
+	case *String:
+		if b, ok := b.(*String); ok {
+			return NewBool(a.Val == b.Val)
+		}
+	case *Bool:
+		if b, ok := b.(*Bool); ok {
+			return NewBool(a.Val == b.Val)
+		}
+	case *NilValue:
+		if _, ok := b.(*NilValue); ok {
+			return NewBool(true)
+		}
+	case *List:
+		if b, ok := b.(*List); ok {
+			return NewBool(listEqual(a, b))
+		}
 	}
-	if isNumeric(a) && isNumeric(b) {
-		return NewBool(toFloat(a) == toFloat(b))
-	}
-	return NewBool(a.String() == b.String())
+	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
 
-// NotEqual checks inequality.
+func listEqual(a, b *List) bool {
+	if len(a.Items) != len(b.Items) {
+		return false
+	}
+	for i := range a.Items {
+		eq := Equal(a.Items[i], b.Items[i]).(*Bool)
+		if !eq.Val {
+			return false
+		}
+	}
+	return true
+}
+
+// NotEqual checks inequality between same-type operands only.
 func NotEqual(a, b Value) Value {
 	eq := Equal(a, b).(*Bool)
 	return NewBool(!eq.Val)
 }
 
-// LessThan performs less-than comparison.
+// LessThan performs less-than comparison on same-type operands only.
 func LessThan(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewBool(ai.Val < bi.Val)
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val < b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewBool(a.Val < b.Val)
+		}
 	}
-	return NewBool(toFloat(a) < toFloat(b))
+	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
 
-// GreaterThan performs greater-than comparison.
+// GreaterThan performs greater-than comparison on same-type operands only.
 func GreaterThan(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewBool(ai.Val > bi.Val)
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val > b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewBool(a.Val > b.Val)
+		}
 	}
-	return NewBool(toFloat(a) > toFloat(b))
+	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
 
-// LessEqual performs less-than-or-equal comparison.
+// LessEqual performs less-than-or-equal comparison on same-type operands only.
 func LessEqual(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewBool(ai.Val <= bi.Val)
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val <= b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewBool(a.Val <= b.Val)
+		}
 	}
-	return NewBool(toFloat(a) <= toFloat(b))
+	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
 
-// GreaterEqual performs greater-than-or-equal comparison.
+// GreaterEqual performs greater-than-or-equal comparison on same-type operands only.
 func GreaterEqual(a, b Value) Value {
-	if ai, bi, ok := bothInt(a, b); ok {
-		return NewBool(ai.Val >= bi.Val)
+	switch a := a.(type) {
+	case *Int:
+		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val >= b.Val)
+		}
+	case *Float:
+		if b, ok := b.(*Float); ok {
+			return NewBool(a.Val >= b.Val)
+		}
 	}
-	return NewBool(toFloat(a) >= toFloat(b))
+	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
 
 // And performs logical AND (short-circuit).
