@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/135yshr/meow/compiler"
 )
@@ -165,6 +167,13 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+	} else {
+		var err error
+		files, err = resolveTestPaths(files)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	}
 
 	if len(files) == 0 {
@@ -191,6 +200,58 @@ func discoverTestFiles(dir string) ([]string, error) {
 		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
 	}
 	return matches, nil
+}
+
+func discoverTestFilesRecursive(root string) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.nyan") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
+	}
+	return files, nil
+}
+
+func resolveTestPaths(patterns []string) ([]string, error) {
+	var result []string
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
+			root := strings.TrimSuffix(p, "/...")
+			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
+			if root == "." || root == "" {
+				root = "."
+			}
+			found, err := discoverTestFilesRecursive(root)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, found...)
+		} else {
+			info, err := os.Stat(p)
+			if err != nil {
+				// Not a file/dir — treat as literal path
+				result = append(result, p)
+				continue
+			}
+			if info.IsDir() {
+				found, err := discoverTestFiles(p)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, found...)
+			} else {
+				result = append(result, p)
+			}
+		}
+	}
+	return result, nil
 }
 
 func printUsage() {
@@ -243,10 +304,16 @@ Show the generated Go source code without compiling or running it.
 Examples:
   meow transpile hello.nyan`,
 
-		"test": `Usage: meow test [flags] [files...]
+		"test": `Usage: meow test [flags] [files/patterns...]
 
 Run test files. Without arguments, discovers and runs all *_test.nyan files
 in the current directory.
+
+Patterns:
+  ./...                  Recursively find all *_test.nyan in current directory
+  dir/...                Recursively find all *_test.nyan under dir/
+  dir/                   Find *_test.nyan in dir/ (non-recursive)
+  file_test.nyan         Run a specific test file
 
 Flags:
   -fuzz                  Run fuzz tests
@@ -255,6 +322,9 @@ Flags:
 
 Examples:
   meow test
+  meow test ./...
+  meow test testdata/...
+  meow test testdata/
   meow test math_test.nyan
   meow test -fuzz math_test.nyan
   meow test -fuzz -fuzztime 30s math_test.nyan
