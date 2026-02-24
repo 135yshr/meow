@@ -69,14 +69,17 @@ func TestPounce(t *testing.T) {
 	}
 }
 
-func TestPounceInvalidHost(t *testing.T) {
+func TestPounceConnectionRefused(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
 			t.Fatal("expected panic")
 		}
 	}()
-	meowhttp.Pounce(meowrt.NewString("http://invalid.host.that.does.not.exist.example:1/path"))
+	srv := newTestServer()
+	url := srv.URL
+	srv.Close() // ensure connection refused
+	meowhttp.Pounce(meowrt.NewString(url + "/get"))
 }
 
 func TestPounceNonString(t *testing.T) {

@@ -5,12 +5,22 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/135yshr/meow/runtime/meowrt"
 )
 
+const maxBodyBytes = 1 << 20 // 1 MiB
+
+var client = &http.Client{
+	Timeout: 10 * time.Second,
+}
+
 // expectString extracts a Go string from a meowrt.Value or panics with a type error.
 func expectString(funcName string, v meowrt.Value) string {
+	if v == nil {
+		panic(fmt.Sprintf("Hiss! %s expects a String, got <nil>, nya~", funcName))
+	}
 	s, ok := v.(*meowrt.String)
 	if !ok {
 		panic(fmt.Sprintf("Hiss! %s expects a String, got %s, nya~", funcName, v.Type()))
@@ -18,9 +28,9 @@ func expectString(funcName string, v meowrt.Value) string {
 	return s.Val
 }
 
-// readResponse reads the entire response body and returns it as a meowrt.String.
+// readResponse reads the response body (up to maxBodyBytes) and returns it as a meowrt.String.
 func readResponse(resp *http.Response) meowrt.Value {
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -43,7 +53,7 @@ func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
 	}
 	req.Header.Set("Content-Type", ct)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -54,7 +64,7 @@ func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
 // Pounce performs an HTTP GET request and returns the response body as a String.
 func Pounce(url meowrt.Value) meowrt.Value {
 	u := expectString("pounce", url)
-	resp, err := http.Get(u)
+	resp, err := client.Get(u)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -81,7 +91,7 @@ func Swat(url meowrt.Value) meowrt.Value {
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -96,7 +106,7 @@ func Prowl(url meowrt.Value) meowrt.Value {
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
