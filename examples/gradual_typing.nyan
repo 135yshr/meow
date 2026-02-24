@@ -1,0 +1,14 @@
+meow add(a int, b int) int {
+  bring a + b
+}
+
+meow greet(name) {
+  bring "Hello, " + name + "!"
+}
+
+nyan x int = 10
+nyan y int = 20
+nyan message = greet("Tama")
+
+nya(add(x, y))
+nya(message)

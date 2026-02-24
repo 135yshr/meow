@@ -1,0 +1,7 @@
+  PASS: test_typed_int_var
+  PASS: test_typed_float_var
+  PASS: test_typed_string_var
+  PASS: test_typed_bool_var
+  PASS: test_typed_reassignment
+
+All 5 tests passed, nya~!
