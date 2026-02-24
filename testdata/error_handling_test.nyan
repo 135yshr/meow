@@ -1,0 +1,60 @@
+# Error handling test (hiss, gag, isFurball, ~>)
+
+meow divide(a, b) {
+  sniff (b == 0) {
+    hiss("division by zero")
+  }
+  bring a / b
+}
+
+meow test_gag_catches_error() {
+  nyan result = gag(paw() { divide(10, 0) })
+  judge(isFurball(result))
+}
+
+meow test_gag_returns_value() {
+  nyan result = gag(paw() { divide(10, 2) })
+  refuse(isFurball(result))
+  expect(result, 5)
+}
+
+meow test_is_furball_on_normal_values() {
+  refuse(isFurball(42))
+  refuse(isFurball("hello"))
+  refuse(isFurball(yarn))
+  refuse(isFurball([1, 2, 3]))
+}
+
+meow test_error_recovery_with_literal() {
+  nyan safe = divide(10, 0) ~> 0
+  expect(safe, 0)
+}
+
+meow test_error_recovery_no_error() {
+  nyan result = divide(10, 2) ~> 0
+  expect(result, 5)
+}
+
+meow test_error_recovery_with_handler() {
+  nyan result = divide(10, 0) ~> paw(err) { 42 }
+  expect(result, 42)
+}
+
+meow test_error_recovery_handler_no_error() {
+  nyan result = divide(10, 5) ~> paw(err) { 42 }
+  expect(result, 2)
+}
+
+meow risky_chain(x) {
+  sniff (x < 0) {
+    hiss("negative input")
+  }
+  bring x * 2
+}
+
+meow test_chained_error_recovery() {
+  nyan a = risky_chain(-1) ~> 0
+  nyan b = risky_chain(a) ~> -1
+  expect(a, 0)
+  expect(b, 0)
+}

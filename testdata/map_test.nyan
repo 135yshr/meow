@@ -1,0 +1,31 @@
+# Map (dictionary) operations test
+
+meow test_map_creation() {
+  nyan cat = {"name": "Tama", "age": 3}
+  judge(cat)
+}
+
+meow test_map_is_truthy() {
+  nyan a = {"x": 1, "y": 2}
+  judge(a)
+}
+
+meow test_empty_map() {
+  nyan empty = {}
+  expect(empty, {})
+}
+
+meow test_map_with_various_types() {
+  nyan m = {"int": 42, "str": "hello", "bool": yarn}
+  judge(m)
+}
+
+meow test_nested_map() {
+  nyan data = {"inner": {"value": 1}}
+  judge(data)
+}
+
+meow test_map_with_list_value() {
+  nyan m = {"items": [1, 2, 3]}
+  judge(m)
+}

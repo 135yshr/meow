@@ -1,0 +1,8 @@
+  PASS: test_integer_variable
+  PASS: test_float_variable
+  PASS: test_string_variable
+  PASS: test_boolean_variables
+  PASS: test_nil_variable
+  PASS: test_reassignment
+
+All 6 tests passed, nya~!

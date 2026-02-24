@@ -1,0 +1,6 @@
+  PASS: test_single_line_comment
+  PASS: test_block_comment
+  PASS: test_multiline_block_comment
+  PASS: test_comment_preserves_logic
+
+All 4 tests passed, nya~!

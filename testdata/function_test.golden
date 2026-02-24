@@ -1,0 +1,8 @@
+  PASS: test_basic_function
+  PASS: test_recursion
+  PASS: test_string_return
+  PASS: test_conditional_return
+  PASS: test_abs
+  PASS: test_fibonacci
+
+All 6 tests passed, nya~!

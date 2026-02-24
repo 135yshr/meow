@@ -1,0 +1,14 @@
+  PASS: test_to_int_from_float
+  PASS: test_to_int_from_bool
+  PASS: test_to_int_identity
+  PASS: test_to_float_from_int
+  PASS: test_to_float_identity
+  PASS: test_to_string_from_int
+  PASS: test_to_string_from_float
+  PASS: test_to_string_from_bool
+  PASS: test_to_string_from_nil
+  PASS: test_to_string_from_list
+  PASS: test_to_int_from_string_panics
+  PASS: test_to_float_from_string_panics
+
+All 12 tests passed, nya~!

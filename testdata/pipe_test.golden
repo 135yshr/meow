@@ -1,0 +1,7 @@
+  PASS: test_basic_pipe
+  PASS: test_chained_pipes
+  PASS: test_pipe_with_lambda
+  PASS: test_pipe_with_list
+  PASS: test_pipe_filter_then_map
+
+All 5 tests passed, nya~!

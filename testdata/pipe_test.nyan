@@ -1,0 +1,36 @@
+# Pipe operator (|=|) test
+
+meow double(x) {
+  bring x * 2
+}
+
+meow add_one(x) {
+  bring x + 1
+}
+
+meow test_basic_pipe() {
+  nyan result = 5 |=| double
+  expect(result, 10)
+}
+
+meow test_chained_pipes() {
+  nyan result = 5 |=| double |=| add_one
+  expect(result, 11)
+}
+
+meow test_pipe_with_lambda() {
+  nyan result = 10 |=| paw(x) { x * x }
+  expect(result, 100)
+}
+
+meow test_pipe_with_list() {
+  nyan nums = [1, 2, 3, 4, 5]
+  nyan result = nums |=| lick(paw(x) { x * 2 })
+  expect(result, [2, 4, 6, 8, 10])
+}
+
+meow test_pipe_filter_then_map() {
+  nyan nums = [1, 2, 3, 4, 5, 6]
+  nyan result = nums |=| picky(paw(x) { x % 2 == 0 }) |=| lick(paw(x) { x * 10 })
+  expect(result, [20, 40, 60])
+}

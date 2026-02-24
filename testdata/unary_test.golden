@@ -1,0 +1,10 @@
+  PASS: test_negate_variable
+  PASS: test_negate_expression
+  PASS: test_double_negation
+  PASS: test_negate_zero
+  PASS: test_negate_float
+  PASS: test_not_variable
+  PASS: test_not_expression
+  PASS: test_double_not
+
+All 8 tests passed, nya~!

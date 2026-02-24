@@ -1,0 +1,49 @@
+# Nested list and advanced list operations test
+
+meow test_nested_list_creation() {
+  nyan nested = [[1, 2], [3, 4], [5, 6]]
+  expect(nested, [[1, 2], [3, 4], [5, 6]])
+}
+
+meow test_list_of_mixed_lists() {
+  nyan mixed = [[1, 2], ["a", "b"], [yarn, hairball]]
+  expect(mixed, [[1, 2], ["a", "b"], [yarn, hairball]])
+}
+
+meow test_deeply_nested_list() {
+  nyan deep = [[[1, 2]], [[3, 4]]]
+  expect(deep, [[[1, 2]], [[3, 4]]])
+}
+
+meow test_nested_list_head() {
+  nyan nested = [[10, 20], [30, 40]]
+  expect(head(nested), [10, 20])
+}
+
+meow test_nested_list_tail() {
+  nyan nested = [[1, 2], [3, 4], [5, 6]]
+  expect(tail(nested), [[3, 4], [5, 6]])
+}
+
+meow test_nested_list_len() {
+  nyan nested = [[1], [2], [3]]
+  expect(len(nested), 3)
+}
+
+meow test_nested_list_append() {
+  nyan nested = [[1, 2]]
+  nyan extended = append(nested, [3, 4])
+  expect(extended, [[1, 2], [3, 4]])
+}
+
+meow test_map_over_nested_list() {
+  nyan lists = [[1], [1, 2], [1, 2, 3]]
+  nyan lengths = lick(lists, paw(lst) { len(lst) })
+  expect(lengths, [1, 2, 3])
+}
+
+meow test_filter_nested_list() {
+  nyan lists = [[1], [1, 2], [1, 2, 3], []]
+  nyan nonempty = picky(lists, paw(lst) { len(lst) > 0 })
+  expect(len(nonempty), 3)
+}

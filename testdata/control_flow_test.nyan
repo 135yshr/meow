@@ -1,0 +1,78 @@
+# Control flow test (sniff/scratch, purr)
+
+meow test_if_true() {
+  nyan result = 0
+  sniff (yarn) {
+    result = 1
+  }
+  expect(result, 1)
+}
+
+meow test_if_false() {
+  nyan result = 0
+  sniff (hairball) {
+    result = 1
+  }
+  expect(result, 0)
+}
+
+meow test_if_else() {
+  nyan result = ""
+  sniff (1 > 2) {
+    result = "greater"
+  } scratch {
+    result = "not greater"
+  }
+  expect(result, "not greater")
+}
+
+meow test_if_else_if() {
+  nyan x = 15
+  nyan result = ""
+  sniff (x > 20) {
+    result = "big"
+  } scratch sniff (x > 10) {
+    result = "medium"
+  } scratch {
+    result = "small"
+  }
+  expect(result, "medium")
+}
+
+meow test_nested_if() {
+  nyan x = 5
+  nyan result = ""
+  sniff (x > 0) {
+    sniff (x < 10) {
+      result = "single digit positive"
+    } scratch {
+      result = "large positive"
+    }
+  } scratch {
+    result = "non-positive"
+  }
+  expect(result, "single digit positive")
+}
+
+meow test_while_loop() {
+  nyan sum = 0
+  nyan i = 1
+  purr (i <= 10) {
+    sum = sum + i
+    i = i + 1
+  }
+  expect(sum, 55)
+}
+
+meow test_while_loop_break_condition() {
+  nyan count = 0
+  nyan i = 0
+  purr (i < 100) {
+    count = count + 1
+    sniff (count == 5) {
+      i = 100
+    }
+    i = i + 1
+  }
+  expect(count, 5)
+}

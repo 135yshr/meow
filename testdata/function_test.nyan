@@ -1,0 +1,84 @@
+# Function definition and call test
+
+meow add(a, b) {
+  bring a + b
+}
+
+meow test_basic_function() {
+  expect(add(2, 3), 5)
+  expect(add(0, 0), 0)
+  expect(add(-1, 1), 0)
+}
+
+meow factorial(n) {
+  sniff (n <= 1) {
+    bring 1
+  }
+  bring n * factorial(n - 1)
+}
+
+meow test_recursion() {
+  expect(factorial(0), 1)
+  expect(factorial(1), 1)
+  expect(factorial(5), 120)
+  expect(factorial(10), 3628800)
+}
+
+meow greet(name) {
+  bring "Hello, " + name + "!"
+}
+
+meow test_string_return() {
+  expect(greet("Tama"), "Hello, Tama!")
+  expect(greet("Mochi"), "Hello, Mochi!")
+}
+
+meow max_val(a, b) {
+  sniff (a > b) {
+    bring a
+  }
+  bring b
+}
+
+meow min_val(a, b) {
+  sniff (a < b) {
+    bring a
+  }
+  bring b
+}
+
+meow test_conditional_return() {
+  expect(max_val(3, 5), 5)
+  expect(max_val(10, 2), 10)
+  expect(max_val(7, 7), 7)
+  expect(min_val(3, 5), 3)
+  expect(min_val(10, 2), 2)
+}
+
+meow abs(x) {
+  sniff (x < 0) {
+    bring 0 - x
+  }
+  bring x
+}
+
+meow test_abs() {
+  expect(abs(5), 5)
+  expect(abs(-3), 3)
+  expect(abs(0), 0)
+}
+
+meow fib(n) {
+  sniff (n <= 1) {
+    bring n
+  }
+  bring fib(n - 1) + fib(n - 2)
+}
+
+meow test_fibonacci() {
+  expect(fib(0), 0)
+  expect(fib(1), 1)
+  expect(fib(2), 1)
+  expect(fib(5), 5)
+  expect(fib(10), 55)
+}

@@ -1,0 +1,9 @@
+  PASS: test_if_true
+  PASS: test_if_false
+  PASS: test_if_else
+  PASS: test_if_else_if
+  PASS: test_nested_if
+  PASS: test_while_loop
+  PASS: test_while_loop_break_condition
+
+All 7 tests passed, nya~!
