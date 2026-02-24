@@ -19,6 +19,7 @@ type Generator struct {
 
 var stdPackages = map[string]string{
 	"file": "github.com/135yshr/meow/runtime/file",
+	"http": "github.com/135yshr/meow/runtime/http",
 }
 
 // capitalizeFirst returns s with its first byte uppercased.

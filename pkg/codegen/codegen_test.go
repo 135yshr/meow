@@ -96,6 +96,27 @@ lines |=| lick(paw(line) { "=> " + line }) |=| nya`)
 	}
 }
 
+func TestFetchHTTPAndPounce(t *testing.T) {
+	code := generate(t, `fetch "http"
+nyan res = http.pounce("https://example.com")
+nya(res)`)
+	if !strings.Contains(code, `import meow_http "github.com/135yshr/meow/runtime/http"`) {
+		t.Error("expected meow_http import")
+	}
+	if !strings.Contains(code, `meow_http.Pounce(meow.NewString("https://example.com"))`) {
+		t.Error("expected meow_http.Pounce call")
+	}
+}
+
+func TestFetchHTTPAndToss(t *testing.T) {
+	code := generate(t, `fetch "http"
+nyan res = http.toss("https://example.com/api", "{}", "application/json")
+nya(res)`)
+	if !strings.Contains(code, `meow_http.Toss(meow.NewString("https://example.com/api"), meow.NewString("{}"), meow.NewString("application/json"))`) {
+		t.Error("expected meow_http.Toss call with 3 args")
+	}
+}
+
 func TestIfElse(t *testing.T) {
 	code := generate(t, `sniff (x > 0) {
   nya(x)
