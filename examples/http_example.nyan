@@ -1,0 +1,46 @@
+fetch "http"
+
+# GET request — pounce on a URL
+http.pounce("https://httpbin.org/get") |=| nya
+
+# POST request — toss Map body (auto JSON + Content-Type: application/json)
+http.toss("https://httpbin.org/post", {"name": "Tama"}) |=| nya
+
+# PUT request — knead Map body into place
+http.knead("https://httpbin.org/put", {"name": "Mochi"}) |=| nya
+
+# DELETE request — swat a resource away
+http.swat("https://httpbin.org/delete") |=| nya
+
+# OPTIONS request — prowl around to check allowed methods
+http.prowl("https://httpbin.org/get") |=| nya
+
+# GET with options — set max body size to 2 MiB
+nyan res = http.pounce("https://httpbin.org/get", {"maxBodyBytes": 2097152})
+nya(res)
+
+# GET with custom headers
+nyan authRes = http.pounce("https://httpbin.org/get", {
+  "headers": {"Authorization": "Bearer token123"}
+})
+nya(authRes)
+
+# POST with Map body + options (max body size)
+nyan postRes = http.toss("https://httpbin.org/post", {"name": "Tama"}, {"maxBodyBytes": 4194304})
+nya(postRes)
+
+# POST with Map body + headers (Content-Type override)
+http.toss("https://httpbin.org/post", {"name": "Tama"}, {
+  "headers": {"Content-Type": "text/plain", "Authorization": "Bearer token"}
+}) |=| nya
+
+# POST with string body + headers
+http.toss("https://httpbin.org/post", "raw data", {
+  "headers": {"Content-Type": "text/plain"}
+}) |=| nya
+
+# POST with string body (no Content-Type)
+http.toss("https://httpbin.org/post", "raw data") |=| nya
+
+# PUT with Map body
+http.knead("https://httpbin.org/put", {"name": "Mochi"}) |=| nya

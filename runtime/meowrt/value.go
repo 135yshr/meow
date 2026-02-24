@@ -1,7 +1,9 @@
 package meowrt
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -123,4 +125,70 @@ func (l *List) Get(index int) Value {
 		panic(fmt.Sprintf("Hiss! Index %d out of range, nya~", index))
 	}
 	return l.Items[index]
+}
+
+// Map represents a map value with string keys.
+type Map struct {
+	Items map[string]Value
+}
+
+// NewMap creates a new Map value from the given items.
+func NewMap(items map[string]Value) *Map {
+	return &Map{Items: items}
+}
+
+func (m *Map) Type() string   { return "Map" }
+func (m *Map) IsTruthy() bool { return len(m.Items) > 0 }
+func (m *Map) String() string {
+	parts := make([]string, 0, len(m.Items))
+	for k, v := range m.Items {
+		parts = append(parts, k+": "+v.String())
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
+
+// Get returns the value for the given key and whether it was found.
+func (m *Map) Get(key string) (Value, bool) {
+	v, ok := m.Items[key]
+	return v, ok
+}
+
+// ToJSON serializes a Value to its JSON string representation.
+func ToJSON(v Value) string {
+	switch val := v.(type) {
+	case *String:
+		b, _ := json.Marshal(val.Val)
+		return string(b)
+	case *Int:
+		return fmt.Sprintf("%d", val.Val)
+	case *Float:
+		return fmt.Sprintf("%g", val.Val)
+	case *Bool:
+		if val.Val {
+			return "true"
+		}
+		return "false"
+	case *NilValue:
+		return "null"
+	case *List:
+		parts := make([]string, len(val.Items))
+		for i, item := range val.Items {
+			parts[i] = ToJSON(item)
+		}
+		return "[" + strings.Join(parts, ",") + "]"
+	case *Map:
+		keys := make([]string, 0, len(val.Items))
+		for k := range val.Items {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(val.Items))
+		for _, k := range keys {
+			kb, _ := json.Marshal(k)
+			parts = append(parts, string(kb)+":"+ToJSON(val.Items[k]))
+		}
+		return "{" + strings.Join(parts, ",") + "}"
+	default:
+		panic(fmt.Sprintf("Hiss! cannot serialize %s to JSON, nya~", v.Type()))
+	}
 }

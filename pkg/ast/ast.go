@@ -282,6 +282,20 @@ func (n *WildcardPattern) Pos() token.Position { return n.Token.Pos }
 func (n *WildcardPattern) nodeTag()            {}
 func (n *WildcardPattern) patternTag()         {}
 
+// MapLit represents a map literal (e.g. {"key": value}).
+type MapLit struct {
+	// Token is the opening brace token.
+	Token token.Token
+	// Keys is the list of key expressions.
+	Keys []Expr
+	// Vals is the list of value expressions.
+	Vals []Expr
+}
+
+func (n *MapLit) Pos() token.Position { return n.Token.Pos }
+func (n *MapLit) nodeTag()            {}
+func (n *MapLit) exprTag()            {}
+
 // MemberExpr represents member access (e.g. file.snoop).
 type MemberExpr struct {
 	// Token is the DOT token.

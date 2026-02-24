@@ -248,6 +248,11 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 				if !yield(l.makeToken(token.COMMA, ",", pos)) {
 					return
 				}
+			case r == ':':
+				l.advance()
+				if !yield(l.makeToken(token.COLON, ":", pos)) {
+					return
+				}
 			case r == '-':
 				l.advance()
 				if l.peek() == '~' {
