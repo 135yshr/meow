@@ -1,0 +1,17 @@
+  PASS: test_list_creation
+  PASS: test_empty_list
+  PASS: test_single_element_list
+  PASS: test_string_list
+  PASS: test_map_operation
+  PASS: test_map_strings
+  PASS: test_filter_operation
+  PASS: test_filter_empty_result
+  PASS: test_filter_all_pass
+  PASS: test_reduce_sum
+  PASS: test_reduce_product
+  PASS: test_reduce_find_max
+  PASS: test_chained_list_ops
+  PASS: test_map_empty_list
+  PASS: test_filter_empty_list
+
+All 15 tests passed, nya~!

@@ -1,0 +1,9 @@
+  PASS: test_addition
+  PASS: test_subtraction
+  PASS: test_multiplication
+  PASS: test_division
+  PASS: test_modulo
+  PASS: test_float_arithmetic
+  PASS: test_mixed_arithmetic
+
+All 7 tests passed, nya~!

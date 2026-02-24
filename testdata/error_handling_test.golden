@@ -1,0 +1,10 @@
+  PASS: test_gag_catches_error
+  PASS: test_gag_returns_value
+  PASS: test_is_furball_on_normal_values
+  PASS: test_error_recovery_with_literal
+  PASS: test_error_recovery_no_error
+  PASS: test_error_recovery_with_handler
+  PASS: test_error_recovery_handler_no_error
+  PASS: test_chained_error_recovery
+
+All 8 tests passed, nya~!

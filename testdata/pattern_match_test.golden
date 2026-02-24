@@ -1,0 +1,6 @@
+  PASS: test_literal_patterns
+  PASS: test_range_patterns
+  PASS: test_range_boundary
+  PASS: test_many_literal_patterns
+
+All 4 tests passed, nya~!
