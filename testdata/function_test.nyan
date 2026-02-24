@@ -1,20 +1,9 @@
 # Function definition and call test
 
-meow add(a, b) {
-  bring a + b
-}
-
 meow test_basic_function() {
   expect(add(2, 3), 5)
   expect(add(0, 0), 0)
   expect(add(-1, 1), 0)
-}
-
-meow factorial(n) {
-  sniff (n <= 1) {
-    bring 1
-  }
-  bring n * factorial(n - 1)
 }
 
 meow test_recursion() {
@@ -24,27 +13,9 @@ meow test_recursion() {
   expect(factorial(10), 3628800)
 }
 
-meow greet(name) {
-  bring "Hello, " + name + "!"
-}
-
 meow test_string_return() {
   expect(greet("Tama"), "Hello, Tama!")
   expect(greet("Mochi"), "Hello, Mochi!")
-}
-
-meow max_val(a, b) {
-  sniff (a > b) {
-    bring a
-  }
-  bring b
-}
-
-meow min_val(a, b) {
-  sniff (a < b) {
-    bring a
-  }
-  bring b
 }
 
 meow test_conditional_return() {
@@ -55,24 +26,10 @@ meow test_conditional_return() {
   expect(min_val(10, 2), 2)
 }
 
-meow abs(x) {
-  sniff (x < 0) {
-    bring 0 - x
-  }
-  bring x
-}
-
 meow test_abs() {
   expect(abs(5), 5)
   expect(abs(-3), 3)
   expect(abs(0), 0)
-}
-
-meow fib(n) {
-  sniff (n <= 1) {
-    bring n
-  }
-  bring fib(n - 1) + fib(n - 2)
 }
 
 meow test_fibonacci() {

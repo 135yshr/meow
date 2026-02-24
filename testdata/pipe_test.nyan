@@ -1,13 +1,5 @@
 # Pipe operator (|=|) test
 
-meow double(x) {
-  bring x * 2
-}
-
-meow add_one(x) {
-  bring x + 1
-}
-
 meow test_basic_pipe() {
   nyan result = 5 |=| double
   expect(result, 10)

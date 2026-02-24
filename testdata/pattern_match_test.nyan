@@ -1,27 +1,10 @@
 # Pattern matching (peek) test
 
-meow describe(n) {
-  bring peek(n) {
-    0 => "zero"
-    1 => "one"
-    2 => "two"
-    3 => "three"
-  }
-}
-
 meow test_literal_patterns() {
   expect(describe(0), "zero")
   expect(describe(1), "one")
   expect(describe(2), "two")
   expect(describe(3), "three")
-}
-
-meow classify(n) {
-  bring peek(n) {
-    1..5 => "low"
-    6..10 => "mid"
-    11..100 => "high"
-  }
 }
 
 meow test_range_patterns() {
@@ -42,18 +25,6 @@ meow test_range_boundary() {
   expect(classify(10), "mid")
   expect(classify(11), "high")
   expect(classify(100), "high")
-}
-
-meow day_name(d) {
-  bring peek(d) {
-    1 => "Monday"
-    2 => "Tuesday"
-    3 => "Wednesday"
-    4 => "Thursday"
-    5 => "Friday"
-    6 => "Saturday"
-    7 => "Sunday"
-  }
 }
 
 meow test_many_literal_patterns() {

@@ -1,17 +1,5 @@
 # Advanced pipe operator test: user-defined functions
 
-meow double(x) {
-  bring x * 2
-}
-
-meow square(x) {
-  bring x * x
-}
-
-meow negate(x) {
-  bring 0 - x
-}
-
 meow test_pipe_user_function() {
   expect(5 |=| double, 10)
   expect(3 |=| square, 9)

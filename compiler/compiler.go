@@ -187,13 +187,22 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 }
 
 // BuildTest compiles a _test.nyan file to an executable binary.
+// If a companion source file exists (e.g. math.nyan for math_test.nyan),
+// it is automatically prepended so the test can call its functions.
 func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 	source, err := os.ReadFile(nyanPath)
 	if err != nil {
 		return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", nyanPath, err)
 	}
 
-	goCode, err := c.CompileTestToGo(string(source), filepath.Base(nyanPath))
+	combined := string(source)
+	companionPath := companionSourcePath(nyanPath)
+	if companionData, err := os.ReadFile(companionPath); err == nil {
+		c.logger.Debug("including companion source", "file", companionPath)
+		combined = string(companionData) + "\n" + combined
+	}
+
+	goCode, err := c.CompileTestToGo(combined, filepath.Base(nyanPath))
 	if err != nil {
 		return err
 	}
@@ -467,6 +476,15 @@ func readGoVersion(path string) string {
 		}
 	}
 	return "1.26"
+}
+
+// companionSourcePath returns the inferred source file path for a test file.
+// e.g. "testdata/math_test.nyan" → "testdata/math.nyan"
+func companionSourcePath(testPath string) string {
+	dir := filepath.Dir(testPath)
+	base := filepath.Base(testPath)
+	name := strings.TrimSuffix(base, "_test.nyan")
+	return filepath.Join(dir, name+".nyan")
 }
 
 func (c *Compiler) findModuleRoot() string {

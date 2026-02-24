@@ -1,12 +1,5 @@
 # Error handling test (hiss, gag, isFurball, ~>)
 
-meow divide(a, b) {
-  sniff (b == 0) {
-    hiss("division by zero")
-  }
-  bring a / b
-}
-
 meow test_gag_catches_error() {
   nyan result = gag(paw() { divide(10, 0) })
   judge(isFurball(result))
@@ -43,13 +36,6 @@ meow test_error_recovery_with_handler() {
 meow test_error_recovery_handler_no_error() {
   nyan result = divide(10, 5) ~> paw(err) { 42 }
   expect(result, 2)
-}
-
-meow risky_chain(x) {
-  sniff (x < 0) {
-    hiss("negative input")
-  }
-  bring x * 2
 }
 
 meow test_chained_error_recovery() {

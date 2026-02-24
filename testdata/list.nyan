@@ -1,0 +1,15 @@
+# List helper functions
+
+meow find_max(nums) {
+  nyan result = 0
+  nyan i = 0
+  nyan len = curl(nums, 0, paw(acc, x) { acc + 1 })
+  purr (i < len) {
+    nyan filtered = picky(nums, paw(x) { x > result })
+    sniff (filtered != []) {
+      result = curl(filtered, result, paw(acc, x) { x })
+    }
+    i = len
+  }
+  bring result
+}

@@ -1,0 +1,44 @@
+# Function definitions
+
+meow add(a, b) {
+  bring a + b
+}
+
+meow factorial(n) {
+  sniff (n <= 1) {
+    bring 1
+  }
+  bring n * factorial(n - 1)
+}
+
+meow greet(name) {
+  bring "Hello, " + name + "!"
+}
+
+meow max_val(a, b) {
+  sniff (a > b) {
+    bring a
+  }
+  bring b
+}
+
+meow min_val(a, b) {
+  sniff (a < b) {
+    bring a
+  }
+  bring b
+}
+
+meow abs(x) {
+  sniff (x < 0) {
+    bring 0 - x
+  }
+  bring x
+}
+
+meow fib(n) {
+  sniff (n <= 1) {
+    bring n
+  }
+  bring fib(n - 1) + fib(n - 2)
+}
