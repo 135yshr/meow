@@ -18,17 +18,14 @@ var client = &http.Client{
 
 type options struct {
 	maxBodyBytes int64
+	headers      map[string]string
 }
 
 func parseOptions(args []meowrt.Value, requiredArgs int) ([]meowrt.Value, options) {
 	opts := options{maxBodyBytes: defaultMaxBodyBytes}
 	if len(args) > requiredArgs {
 		if m, ok := args[len(args)-1].(*meowrt.Map); ok {
-			if v, found := m.Get("maxBodyBytes"); found {
-				if n, ok := v.(*meowrt.Int); ok {
-					opts.maxBodyBytes = n.Val
-				}
-			}
+			opts = extractOptions(m)
 			return args[:len(args)-1], opts
 		}
 	}
@@ -60,21 +57,78 @@ func readResponse(resp *http.Response, limit int64) meowrt.Value {
 	return meowrt.NewString(string(body))
 }
 
-// doWithBody performs an HTTP request with a body (POST/PUT).
-func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
-	posArgs, opts := parseOptions(args, 3)
-	if len(posArgs) != 3 {
-		panic(fmt.Sprintf("Hiss! %s expects 3 arguments (url, body, contentType), got %d, nya~", funcName, len(posArgs)))
+// extractOptions reads option fields from a Map value.
+func extractOptions(m *meowrt.Map) options {
+	opts := options{maxBodyBytes: defaultMaxBodyBytes}
+	if v, found := m.Get("maxBodyBytes"); found {
+		if n, ok := v.(*meowrt.Int); ok {
+			opts.maxBodyBytes = n.Val
+		}
 	}
-	u := expectString(funcName, posArgs[0])
-	b := expectString(funcName, posArgs[1])
-	ct := expectString(funcName, posArgs[2])
+	if v, found := m.Get("headers"); found {
+		if hm, ok := v.(*meowrt.Map); ok {
+			opts.headers = make(map[string]string, len(hm.Items))
+			for k, val := range hm.Items {
+				if s, ok := val.(*meowrt.String); ok {
+					opts.headers[k] = s.Val
+				}
+			}
+		}
+	}
+	return opts
+}
 
-	req, err := http.NewRequest(method, u, strings.NewReader(b))
+// applyHeaders sets custom headers from options on the request.
+func applyHeaders(req *http.Request, opts options) {
+	for k, v := range opts.headers {
+		req.Header.Set(k, v)
+	}
+}
+
+// doWithBody performs an HTTP request with a body (POST/PUT).
+// Supported argument patterns:
+//
+//	(url, mapBody)       → JSON body, Content-Type: application/json
+//	(url, strBody)       → string body, no Content-Type
+//	(url, mapBody, opts) → JSON body, ct=application/json, headers can override
+//	(url, strBody, opts) → string body, Content-Type via headers
+func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
+	if len(args) < 2 || len(args) > 3 {
+		panic(fmt.Sprintf("Hiss! %s expects 2-3 arguments, got %d, nya~", funcName, len(args)))
+	}
+
+	u := expectString(funcName, args[0])
+
+	var body string
+	var ct string
+	opts := options{maxBodyBytes: defaultMaxBodyBytes}
+
+	switch b := args[1].(type) {
+	case *meowrt.Map:
+		body = meowrt.ToJSON(b)
+		ct = "application/json"
+	case *meowrt.String:
+		body = b.Val
+	default:
+		panic(fmt.Sprintf("Hiss! %s: body must be String or Map, got %s, nya~", funcName, args[1].Type()))
+	}
+
+	if len(args) == 3 {
+		optsMap, ok := args[2].(*meowrt.Map)
+		if !ok {
+			panic(fmt.Sprintf("Hiss! %s: 3rd argument must be Map, got %s, nya~", funcName, args[2].Type()))
+		}
+		opts = extractOptions(optsMap)
+	}
+
+	req, err := http.NewRequest(method, u, strings.NewReader(body))
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
-	req.Header.Set("Content-Type", ct)
+	if ct != "" {
+		req.Header.Set("Content-Type", ct)
+	}
+	applyHeaders(req, opts)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -91,7 +145,12 @@ func Pounce(args ...meowrt.Value) meowrt.Value {
 		panic(fmt.Sprintf("Hiss! pounce expects 1 argument (url), got %d, nya~", len(posArgs)))
 	}
 	u := expectString("pounce", posArgs[0])
-	resp, err := client.Get(u)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+	}
+	applyHeaders(req, opts)
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -100,13 +159,13 @@ func Pounce(args ...meowrt.Value) meowrt.Value {
 }
 
 // Toss performs an HTTP POST request.
-// Arguments: url, body, contentType [, options].
+// Arguments: url, body [, options].
 func Toss(args ...meowrt.Value) meowrt.Value {
 	return doWithBody("toss", "POST", args)
 }
 
 // Knead performs an HTTP PUT request.
-// Arguments: url, body, contentType [, options].
+// Arguments: url, body [, options].
 func Knead(args ...meowrt.Value) meowrt.Value {
 	return doWithBody("knead", "PUT", args)
 }
@@ -122,6 +181,7 @@ func Swat(args ...meowrt.Value) meowrt.Value {
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
+	applyHeaders(req, opts)
 	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
@@ -141,6 +201,7 @@ func Prowl(args ...meowrt.Value) meowrt.Value {
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
+	applyHeaders(req, opts)
 	resp, err := client.Do(req)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))

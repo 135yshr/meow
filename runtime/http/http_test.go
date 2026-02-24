@@ -56,6 +56,11 @@ func newTestServer() *httptest.Server {
 	mux.HandleFunc("/large", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(strings.Repeat("x", 2048)))
 	})
+	mux.HandleFunc("/echo-header", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		custom := r.Header.Get("X-Custom")
+		w.Write([]byte("auth=" + auth + ",custom=" + custom))
+	})
 	return httptest.NewServer(mux)
 }
 
@@ -96,14 +101,36 @@ func TestPounceNonString(t *testing.T) {
 	meowhttp.Pounce(meowrt.NewInt(42))
 }
 
-func TestToss(t *testing.T) {
+func TestTossStringBody(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	result := meowhttp.Toss(
+		meowrt.NewString(srv.URL+"/post"),
+		meowrt.NewString("hello"),
+	)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := "toss::hello"
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossStringBodyWithHeaders(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
 	result := meowhttp.Toss(
 		meowrt.NewString(srv.URL+"/post"),
 		meowrt.NewString(`{"name":"Tama"}`),
-		meowrt.NewString("application/json"),
+		meowrt.NewMap(map[string]meowrt.Value{
+			"headers": meowrt.NewMap(map[string]meowrt.Value{
+				"Content-Type": meowrt.NewString("application/json"),
+			}),
+		}),
 	)
 	s, ok := result.(*meowrt.String)
 	if !ok {
@@ -131,8 +158,9 @@ func TestKnead(t *testing.T) {
 
 	result := meowhttp.Knead(
 		meowrt.NewString(srv.URL+"/put"),
-		meowrt.NewString(`{"name":"Mochi"}`),
-		meowrt.NewString("application/json"),
+		meowrt.NewMap(map[string]meowrt.Value{
+			"name": meowrt.NewString("Mochi"),
+		}),
 	)
 	s, ok := result.(*meowrt.String)
 	if !ok {
@@ -240,11 +268,13 @@ func TestTossWithOptions(t *testing.T) {
 
 	opts := meowrt.NewMap(map[string]meowrt.Value{
 		"maxBodyBytes": meowrt.NewInt(4096),
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"Content-Type": meowrt.NewString("application/json"),
+		}),
 	})
 	result := meowhttp.Toss(
 		meowrt.NewString(srv.URL+"/post"),
 		meowrt.NewString(`{"name":"Tama"}`),
-		meowrt.NewString("application/json"),
 		opts,
 	)
 	s, ok := result.(*meowrt.String)
@@ -252,6 +282,111 @@ func TestTossWithOptions(t *testing.T) {
 		t.Fatalf("expected String, got %T", result)
 	}
 	expected := `toss:application/json:{"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossMapBody(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"name": meowrt.NewString("Tama"),
+	})
+	result := meowhttp.Toss(meowrt.NewString(srv.URL+"/post"), m)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `toss:application/json:{"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossMapBodyWithContentTypeOverride(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"name": meowrt.NewString("Tama"),
+	})
+	result := meowhttp.Toss(
+		meowrt.NewString(srv.URL+"/post"),
+		m,
+		meowrt.NewMap(map[string]meowrt.Value{
+			"headers": meowrt.NewMap(map[string]meowrt.Value{
+				"Content-Type": meowrt.NewString("text/plain"),
+			}),
+		}),
+	)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `toss:text/plain:{"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossMapBodyWithOptions(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"name": meowrt.NewString("Tama"),
+	})
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(4096),
+	})
+	result := meowhttp.Toss(meowrt.NewString(srv.URL+"/post"), m, opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `toss:application/json:{"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestKneadMapBody(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"name": meowrt.NewString("Mochi"),
+	})
+	result := meowhttp.Knead(meowrt.NewString(srv.URL+"/put"), m)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `knead:application/json:{"name":"Mochi"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossNestedMapBody(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"cats": meowrt.NewList(
+			meowrt.NewString("Tama"),
+			meowrt.NewString("Mochi"),
+		),
+		"count": meowrt.NewInt(2),
+	})
+	result := meowhttp.Toss(meowrt.NewString(srv.URL+"/post"), m)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `toss:application/json:{"cats":["Tama","Mochi"],"count":2}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -271,5 +406,140 @@ func TestSwatWithOptions(t *testing.T) {
 	}
 	if s.Val != "swat ok" {
 		t.Errorf("expected %q, got %q", "swat ok", s.Val)
+	}
+}
+
+// --- Custom header tests ---
+
+func TestPounceWithHeaders(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"Authorization": meowrt.NewString("Bearer token123"),
+			"X-Custom":      meowrt.NewString("hello"),
+		}),
+	})
+	result := meowhttp.Pounce(meowrt.NewString(srv.URL+"/echo-header"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := "auth=Bearer token123,custom=hello"
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestSwatWithHeaders(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		w.Write([]byte("auth=" + auth))
+	})
+	headerSrv := httptest.NewServer(mux)
+	defer headerSrv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"Authorization": meowrt.NewString("Bearer swat-token"),
+		}),
+	})
+	result := meowhttp.Swat(meowrt.NewString(headerSrv.URL+"/"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := "auth=Bearer swat-token"
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestProwlWithHeaders(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		w.Write([]byte("auth=" + auth))
+	})
+	headerSrv := httptest.NewServer(mux)
+	defer headerSrv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"Authorization": meowrt.NewString("Bearer prowl-token"),
+		}),
+	})
+	result := meowhttp.Prowl(meowrt.NewString(headerSrv.URL+"/"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := "auth=Bearer prowl-token"
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestTossMapBodyWithHeaders(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		auth := r.Header.Get("Authorization")
+		ct := r.Header.Get("Content-Type")
+		w.Write([]byte("auth=" + auth + ",ct=" + ct + ",body=" + string(body)))
+	})
+	headerSrv := httptest.NewServer(mux)
+	defer headerSrv.Close()
+
+	m := meowrt.NewMap(map[string]meowrt.Value{
+		"name": meowrt.NewString("Tama"),
+	})
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"Authorization": meowrt.NewString("Bearer post-token"),
+		}),
+	})
+	result := meowhttp.Toss(meowrt.NewString(headerSrv.URL+"/"), m, opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := `auth=Bearer post-token,ct=application/json,body={"name":"Tama"}`
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+func TestKneadStringBodyWithHeaders(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	result := meowhttp.Knead(
+		meowrt.NewString(srv.URL+"/put"),
+		meowrt.NewString("raw data"),
+		meowrt.NewMap(map[string]meowrt.Value{
+			"headers": meowrt.NewMap(map[string]meowrt.Value{
+				"Content-Type": meowrt.NewString("text/plain"),
+			}),
+		}),
+	)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	expected := "knead:text/plain:raw data"
+	if s.Val != expected {
+		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
 }
