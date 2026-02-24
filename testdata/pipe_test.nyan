@@ -1,13 +1,5 @@
 # Pipe operator (|=|) test
 
-meow double(x) {
-  bring x * 2
-}
-
-meow add_one(x) {
-  bring x + 1
-}
-
 meow test_basic_pipe() {
   nyan result = 5 |=| double
   expect(result, 10)
@@ -33,4 +25,18 @@ meow test_pipe_filter_then_map() {
   nyan nums = [1, 2, 3, 4, 5, 6]
   nyan result = nums |=| picky(paw(x) { x % 2 == 0 }) |=| lick(paw(x) { x * 10 })
   expect(result, [20, 40, 60])
+}
+
+meow test_double_specific_values() {
+  expect(0 |=| double, 0)
+  expect(1 |=| double, 2)
+  expect(-1 |=| double, -2)
+  expect(3 |=| double, 6)
+}
+
+meow test_add_one_specific_values() {
+  expect(0 |=| add_one, 1)
+  expect(-1 |=| add_one, 0)
+  expect(1 |=| add_one, 2)
+  expect(99 |=| add_one, 100)
 }

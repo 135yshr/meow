@@ -2,5 +2,8 @@
   PASS: test_pipe_chain_user_functions
   PASS: test_pipe_mixed_user_and_lambda
   PASS: test_pipe_list_with_user_function
+  PASS: test_double_edge_cases
+  PASS: test_negate_specific_values
+  PASS: test_square_specific_values
 
-All 4 tests passed, nya~!
+All 7 tests passed, nya~!

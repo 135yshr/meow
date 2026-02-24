@@ -1,0 +1,30 @@
+# Pattern matching functions
+
+meow describe(n) {
+  bring peek(n) {
+    0 => "zero"
+    1 => "one"
+    2 => "two"
+    3 => "three"
+  }
+}
+
+meow classify(n) {
+  bring peek(n) {
+    1..5 => "low"
+    6..10 => "mid"
+    11..100 => "high"
+  }
+}
+
+meow day_name(d) {
+  bring peek(d) {
+    1 => "Monday"
+    2 => "Tuesday"
+    3 => "Wednesday"
+    4 => "Thursday"
+    5 => "Friday"
+    6 => "Saturday"
+    7 => "Sunday"
+  }
+}

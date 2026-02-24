@@ -1,0 +1,16 @@
+# List helper functions
+
+meow find_max(nums) {
+  sniff (len(nums) == 0) {
+    hiss("find_max: empty list")
+  }
+  sniff (len(nums) == 1) {
+    bring head(nums)
+  }
+  nyan first = head(nums)
+  nyan rest_max = find_max(tail(nums))
+  sniff (first > rest_max) {
+    bring first
+  }
+  bring rest_max
+}

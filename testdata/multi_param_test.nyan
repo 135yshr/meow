@@ -1,32 +1,14 @@
 # Multiple parameter functions and edge cases
 
-meow add3(a, b, c) {
-  bring a + b + c
-}
-
 meow test_three_params() {
   expect(add3(1, 2, 3), 6)
   expect(add3(0, 0, 0), 0)
   expect(add3(-1, 0, 1), 0)
 }
 
-meow add4(a, b, c, d) {
-  bring a + b + c + d
-}
-
 meow test_four_params() {
   expect(add4(1, 2, 3, 4), 10)
   expect(add4(10, 20, 30, 40), 100)
-}
-
-meow clamp(val, lo, hi) {
-  sniff (val < lo) {
-    bring lo
-  }
-  sniff (val > hi) {
-    bring hi
-  }
-  bring val
 }
 
 meow test_three_param_logic() {
@@ -37,17 +19,10 @@ meow test_three_param_logic() {
   expect(clamp(10, 0, 10), 10)
 }
 
-meow noop() {
-}
-
 meow test_empty_function() {
   nyan r = noop()
   judge(r == catnap)
   refuse(r)
-}
-
-meow identity(x) {
-  bring x
 }
 
 meow test_single_param() {
@@ -58,4 +33,25 @@ meow test_single_param() {
 
 meow test_nested_calls() {
   expect(add3(add3(1, 2, 3), add3(4, 5, 6), add3(7, 8, 9)), 45)
+}
+
+meow test_add3_individual_params() {
+  expect(add3(1, 0, 0), 1)
+  expect(add3(0, 1, 0), 1)
+  expect(add3(0, 0, 1), 1)
+  expect(add3(5, -5, 0), 0)
+}
+
+meow test_add4_individual_params() {
+  expect(add4(1, 0, 0, 0), 1)
+  expect(add4(0, 1, 0, 0), 1)
+  expect(add4(0, 0, 1, 0), 1)
+  expect(add4(0, 0, 0, 1), 1)
+}
+
+meow test_clamp_just_outside() {
+  expect(clamp(-1, 0, 10), 0)
+  expect(clamp(11, 0, 10), 10)
+  expect(clamp(1, 0, 10), 1)
+  expect(clamp(9, 0, 10), 9)
 }

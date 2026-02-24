@@ -1,0 +1,26 @@
+# Multiple parameter functions
+
+meow add3(a, b, c) {
+  bring a + b + c
+}
+
+meow add4(a, b, c, d) {
+  bring a + b + c + d
+}
+
+meow clamp(val, lo, hi) {
+  sniff (val < lo) {
+    bring lo
+  }
+  sniff (val > hi) {
+    bring hi
+  }
+  bring val
+}
+
+meow noop() {
+}
+
+meow identity(x) {
+  bring x
+}

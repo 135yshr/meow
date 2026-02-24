@@ -1,20 +1,9 @@
 # Function definition and call test
 
-meow add(a, b) {
-  bring a + b
-}
-
 meow test_basic_function() {
   expect(add(2, 3), 5)
   expect(add(0, 0), 0)
   expect(add(-1, 1), 0)
-}
-
-meow factorial(n) {
-  sniff (n <= 1) {
-    bring 1
-  }
-  bring n * factorial(n - 1)
 }
 
 meow test_recursion() {
@@ -24,27 +13,9 @@ meow test_recursion() {
   expect(factorial(10), 3628800)
 }
 
-meow greet(name) {
-  bring "Hello, " + name + "!"
-}
-
 meow test_string_return() {
   expect(greet("Tama"), "Hello, Tama!")
   expect(greet("Mochi"), "Hello, Mochi!")
-}
-
-meow max_val(a, b) {
-  sniff (a > b) {
-    bring a
-  }
-  bring b
-}
-
-meow min_val(a, b) {
-  sniff (a < b) {
-    bring a
-  }
-  bring b
 }
 
 meow test_conditional_return() {
@@ -55,30 +26,63 @@ meow test_conditional_return() {
   expect(min_val(10, 2), 2)
 }
 
-meow abs(x) {
-  sniff (x < 0) {
-    bring 0 - x
-  }
-  bring x
-}
-
 meow test_abs() {
   expect(abs(5), 5)
   expect(abs(-3), 3)
   expect(abs(0), 0)
 }
 
-meow fib(n) {
-  sniff (n <= 1) {
-    bring n
-  }
-  bring fib(n - 1) + fib(n - 2)
-}
-
 meow test_fibonacci() {
   expect(fib(0), 0)
   expect(fib(1), 1)
   expect(fib(2), 1)
+  expect(fib(3), 2)
+  expect(fib(4), 3)
   expect(fib(5), 5)
+  expect(fib(6), 8)
   expect(fib(10), 55)
+}
+
+meow test_factorial_small() {
+  expect(factorial(2), 2)
+  expect(factorial(3), 6)
+  expect(factorial(4), 24)
+}
+
+meow test_greet_various() {
+  expect(greet(""), "Hello, !")
+  expect(greet("X"), "Hello, X!")
+  judge(greet("Tama") != "Tama!")
+  judge(greet("Tama") != "Hello, Tama")
+  judge(greet("Tama") != "Tama")
+}
+
+meow test_max_val_negative() {
+  expect(max_val(-3, -5), -3)
+  expect(max_val(-1, 0), 0)
+  expect(max_val(0, -1), 0)
+  expect(max_val(1, 2), 2)
+  expect(max_val(2, 1), 2)
+}
+
+meow test_min_val_negative() {
+  expect(min_val(-3, -5), -5)
+  expect(min_val(-1, 0), -1)
+  expect(min_val(0, -1), -1)
+  expect(min_val(1, 2), 1)
+  expect(min_val(2, 1), 1)
+}
+
+meow test_abs_boundary() {
+  expect(abs(-1), 1)
+  expect(abs(1), 1)
+  expect(abs(-100), 100)
+  expect(abs(100), 100)
+}
+
+meow test_fib_sequence() {
+  # verify fib(n) = fib(n-1) + fib(n-2)
+  expect(fib(7), 13)
+  expect(fib(8), 21)
+  expect(fib(9), 34)
 }

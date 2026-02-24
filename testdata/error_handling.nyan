@@ -1,0 +1,15 @@
+# Error handling functions
+
+meow divide(a, b) {
+  sniff (b == 0) {
+    hiss("division by zero")
+  }
+  bring a / b
+}
+
+meow risky_chain(x) {
+  sniff (x < 0) {
+    hiss("negative input")
+  }
+  bring x * 2
+}

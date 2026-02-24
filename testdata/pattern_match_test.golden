@@ -2,5 +2,8 @@
   PASS: test_range_patterns
   PASS: test_range_boundary
   PASS: test_many_literal_patterns
+  PASS: test_describe_non_empty
+  PASS: test_classify_non_empty
+  PASS: test_day_name_non_empty
 
-All 4 tests passed, nya~!
+All 7 tests passed, nya~!

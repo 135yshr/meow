@@ -62,20 +62,6 @@ meow test_reduce_product() {
   expect(product, 120)
 }
 
-meow find_max(nums) {
-  nyan result = 0
-  nyan i = 0
-  nyan len = curl(nums, 0, paw(acc, x) { acc + 1 })
-  purr (i < len) {
-    nyan filtered = picky(nums, paw(x) { x > result })
-    sniff (filtered != []) {
-      result = curl(filtered, result, paw(acc, x) { x })
-    }
-    i = len
-  }
-  bring result
-}
-
 meow test_reduce_find_max() {
   nyan nums = [3, 1, 4, 1, 5, 9, 2, 6]
   nyan result = curl(nums, 0, paw(acc, x) { acc + x })
@@ -102,4 +88,24 @@ meow test_filter_empty_list() {
   nyan empty = []
   nyan result = picky(empty, paw(x) { x > 0 })
   expect(result, [])
+}
+
+meow test_find_max_basic() {
+  expect(find_max([3, 1, 4, 1, 5, 9, 2, 6]), 9)
+  expect(find_max([1, 2, 3]), 3)
+  expect(find_max([3, 2, 1]), 3)
+}
+
+meow test_find_max_single() {
+  expect(find_max([42]), 42)
+  expect(find_max([1]), 1)
+}
+
+meow test_find_max_equal() {
+  expect(find_max([5, 5, 5]), 5)
+}
+
+meow test_find_max_large() {
+  expect(find_max([10, 20, 30, 40, 50]), 50)
+  expect(find_max([50, 40, 30, 20, 10]), 50)
 }

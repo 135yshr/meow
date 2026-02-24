@@ -1,0 +1,9 @@
+# Pipe helper functions
+
+meow double(x) {
+  bring x * 2
+}
+
+meow add_one(x) {
+  bring x + 1
+}

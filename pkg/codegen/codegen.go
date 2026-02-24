@@ -538,15 +538,15 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.Tail(%s)", argStr)
 		case "append":
 			return fmt.Sprintf("meow.Append(%s)", argStr)
-		case "toInt":
+		case "to_int":
 			return fmt.Sprintf("meow.ToInt(%s)", argStr)
-		case "toFloat":
+		case "to_float":
 			return fmt.Sprintf("meow.ToFloat(%s)", argStr)
-		case "toString":
+		case "to_string":
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
-		case "isFurball":
+		case "is_furball":
 			return fmt.Sprintf("meow.IsFurball(%s)", argStr)
 		case "judge":
 			g.ensureImport("testing")
@@ -685,19 +685,27 @@ func (g *Generator) genMatch(e *ast.MatchExpr) string {
 }
 
 func (g *Generator) genMutatedExpr(original ast.Expr, entries []mutation.MutationEntry) string {
-	// Save mutations temporarily and clear to avoid recursion
-	saved := g.mutations
-	g.mutations = nil
+	// Remove this expression's entries to avoid self-recursion
+	delete(g.mutations, original)
 
 	var b strings.Builder
 	b.WriteString("func() meow.Value {\n")
+
+	// Mutation branches: generate without child mutations
+	// (each branch represents only its specific mutation, not combinations)
+	saved := g.mutations
+	g.mutations = nil
 	for _, entry := range entries {
 		fmt.Fprintf(&b, "\t\tif __mutant == %d { return %s }\n", entry.ID, g.genExpr(entry.Expr))
 	}
+	g.mutations = saved
+
+	// Default branch: child mutations remain active
 	fmt.Fprintf(&b, "\t\treturn %s\n", g.genExpr(original))
 	b.WriteString("\t}()")
 
-	g.mutations = saved
+	// Restore this entry
+	g.mutations[original] = entries
 	return b.String()
 }
 
