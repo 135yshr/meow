@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/codegen"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/mutation"
@@ -345,32 +346,27 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	}
 	fmt.Printf("Found %d mutations, nya~\n", len(mutants))
 
-	// Read test files and combine
-	var testSource strings.Builder
+	// Parse test files and combine ASTs (source AST nodes are shared so mutant closures remain valid)
+	combinedProg := &ast.Program{Stmts: append([]ast.Stmt{}, prog.Stmts...)}
 	for _, tp := range testPaths {
 		data, err := os.ReadFile(tp)
 		if err != nil {
 			return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", tp, err)
 		}
-		testSource.Write(data)
-		testSource.WriteString("\n")
-	}
-
-	// Parse the combined source (source + tests)
-	combined := string(source) + "\n" + testSource.String()
-	l = lexer.New(combined, "mutation_test.nyan")
-	p = parser.New(l.Tokens())
-	combinedProg, errs := p.Parse()
-	if len(errs) > 0 {
-		var msgs []string
-		for _, e := range errs {
-			msgs = append(msgs, e.Error())
+		tl := lexer.New(string(data), filepath.Base(tp))
+		tparser := parser.New(tl.Tokens())
+		testProg, testErrs := tparser.Parse()
+		if len(testErrs) > 0 {
+			var msgs []string
+			for _, e := range testErrs {
+				msgs = append(msgs, e.Error())
+			}
+			return fmt.Errorf("%s", strings.Join(msgs, "\n"))
 		}
-		return fmt.Errorf("%s", strings.Join(msgs, "\n"))
+		combinedProg.Stmts = append(combinedProg.Stmts, testProg.Stmts...)
 	}
 
-	// Enumerate on the combined AST and build schema
-	mutants = mutation.Enumerate(combinedProg)
+	// Build schema using source-only mutants to avoid mutating test code
 	schema := mutation.BuildSchema(combinedProg, mutants)
 
 	// Generate mutated test binary

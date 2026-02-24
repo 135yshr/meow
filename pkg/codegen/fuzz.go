@@ -68,8 +68,9 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 		hb.WriteString(fn)
 		hb.WriteString("\n\n")
 	}
-	// suppress unused import
+	// suppress unused imports
 	hb.WriteString("var _ = meow.NewNil\n")
+	hb.WriteString("var _ = meow_testing.Judge\n")
 
 	// Generate fuzz tests (main_test.go)
 	var fb strings.Builder

@@ -194,12 +194,21 @@ meow helper() {
 	}
 }
 
-func TestGenerateTestImplicitReturn(t *testing.T) {
+func TestGenerateImplicitReturn(t *testing.T) {
+	code := generate(t, `meow greet(who) {
+  nya(who)
+}`)
+	if !strings.Contains(code, "return meow.NewNil()") {
+		t.Error("expected implicit nil return when function does not end with bring")
+	}
+}
+
+func TestGenerateNoImplicitReturnWhenExplicit(t *testing.T) {
 	code := generate(t, `meow greet(who) {
   bring "Hello, " + who + "!"
 }`)
-	if !strings.Contains(code, "return meow.NewNil()") {
-		t.Error("expected implicit nil return at end of function")
+	if strings.Count(code, "return ") != 1 {
+		t.Error("expected only explicit return, no implicit nil return")
 	}
 }
 

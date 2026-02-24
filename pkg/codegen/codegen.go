@@ -196,9 +196,25 @@ func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
 		b.WriteString(g.genStmt(stmt))
 		b.WriteString("\n")
 	}
-	b.WriteString("\treturn meow.NewNil()\n")
+	if !g.blockAlwaysReturns(fn.Body) {
+		b.WriteString("\treturn meow.NewNil()\n")
+	}
 	b.WriteString("}")
 	return b.String()
+}
+
+func (g *Generator) blockAlwaysReturns(stmts []ast.Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
+	switch s := stmts[len(stmts)-1].(type) {
+	case *ast.ReturnStmt:
+		return true
+	case *ast.IfStmt:
+		return g.blockAlwaysReturns(s.Body) && g.blockAlwaysReturns(s.ElseBody)
+	default:
+		return false
+	}
 }
 
 func (g *Generator) genStmt(stmt ast.Stmt) string {
