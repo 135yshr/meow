@@ -1,0 +1,5 @@
+  PASS: test_expect_with_message
+  PASS: test_judge_with_message
+  PASS: test_refuse_with_message
+
+All 3 tests passed, nya~!

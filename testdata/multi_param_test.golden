@@ -1,0 +1,8 @@
+  PASS: test_three_params
+  PASS: test_four_params
+  PASS: test_three_param_logic
+  PASS: test_empty_function
+  PASS: test_single_param
+  PASS: test_nested_calls
+
+All 6 tests passed, nya~!

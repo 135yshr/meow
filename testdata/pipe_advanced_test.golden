@@ -1,0 +1,6 @@
+  PASS: test_pipe_user_function
+  PASS: test_pipe_chain_user_functions
+  PASS: test_pipe_mixed_user_and_lambda
+  PASS: test_pipe_list_with_user_function
+
+All 4 tests passed, nya~!

@@ -1,0 +1,9 @@
+  PASS: test_len_list
+  PASS: test_len_string
+  PASS: test_head
+  PASS: test_tail
+  PASS: test_append
+  PASS: test_append_does_not_mutate
+  PASS: test_head_tail_roundtrip
+
+All 7 tests passed, nya~!
