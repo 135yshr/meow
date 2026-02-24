@@ -216,9 +216,9 @@ func (g *Generator) inferFuzzType(seeds [][]ast.Expr, paramIndex int) string {
 func seedExprType(expr ast.Expr) string {
 	switch expr.(type) {
 	case *ast.IntLit:
-		return "int"
+		return "int64"
 	case *ast.FloatLit:
-		return "float"
+		return "float64"
 	case *ast.StringLit:
 		return "string"
 	case *ast.BoolLit:
