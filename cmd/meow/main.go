@@ -164,16 +164,7 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 	}
 
 	if mutate {
-		if len(files) < 2 {
-			fmt.Fprintln(os.Stderr, "Hiss! mutate requires source and test files, nya~")
-			os.Exit(1)
-		}
-		sourcePath := files[0]
-		testPaths := files[1:]
-		if err := c.RunMutationTest(sourcePath, testPaths); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		runMutateCommand(c, files)
 		return
 	}
 
@@ -278,6 +269,101 @@ func resolveTestPaths(patterns []string) ([]string, error) {
 	return result, nil
 }
 
+func runMutateCommand(c *compiler.Compiler, files []string) {
+	// Explicit mode: first file is source, rest are test files.
+	if len(files) >= 2 && !isPattern(files[0]) {
+		if err := c.RunMutationTest(files[0], files[1:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Auto-discovery mode: resolve patterns to find test files,
+	// then infer source files by stripping _test suffix.
+	var testFiles []string
+	if len(files) == 0 {
+		var err error
+		testFiles, err = discoverTestFiles(".")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	} else {
+		var err error
+		testFiles, err = resolveTestPaths(files)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
+	if len(testFiles) == 0 {
+		fmt.Fprintln(os.Stderr, "Hiss! No test files found, nya~")
+		os.Exit(1)
+	}
+
+	// Group test files by their inferred source file.
+	type mutationPair struct {
+		source string
+		tests  []string
+	}
+	pairMap := make(map[string]*mutationPair)
+	var pairOrder []string
+	var skipped []string
+
+	for _, tf := range testFiles {
+		src := inferSourceFile(tf)
+		if _, err := os.Stat(src); err != nil {
+			skipped = append(skipped, tf)
+			continue
+		}
+		if p, ok := pairMap[src]; ok {
+			p.tests = append(p.tests, tf)
+		} else {
+			pairMap[src] = &mutationPair{source: src, tests: []string{tf}}
+			pairOrder = append(pairOrder, src)
+		}
+	}
+
+	if len(pairOrder) == 0 {
+		fmt.Fprintln(os.Stderr, "Hiss! No source files found for mutation testing, nya~")
+		fmt.Fprintln(os.Stderr, "  Each foo_test.nyan needs a matching foo.nyan source file.")
+		if len(skipped) > 0 {
+			fmt.Fprintf(os.Stderr, "  Skipped %d test file(s) with no matching source.\n", len(skipped))
+		}
+		os.Exit(1)
+	}
+
+	hasFailure := false
+	for _, src := range pairOrder {
+		pair := pairMap[src]
+		fmt.Fprintf(os.Stdout, "=== Mutating %s ===\n", src)
+		if err := c.RunMutationTest(pair.source, pair.tests); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			hasFailure = true
+		}
+	}
+	if hasFailure {
+		os.Exit(1)
+	}
+}
+
+// inferSourceFile returns the source file path for a test file.
+// e.g. "testdata/math_test.nyan" → "testdata/math.nyan"
+func inferSourceFile(testFile string) string {
+	dir := filepath.Dir(testFile)
+	base := filepath.Base(testFile)
+	name := strings.TrimSuffix(base, "_test.nyan")
+	return filepath.Join(dir, name+".nyan")
+}
+
+// isPattern returns true if the path contains a glob/recursive pattern.
+func isPattern(p string) bool {
+	return strings.HasSuffix(p, "/...") ||
+		strings.HasSuffix(p, string(filepath.Separator)+"...")
+}
+
 func printUsage() {
 	fmt.Fprintln(os.Stderr, `Meow Language Compiler 🐱
 
@@ -342,7 +428,7 @@ Patterns:
 Flags:
   -fuzz                  Run fuzz tests
   -fuzztime <duration>   Fuzz test duration (default: 10s)
-  -mutate                Run mutation tests (requires source and test files)
+  -mutate                Run mutation tests (explicit or auto-discover pairs)
   -cover                 Enable statement coverage
   -coverprofile=<file>   Write coverage profile to file (Go-compatible format)
 
@@ -355,6 +441,7 @@ Examples:
   meow test -fuzz math_test.nyan
   meow test -fuzz -fuzztime 30s math_test.nyan
   meow test -mutate math.nyan math_test.nyan
+  meow test -mutate ./...
   meow test -cover math_test.nyan
   meow test -coverprofile=coverage.out ./...`,
 
