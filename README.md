@@ -281,16 +281,25 @@ nyan result = peek(score) {
 ## CLI Usage
 
 ```
-Meow Language Compiler
+Meow Language Compiler 🐱
 
 Usage:
-  meow run <file.nyan>              Run a .nyan file
-  meow build <file.nyan> [-o name]  Build a binary
-  meow transpile <file.nyan>        Show generated Go code
-  meow <file.nyan>                  Shorthand for 'meow run'
+  meow <command> [arguments]
+
+Commands:
+  run <file.nyan>              Run a .nyan file
+  build <file.nyan> [-o name]  Build a binary
+  transpile <file.nyan>        Show generated Go code
+  test [files...]              Run _test.nyan files
+  version                      Show version info
+  help [command]               Show help for a command
+
+  meow <file.nyan>             Shorthand for 'meow run'
 
 Flags:
-  --verbose, -v                     Enable debug logging
+  --verbose, -v                Enable debug logging
+
+Use "meow help <command>" for more information about a command.
 ```
 
 ## How It Works
