@@ -63,6 +63,9 @@ func extractOptions(m *meowrt.Map) options {
 	opts := options{maxBodyBytes: defaultMaxBodyBytes}
 	if v, found := m.Get("maxBodyBytes"); found {
 		if n, ok := v.(*meowrt.Int); ok {
+			if n.Val <= 0 {
+				panic(fmt.Sprintf("Hiss! maxBodyBytes must be positive, got %d, nya~", n.Val))
+			}
 			opts.maxBodyBytes = n.Val
 		}
 	}

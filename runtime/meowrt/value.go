@@ -1,7 +1,9 @@
 package meowrt
 
 import (
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -149,4 +151,44 @@ func (m *Map) String() string {
 func (m *Map) Get(key string) (Value, bool) {
 	v, ok := m.Items[key]
 	return v, ok
+}
+
+// ToJSON serializes a Value to its JSON string representation.
+func ToJSON(v Value) string {
+	switch val := v.(type) {
+	case *String:
+		b, _ := json.Marshal(val.Val)
+		return string(b)
+	case *Int:
+		return fmt.Sprintf("%d", val.Val)
+	case *Float:
+		return fmt.Sprintf("%g", val.Val)
+	case *Bool:
+		if val.Val {
+			return "true"
+		}
+		return "false"
+	case *NilValue:
+		return "null"
+	case *List:
+		parts := make([]string, len(val.Items))
+		for i, item := range val.Items {
+			parts[i] = ToJSON(item)
+		}
+		return "[" + strings.Join(parts, ",") + "]"
+	case *Map:
+		keys := make([]string, 0, len(val.Items))
+		for k := range val.Items {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(val.Items))
+		for _, k := range keys {
+			kb, _ := json.Marshal(k)
+			parts = append(parts, string(kb)+":"+ToJSON(val.Items[k]))
+		}
+		return "{" + strings.Join(parts, ",") + "}"
+	default:
+		panic(fmt.Sprintf("Hiss! cannot serialize %s to JSON, nya~", v.Type()))
+	}
 }

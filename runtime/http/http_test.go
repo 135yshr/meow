@@ -240,6 +240,27 @@ func TestPounceWithOptions(t *testing.T) {
 	}
 }
 
+func TestNonPositiveMaxBodyBytes(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for non-positive maxBodyBytes")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic, got %T", r)
+		}
+		if !strings.Contains(msg, "maxBodyBytes must be positive") {
+			t.Errorf("expected maxBodyBytes validation error, got %q", msg)
+		}
+	}()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"maxBodyBytes": meowrt.NewInt(0),
+	})
+	meowhttp.Pounce(meowrt.NewString("http://localhost/get"), opts)
+}
+
 func TestPounceExceedsMaxBodyBytes(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
