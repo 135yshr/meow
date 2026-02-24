@@ -42,6 +42,12 @@ func main() {
 	c := compiler.New(logger)
 
 	switch args[0] {
+	case "help":
+		if len(args) >= 2 {
+			printSubcommandHelp(args[1])
+		} else {
+			printUsage()
+		}
 	case "version":
 		fmt.Printf("meow version %s (commit: %s, built: %s)\n", version, commit, date)
 	case "run":
@@ -191,16 +197,88 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, `Meow Language Compiler 🐱
 
 Usage:
-  meow run <file.nyan>              Run a .nyan file
-  meow build <file.nyan> [-o name]  Build a binary
-  meow transpile <file.nyan>        Show generated Go code
-  meow test [files...]              Run _test.nyan files
-  meow test -fuzz <file.nyan>      Run fuzz tests
-  meow test -mutate <src> <tests>  Run mutation tests
-  meow version                      Show version info
-  meow <file.nyan>                  Shorthand for 'meow run'
+  meow <command> [arguments]
+
+Commands:
+  run <file.nyan>              Run a .nyan file
+  build <file.nyan> [-o name]  Build a binary
+  transpile <file.nyan>        Show generated Go code
+  test [files...]              Run _test.nyan files
+  version                      Show version info
+  help [command]               Show help for a command
+
+  meow <file.nyan>             Shorthand for 'meow run'
 
 Flags:
-  --verbose, -v                     Enable debug logging
-  -fuzztime <duration>              Fuzz test duration (default: 10s)`)
+  --verbose, -v                Enable debug logging
+
+Use "meow help <command>" for more information about a command.`)
+}
+
+func printSubcommandHelp(cmd string) {
+	helps := map[string]string{
+		"run": `Usage: meow run <file.nyan>
+
+Run a .nyan program. The file is compiled to Go and executed immediately.
+
+Examples:
+  meow run hello.nyan
+  meow run examples/hello.nyan`,
+
+		"build": `Usage: meow build <file.nyan> [-o name]
+
+Compile a .nyan file into a standalone binary.
+
+Flags:
+  -o <name>  Set the output binary name
+
+Examples:
+  meow build hello.nyan
+  meow build hello.nyan -o hello`,
+
+		"transpile": `Usage: meow transpile <file.nyan>
+
+Show the generated Go source code without compiling or running it.
+
+Examples:
+  meow transpile hello.nyan`,
+
+		"test": `Usage: meow test [flags] [files...]
+
+Run test files. Without arguments, discovers and runs all *_test.nyan files
+in the current directory.
+
+Flags:
+  -fuzz                  Run fuzz tests
+  -fuzztime <duration>   Fuzz test duration (default: 10s)
+  -mutate                Run mutation tests (requires source and test files)
+
+Examples:
+  meow test
+  meow test math_test.nyan
+  meow test -fuzz math_test.nyan
+  meow test -fuzz -fuzztime 30s math_test.nyan
+  meow test -mutate math.nyan math_test.nyan`,
+
+		"version": `Usage: meow version
+
+Print the version, commit hash, and build date of the meow compiler.`,
+
+		"help": `Usage: meow help [command]
+
+Show help for the meow compiler or a specific command.
+
+Examples:
+  meow help
+  meow help run
+  meow help build`,
+	}
+
+	text, ok := helps[cmd]
+	if !ok {
+		fmt.Fprintf(os.Stderr, "Hiss! Unknown command %q, nya~\n\n", cmd)
+		printUsage()
+		os.Exit(1)
+	}
+	fmt.Fprintln(os.Stderr, text)
 }
