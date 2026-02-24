@@ -1,0 +1,43 @@
+# Comparison operators test
+
+meow test_equal() {
+  judge(1 == 1)
+  judge("hello" == "hello")
+  judge(yarn == yarn)
+  refuse(1 == 2)
+  refuse("cat" == "dog")
+}
+
+meow test_not_equal() {
+  judge(1 != 2)
+  judge("cat" != "dog")
+  judge(yarn != hairball)
+  refuse(1 != 1)
+  refuse("meow" != "meow")
+}
+
+meow test_less_than() {
+  judge(1 < 2)
+  judge(-1 < 0)
+  refuse(2 < 1)
+  refuse(1 < 1)
+}
+
+meow test_greater_than() {
+  judge(2 > 1)
+  judge(0 > -1)
+  refuse(1 > 2)
+  refuse(1 > 1)
+}
+
+meow test_less_than_or_equal() {
+  judge(1 <= 2)
+  judge(1 <= 1)
+  refuse(2 <= 1)
+}
+
+meow test_greater_than_or_equal() {
+  judge(2 >= 1)
+  judge(1 >= 1)
+  refuse(1 >= 2)
+}

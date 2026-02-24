@@ -1,0 +1,105 @@
+# List operations test
+
+meow test_list_creation() {
+  nyan nums = [1, 2, 3, 4, 5]
+  expect(nums, [1, 2, 3, 4, 5])
+}
+
+meow test_empty_list() {
+  nyan empty = []
+  expect(empty, [])
+}
+
+meow test_single_element_list() {
+  nyan single = [42]
+  expect(single, [42])
+}
+
+meow test_string_list() {
+  nyan names = ["tama", "mochi", "sora"]
+  expect(names, ["tama", "mochi", "sora"])
+}
+
+meow test_map_operation() {
+  nyan nums = [1, 2, 3]
+  nyan doubled = lick(nums, paw(x) { x * 2 })
+  expect(doubled, [2, 4, 6])
+}
+
+meow test_map_strings() {
+  nyan names = ["a", "b", "c"]
+  nyan upper = lick(names, paw(s) { s + "!" })
+  expect(upper, ["a!", "b!", "c!"])
+}
+
+meow test_filter_operation() {
+  nyan nums = [1, 2, 3, 4, 5, 6]
+  nyan evens = picky(nums, paw(x) { x % 2 == 0 })
+  expect(evens, [2, 4, 6])
+}
+
+meow test_filter_empty_result() {
+  nyan nums = [1, 3, 5, 7]
+  nyan evens = picky(nums, paw(x) { x % 2 == 0 })
+  expect(evens, [])
+}
+
+meow test_filter_all_pass() {
+  nyan nums = [2, 4, 6]
+  nyan evens = picky(nums, paw(x) { x % 2 == 0 })
+  expect(evens, [2, 4, 6])
+}
+
+meow test_reduce_sum() {
+  nyan nums = [1, 2, 3, 4, 5]
+  nyan sum = curl(nums, 0, paw(acc, x) { acc + x })
+  expect(sum, 15)
+}
+
+meow test_reduce_product() {
+  nyan nums = [1, 2, 3, 4, 5]
+  nyan product = curl(nums, 1, paw(acc, x) { acc * x })
+  expect(product, 120)
+}
+
+meow find_max(nums) {
+  nyan result = 0
+  nyan i = 0
+  nyan len = curl(nums, 0, paw(acc, x) { acc + 1 })
+  purr (i < len) {
+    nyan filtered = picky(nums, paw(x) { x > result })
+    sniff (filtered != []) {
+      result = curl(filtered, result, paw(acc, x) { x })
+    }
+    i = len
+  }
+  bring result
+}
+
+meow test_reduce_find_max() {
+  nyan nums = [3, 1, 4, 1, 5, 9, 2, 6]
+  nyan result = curl(nums, 0, paw(acc, x) { acc + x })
+  # sum of [3,1,4,1,5,9,2,6] = 31
+  expect(result, 31)
+}
+
+meow test_chained_list_ops() {
+  nyan nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  nyan result = picky(nums, paw(x) { x % 2 == 0 })
+  result = lick(result, paw(x) { x * x })
+  nyan total = curl(result, 0, paw(acc, x) { acc + x })
+  # evens: [2,4,6,8,10], squared: [4,16,36,64,100], sum: 220
+  expect(total, 220)
+}
+
+meow test_map_empty_list() {
+  nyan empty = []
+  nyan result = lick(empty, paw(x) { x * 2 })
+  expect(result, [])
+}
+
+meow test_filter_empty_list() {
+  nyan empty = []
+  nyan result = picky(empty, paw(x) { x > 0 })
+  expect(result, [])
+}

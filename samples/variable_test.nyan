@@ -1,0 +1,38 @@
+# Variable declaration and assignment test
+
+meow test_integer_variable() {
+  nyan x = 42
+  expect(x, 42)
+}
+
+meow test_float_variable() {
+  nyan f = 3.14
+  expect(f, 3.14)
+}
+
+meow test_string_variable() {
+  nyan s = "hello"
+  expect(s, "hello")
+}
+
+meow test_boolean_variables() {
+  nyan t = yarn
+  nyan f = hairball
+  judge(t)
+  refuse(f)
+}
+
+meow test_nil_variable() {
+  nyan n = catnap
+  refuse(n)
+  judge(n == catnap)
+}
+
+meow test_reassignment() {
+  nyan x = 10
+  expect(x, 10)
+  x = 20
+  expect(x, 20)
+  x = x + 5
+  expect(x, 25)
+}

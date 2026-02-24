@@ -1,0 +1,24 @@
+# String operations test
+
+meow test_string_concatenation() {
+  expect("Hello" + ", " + "World!", "Hello, World!")
+  expect("" + "meow", "meow")
+  expect("cat" + "", "cat")
+}
+
+meow test_string_equality() {
+  judge("meow" == "meow")
+  refuse("meow" == "woof")
+  judge("" == "")
+}
+
+meow test_string_in_variable() {
+  nyan name = "Tama"
+  nyan greeting = "Hello, " + name + "!"
+  expect(greeting, "Hello, Tama!")
+}
+
+meow test_string_with_numbers() {
+  nyan msg = "cat" + " #" + 1
+  expect(msg, "cat #1")
+}
