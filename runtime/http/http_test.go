@@ -61,6 +61,9 @@ func newTestServer() *httptest.Server {
 		custom := r.Header.Get("X-Custom")
 		w.Write([]byte("auth=" + auth + ",custom=" + custom))
 	})
+	mux.HandleFunc("/echo-ua", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.Header.Get("User-Agent")))
+	})
 	return httptest.NewServer(mux)
 }
 
@@ -541,5 +544,61 @@ func TestKneadStringBodyWithHeaders(t *testing.T) {
 	expected := "knead:text/plain:raw data"
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
+	}
+}
+
+// --- User-Agent tests ---
+
+func TestDefaultUserAgent(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	result := meowhttp.Pounce(meowrt.NewString(srv.URL + "/echo-ua"))
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "meow-http-client/2.0" {
+		t.Errorf("expected %q, got %q", "meow-http-client/2.0", s.Val)
+	}
+}
+
+func TestUserAgentOverride(t *testing.T) {
+	srv := newTestServer()
+	defer srv.Close()
+
+	opts := meowrt.NewMap(map[string]meowrt.Value{
+		"headers": meowrt.NewMap(map[string]meowrt.Value{
+			"User-Agent": meowrt.NewString("custom-agent/1.0"),
+		}),
+	})
+	result := meowhttp.Pounce(meowrt.NewString(srv.URL+"/echo-ua"), opts)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "custom-agent/1.0" {
+		t.Errorf("expected %q, got %q", "custom-agent/1.0", s.Val)
+	}
+}
+
+func TestTossDefaultUserAgent(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.Header.Get("User-Agent")))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	result := meowhttp.Toss(
+		meowrt.NewString(srv.URL+"/"),
+		meowrt.NewString("body"),
+	)
+	s, ok := result.(*meowrt.String)
+	if !ok {
+		t.Fatalf("expected String, got %T", result)
+	}
+	if s.Val != "meow-http-client/2.0" {
+		t.Errorf("expected %q, got %q", "meow-http-client/2.0", s.Val)
 	}
 }

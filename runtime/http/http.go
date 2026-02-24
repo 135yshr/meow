@@ -11,6 +11,7 @@ import (
 )
 
 const defaultMaxBodyBytes int64 = 1 << 20 // 1 MiB
+const userAgent = "meow-http-client/2.0"
 
 var client = &http.Client{
 	Timeout: 10 * time.Second,
@@ -78,6 +79,16 @@ func extractOptions(m *meowrt.Map) options {
 	return opts
 }
 
+// newRequest creates an http.Request with the default User-Agent set.
+func newRequest(method, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	return req, nil
+}
+
 // applyHeaders sets custom headers from options on the request.
 func applyHeaders(req *http.Request, opts options) {
 	for k, v := range opts.headers {
@@ -121,7 +132,7 @@ func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
 		opts = extractOptions(optsMap)
 	}
 
-	req, err := http.NewRequest(method, u, strings.NewReader(body))
+	req, err := newRequest(method, u, strings.NewReader(body))
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -145,7 +156,7 @@ func Pounce(args ...meowrt.Value) meowrt.Value {
 		panic(fmt.Sprintf("Hiss! pounce expects 1 argument (url), got %d, nya~", len(posArgs)))
 	}
 	u := expectString("pounce", posArgs[0])
-	req, err := http.NewRequest("GET", u, nil)
+	req, err := newRequest("GET", u, nil)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -177,7 +188,7 @@ func Swat(args ...meowrt.Value) meowrt.Value {
 		panic(fmt.Sprintf("Hiss! swat expects 1 argument (url), got %d, nya~", len(posArgs)))
 	}
 	u := expectString("swat", posArgs[0])
-	req, err := http.NewRequest("DELETE", u, nil)
+	req, err := newRequest("DELETE", u, nil)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
@@ -197,7 +208,7 @@ func Prowl(args ...meowrt.Value) meowrt.Value {
 		panic(fmt.Sprintf("Hiss! prowl expects 1 argument (url), got %d, nya~", len(posArgs)))
 	}
 	u := expectString("prowl", posArgs[0])
-	req, err := http.NewRequest("OPTIONS", u, nil)
+	req, err := newRequest("OPTIONS", u, nil)
 	if err != nil {
 		panic(fmt.Sprintf("Hiss! %s, nya~", err))
 	}
