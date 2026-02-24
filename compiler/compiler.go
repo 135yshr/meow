@@ -84,7 +84,9 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	}
 
 	// Create go.mod in temp dir
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -187,7 +189,9 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 		return fmt.Errorf("Hiss! Cannot write Go source, nya~: %w", err)
 	}
 
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -275,7 +279,9 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 		return fmt.Errorf("Hiss! Cannot write main_test.go, nya~: %w", err)
 	}
 
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -393,7 +399,9 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 		return fmt.Errorf("Hiss! Cannot write Go source, nya~: %w", err)
 	}
 
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -420,6 +428,22 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	// Report
 	mutation.Report(os.Stdout, mutants, results)
 	return nil
+}
+
+// readGoVersion parses a go.mod file and returns the Go version directive.
+// Falls back to "1.26" if the file cannot be read or parsed.
+func readGoVersion(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "1.26"
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "go ") {
+			return strings.TrimPrefix(line, "go ")
+		}
+	}
+	return "1.26"
 }
 
 func (c *Compiler) findModuleRoot() string {

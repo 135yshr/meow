@@ -87,6 +87,26 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 	fb.WriteString("var _ = meow.NewNil\n")
 	fb.WriteString("var _ = meow_testing.Judge\n\n")
 
+	// Validate seed arity and type consistency
+	for _, ff := range funcs {
+		for i, seed := range ff.seeds {
+			if len(seed) != len(ff.params) {
+				return "", "", fmt.Errorf("fuzz function %s: seed %d has %d values but function takes %d parameters", ff.name, i+1, len(seed), len(ff.params))
+			}
+		}
+		for paramIdx := range ff.params {
+			var expectedType string
+			for seedIdx, seed := range ff.seeds {
+				typ := seedExprType(seed[paramIdx])
+				if expectedType == "" {
+					expectedType = typ
+				} else if typ != expectedType {
+					return "", "", fmt.Errorf("fuzz function %s: seed %d has type %s for parameter %s but previous seeds have type %s", ff.name, seedIdx+1, typ, ff.params[paramIdx], expectedType)
+				}
+			}
+		}
+	}
+
 	for _, ff := range funcs {
 		goName := "Fuzz" + capitalizeFirst(strings.TrimPrefix(ff.name, "fuzz_"))
 
@@ -191,6 +211,21 @@ func (g *Generator) inferFuzzType(seeds [][]ast.Expr, paramIndex int) string {
 		}
 	}
 	return "int64"
+}
+
+func seedExprType(expr ast.Expr) string {
+	switch expr.(type) {
+	case *ast.IntLit:
+		return "int"
+	case *ast.FloatLit:
+		return "float"
+	case *ast.StringLit:
+		return "string"
+	case *ast.BoolLit:
+		return "bool"
+	default:
+		return "unknown"
+	}
 }
 
 func (g *Generator) fuzzConverter(typ, rawVar string) string {

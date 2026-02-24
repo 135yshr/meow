@@ -76,6 +76,9 @@ func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			g.funcs = append(g.funcs, g.genFuncDecl(fn))
 			if strings.HasPrefix(fn.Name, "test_") {
+				if len(fn.Params) != 0 {
+					return "", fmt.Errorf("test function %s must not take parameters", fn.Name)
+				}
 				g.testFuncs = append(g.testFuncs, fn.Name)
 			}
 		} else {
