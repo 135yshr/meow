@@ -281,7 +281,7 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 
 // CompileFuzzToGo compiles a .nyan file to fuzz test Go source.
 // Returns helper code and fuzz test code separately.
-func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests string, err error) {
+func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests string, fuzzNames []string, err error) {
 	c.logger.Debug("lexing", "file", filename)
 	l := lexer.New(source, filename)
 
@@ -293,7 +293,7 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 		for _, e := range errs {
 			msgs = append(msgs, e.Error())
 		}
-		return "", "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
 	c.logger.Debug("type checking", "file", filename)
@@ -304,15 +304,15 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 		for _, e := range typeErrs {
 			msgs = append(msgs, e.Error())
 		}
-		return "", "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
 	c.logger.Debug("generating fuzz Go code", "file", filename)
 	gen := codegen.New()
 	gen.SetTypeInfo(typeInfo)
-	helpers, fuzzTests, err = gen.GenerateFuzz(prog)
+	helpers, fuzzTests, fuzzNames, err = gen.GenerateFuzz(prog)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	if formatted, fmtErr := format.Source([]byte(helpers)); fmtErr == nil {
@@ -321,19 +321,24 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 	if formatted, fmtErr := format.Source([]byte(fuzzTests)); fmtErr == nil {
 		fuzzTests = string(formatted)
 	}
-	return helpers, fuzzTests, nil
+	return helpers, fuzzTests, fuzzNames, nil
 }
 
 // RunFuzz compiles a .nyan file and runs Go fuzz testing.
+// Each fuzz_ function in the file is executed individually.
 func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	source, err := os.ReadFile(nyanPath)
 	if err != nil {
 		return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", nyanPath, err)
 	}
 
-	helpers, fuzzTests, err := c.CompileFuzzToGo(string(source), filepath.Base(nyanPath))
+	helpers, fuzzTests, fuzzNames, err := c.CompileFuzzToGo(string(source), filepath.Base(nyanPath))
 	if err != nil {
 		return err
+	}
+
+	if len(fuzzNames) == 0 {
+		return fmt.Errorf("Hiss! No fuzz_ functions found in %s, nya~", nyanPath)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "meow-fuzz-*")
@@ -367,12 +372,19 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 		fuzzTime = "10s"
 	}
 
-	c.logger.Debug("running fuzz", "fuzztime", fuzzTime)
-	cmd := exec.Command("go", "test", "-fuzz=.", fmt.Sprintf("-fuzztime=%s", fuzzTime))
-	cmd.Dir = tmpDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	// Run each fuzz function individually (Go requires -fuzz to match exactly one target)
+	for _, name := range fuzzNames {
+		c.logger.Debug("running fuzz", "target", name, "fuzztime", fuzzTime)
+		fmt.Fprintf(os.Stdout, "  --- %s ---\n", name)
+		cmd := exec.Command("go", "test", fmt.Sprintf("-fuzz=^%s$", name), fmt.Sprintf("-fuzztime=%s", fuzzTime))
+		cmd.Dir = tmpDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Hiss! fuzz %s failed, nya~: %w", name, err)
+		}
+	}
+	return nil
 }
 
 // RunTest compiles and runs a _test.nyan file.

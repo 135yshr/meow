@@ -1,0 +1,41 @@
+# Fuzz tests for arithmetic operations
+
+meow add(a int, b int) int {
+  bring a + b
+}
+
+meow abs(x int) int {
+  sniff (x < 0) {
+    bring 0 - x
+  }
+  bring x
+}
+
+meow fuzz_add_commutative(a, b) {
+  seed(1, 2)
+  seed(0, 0)
+  seed(100, 42)
+
+  # a + b should always equal b + a
+  expect(add(a, b), add(b, a))
+}
+
+meow fuzz_add_identity(a) {
+  seed(0)
+  seed(1)
+  seed(999)
+
+  # adding zero should be identity
+  expect(a + 0, a)
+  expect(0 + a, a)
+}
+
+meow fuzz_abs_non_negative(x) {
+  seed(0)
+  seed(1)
+  seed(42)
+
+  # abs should always return non-negative
+  nyan result = abs(x)
+  judge(result >= 0)
+}
