@@ -400,6 +400,79 @@ func TestTypedLambda(t *testing.T) {
 	}
 }
 
+func TestGroupedParamType(t *testing.T) {
+	prog := parse(t, `nyan sum = curl([1,2,3], 0, paw(acc, x int) { acc + x })`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	call := v.Value.(*ast.CallExpr)
+	lambda := call.Args[2].(*ast.LambdaExpr)
+	if len(lambda.Params) != 2 {
+		t.Fatalf("expected 2 params, got %d", len(lambda.Params))
+	}
+	for i, name := range []string{"acc", "x"} {
+		if lambda.Params[i].Name != name {
+			t.Errorf("param[%d]: expected name %q, got %q", i, name, lambda.Params[i].Name)
+		}
+		if lambda.Params[i].TypeAnn == nil {
+			t.Fatalf("param[%d]: expected type annotation, got nil", i)
+		}
+		bt, ok := lambda.Params[i].TypeAnn.(*ast.BasicType)
+		if !ok {
+			t.Fatalf("param[%d]: expected BasicType, got %T", i, lambda.Params[i].TypeAnn)
+		}
+		if bt.Name != "int" {
+			t.Errorf("param[%d]: expected type 'int', got %q", i, bt.Name)
+		}
+	}
+}
+
+func TestGroupedMultiType(t *testing.T) {
+	prog := parse(t, `meow f(a, b int, c, d string) string {
+  bring "ok"
+}`)
+	fn := prog.Stmts[0].(*ast.FuncStmt)
+	if len(fn.Params) != 4 {
+		t.Fatalf("expected 4 params, got %d", len(fn.Params))
+	}
+	expected := []struct {
+		name     string
+		typeName string
+	}{
+		{"a", "int"}, {"b", "int"}, {"c", "string"}, {"d", "string"},
+	}
+	for i, exp := range expected {
+		if fn.Params[i].Name != exp.name {
+			t.Errorf("param[%d]: expected name %q, got %q", i, exp.name, fn.Params[i].Name)
+		}
+		if fn.Params[i].TypeAnn == nil {
+			t.Fatalf("param[%d]: expected type annotation, got nil", i)
+		}
+		bt, ok := fn.Params[i].TypeAnn.(*ast.BasicType)
+		if !ok {
+			t.Fatalf("param[%d]: expected BasicType, got %T", i, fn.Params[i].TypeAnn)
+		}
+		if bt.Name != exp.typeName {
+			t.Errorf("param[%d]: expected type %q, got %q", i, exp.typeName, bt.Name)
+		}
+	}
+}
+
+func TestGroupedNoType(t *testing.T) {
+	prog := parse(t, `nyan f = paw(a, b) { a + b }`)
+	v := prog.Stmts[0].(*ast.VarStmt)
+	lambda := v.Value.(*ast.LambdaExpr)
+	if len(lambda.Params) != 2 {
+		t.Fatalf("expected 2 params, got %d", len(lambda.Params))
+	}
+	for i, name := range []string{"a", "b"} {
+		if lambda.Params[i].Name != name {
+			t.Errorf("param[%d]: expected name %q, got %q", i, name, lambda.Params[i].Name)
+		}
+		if lambda.Params[i].TypeAnn != nil {
+			t.Errorf("param[%d]: expected no type annotation, got %v", i, lambda.Params[i].TypeAnn)
+		}
+	}
+}
+
 func TestMatchExpr(t *testing.T) {
 	prog := parse(t, `nyan result = peek(x) {
   0 => "zero",

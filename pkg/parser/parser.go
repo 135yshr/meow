@@ -139,6 +139,16 @@ func (p *Parser) parseTypedParamList() []ast.Param {
 		p.advance()
 		params = append(params, p.parseParam())
 	}
+	// Go-style grouped type propagation: right-to-left
+	// e.g. (a, b int, c, d string) → a:int, b:int, c:string, d:string
+	var lastType ast.TypeExpr
+	for i := len(params) - 1; i >= 0; i-- {
+		if params[i].TypeAnn != nil {
+			lastType = params[i].TypeAnn
+		} else if lastType != nil {
+			params[i].TypeAnn = lastType
+		}
+	}
 	return params
 }
 
