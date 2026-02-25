@@ -1,15 +1,15 @@
-# catwalk テストのサンプル
-# catwalk_ プレフィックスの関数は、# Output: ブロックで出力を検証します。
-# 実行: meow test examples/catwalk_example_test.nyan
+# catwalk test examples
+# Functions with catwalk_ prefix verify output using # Output: blocks.
+# Run: meow test examples/catwalk_example_test.nyan
 
-# 基本的な出力検証
+# Basic output verification
 meow catwalk_hello() {
   nya("Hello, Tama!")
   # Output:
   # Hello, Tama!
 }
 
-# 関数の戻り値を出力して検証
+# Output and verify function return values
 meow greet(who string) string {
   bring "Hello, " + who + "!"
 }
@@ -22,7 +22,7 @@ meow catwalk_greet() {
   # Hello, Sora!
 }
 
-# 算術結果の検証
+# Arithmetic result verification
 meow catwalk_arithmetic() {
   nya(2 + 3)
   nya(10 * 4)
@@ -33,7 +33,7 @@ meow catwalk_arithmetic() {
   # 20
 }
 
-# ループの出力検証
+# Loop output verification
 meow catwalk_countdown() {
   purr i (3) {
     nya(3 - i)
@@ -46,7 +46,7 @@ meow catwalk_countdown() {
   # Go!
 }
 
-# test_ と catwalk_ は同じファイルで共存できます
+# test_ and catwalk_ can coexist in the same file
 meow test_addition() {
   expect(1 + 2, 3)
 }
