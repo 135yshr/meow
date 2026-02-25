@@ -357,3 +357,21 @@ func TestListMixedTypes(t *testing.T) {
 		t.Fatal("expected error for mixed-type list, got none")
 	}
 }
+
+func TestNotOnTruthyValue(t *testing.T) {
+	// NOT operates on truthiness, so it accepts any type and returns bool
+	info, errs := check(t, `nyan x = !123`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if _, ok := info.VarTypes["x"].(types.BoolType); !ok {
+		t.Errorf("expected bool, got %v", info.VarTypes["x"])
+	}
+}
+
+func TestNotBoolOperand(t *testing.T) {
+	_, errs := check(t, `nyan x = !yarn`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}

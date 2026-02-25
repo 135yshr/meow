@@ -538,23 +538,29 @@ func (g *Generator) genTypedMatch(e *ast.MatchExpr) string {
 	var b strings.Builder
 	subject := g.boxValue(e.Subject)
 	b.WriteString(fmt.Sprintf("func() meow.Value {\n\t__subject := %s\n", subject))
+	hasCondArm := false
 	for i, arm := range e.Arms {
 		if _, ok := arm.Pattern.(*ast.WildcardPattern); ok {
-			b.WriteString(fmt.Sprintf("\treturn %s\n", g.boxValue(arm.Body)))
-			break
+			if hasCondArm {
+				b.WriteString("\t} else {\n")
+				b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.boxValue(arm.Body)))
+				b.WriteString("\t}\n")
+			} else {
+				b.WriteString(fmt.Sprintf("\treturn %s\n", g.boxValue(arm.Body)))
+			}
+			b.WriteString("\treturn meow.NewNil()\n}()")
+			return b.String()
 		}
 		keyword := "if"
 		if i > 0 {
 			keyword = "} else if"
 		}
+		hasCondArm = true
 		b.WriteString(fmt.Sprintf("\t%s %s {\n", keyword, g.genPatternCond("__subject", arm.Pattern)))
 		b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.boxValue(arm.Body)))
 	}
-	for _, arm := range e.Arms {
-		if _, ok := arm.Pattern.(*ast.WildcardPattern); !ok {
-			b.WriteString("\t}\n")
-			break
-		}
+	if hasCondArm {
+		b.WriteString("\t}\n")
 	}
 	b.WriteString("\treturn meow.NewNil()\n}()")
 	return b.String()
@@ -738,13 +744,13 @@ func isLiteralExpr(expr ast.Expr) bool {
 func unboxToNative(boxedExpr string, targetType types.Type) string {
 	switch targetType.(type) {
 	case types.IntType:
-		return fmt.Sprintf("meow.Value(%s).(*meow.Int).Val", boxedExpr)
+		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
 	case types.FloatType:
-		return fmt.Sprintf("meow.Value(%s).(*meow.Float).Val", boxedExpr)
+		return fmt.Sprintf("meow.AsFloat(%s)", boxedExpr)
 	case types.StringType:
-		return fmt.Sprintf("meow.Value(%s).(*meow.String).Val", boxedExpr)
+		return fmt.Sprintf("meow.AsString(%s)", boxedExpr)
 	case types.BoolType:
-		return fmt.Sprintf("meow.Value(%s).(*meow.Bool).Val", boxedExpr)
+		return fmt.Sprintf("meow.AsBool(%s)", boxedExpr)
 	default:
 		return boxedExpr
 	}
@@ -1153,24 +1159,29 @@ func (g *Generator) genMatch(e *ast.MatchExpr) string {
 	var b strings.Builder
 	subject := g.genExpr(e.Subject)
 	b.WriteString(fmt.Sprintf("func() meow.Value {\n\t__subject := %s\n", subject))
+	hasCondArm := false
 	for i, arm := range e.Arms {
 		if _, ok := arm.Pattern.(*ast.WildcardPattern); ok {
-			b.WriteString(fmt.Sprintf("\treturn %s\n", g.genExpr(arm.Body)))
-			break
+			if hasCondArm {
+				b.WriteString("\t} else {\n")
+				b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.genExpr(arm.Body)))
+				b.WriteString("\t}\n")
+			} else {
+				b.WriteString(fmt.Sprintf("\treturn %s\n", g.genExpr(arm.Body)))
+			}
+			b.WriteString("\treturn meow.NewNil()\n}()")
+			return b.String()
 		}
 		keyword := "if"
 		if i > 0 {
 			keyword = "} else if"
 		}
+		hasCondArm = true
 		b.WriteString(fmt.Sprintf("\t%s %s {\n", keyword, g.genPatternCond("__subject", arm.Pattern)))
 		b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.genExpr(arm.Body)))
 	}
-	// close last if
-	for _, arm := range e.Arms {
-		if _, ok := arm.Pattern.(*ast.WildcardPattern); !ok {
-			b.WriteString("\t}\n")
-			break
-		}
+	if hasCondArm {
+		b.WriteString("\t}\n")
 	}
 	b.WriteString("\treturn meow.NewNil()\n}()")
 	return b.String()

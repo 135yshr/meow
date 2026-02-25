@@ -8,7 +8,7 @@ type TypeExpr interface {
 	typeExprTag()
 }
 
-// BasicType represents a primitive type (int, float, string, bool).
+// BasicType represents a type keyword (int, float, string, bool, furball, list).
 type BasicType struct {
 	Token token.Token
 	Name  string // "int", "float", "string", "bool", "furball", "list"

@@ -420,6 +420,7 @@ func (c *Checker) inferUnary(e *ast.UnaryExpr) types.Type {
 		c.addError(e.Token.Pos, "Cannot negate %s", operand)
 		return types.AnyType{}
 	case token.NOT:
+		// NOT operates on truthiness, so it accepts any type.
 		return types.BoolType{}
 	}
 	return types.AnyType{}
