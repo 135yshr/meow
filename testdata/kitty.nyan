@@ -5,7 +5,7 @@ kitty Cat {
   age: int
 }
 
-nyan tama = Cat("Tama", 3)
-nya(tama.name)
-nya(tama.age)
-nya(tama)
+nyan nyantyu = Cat("Nyantyu", 3)
+nya(nyantyu.name)
+nya(nyantyu.age)
+nya(nyantyu)
