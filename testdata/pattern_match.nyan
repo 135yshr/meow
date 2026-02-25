@@ -11,9 +11,9 @@ meow describe(n int) string {
 
 meow classify(n int) string {
   bring peek(n) {
-    1..5 => "low"
-    6..10 => "mid"
-    11..100 => "high"
+    1 .. 5 => "low"
+    6 .. 10 => "mid"
+    11 .. 100 => "high"
   }
 }
 
