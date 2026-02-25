@@ -314,7 +314,7 @@ Run with: `meow test -fuzz fuzz_file.nyan`
 
 Keep `.nyan` files focused on a single module or concept:
 
-```
+```text
 project/
   main.nyan           # Entry point
   math.nyan           # Math utilities

@@ -8,7 +8,7 @@ Meow is a cat-themed programming language that transpiles to Go. Source files us
 
 This specification uses Extended Backus-Naur Form (EBNF) for grammar productions:
 
-```
+```ebnf
 Production  = name "=" Expression "." .
 Expression  = Term { "|" Term } .
 Term        = Factor { Factor } .
@@ -29,7 +29,7 @@ Source code is UTF-8 encoded text in `.nyan` files. Newlines serve as statement 
 
 Two forms of comments:
 
-```
+```ebnf
 LineComment  = "#" { any_char } newline .
 BlockComment = "-~" { any_char } "~-" .
 ```
@@ -40,7 +40,7 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 The following 19 identifiers are reserved as keywords:
 
-```
+```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
 curl      peek      hiss      fetch     flaunt
@@ -51,13 +51,13 @@ catnap    yarn      hairball  kitty
 
 The following 6 identifiers are reserved as type keywords:
 
-```
+```text
 int    float    string    bool    furball    list
 ```
 
 ### Identifiers
 
-```
+```ebnf
 identifier = letter { letter | digit | "_" } .
 letter     = "a" ... "z" | "A" ... "Z" | "_" .
 digit      = "0" ... "9" .
@@ -67,7 +67,7 @@ Identifiers name variables, functions, types, and struct fields. By convention, 
 
 ### Integer Literals
 
-```
+```ebnf
 int_lit = digit { digit } .
 ```
 
@@ -75,7 +75,7 @@ Integer literals are sequences of decimal digits representing 64-bit signed inte
 
 ### Float Literals
 
-```
+```ebnf
 float_lit = digit { digit } "." digit { digit } .
 ```
 
@@ -83,7 +83,7 @@ Float literals contain a decimal point and represent 64-bit IEEE 754 floating-po
 
 ### String Literals
 
-```
+```ebnf
 string_lit = '"' { char | escape } '"' .
 escape     = "\" ( '"' | "\" | "n" | "t" | "r" ) .
 ```
@@ -92,7 +92,7 @@ String literals are enclosed in double quotes. Supported escape sequences: `\"`,
 
 ### Operators and Delimiters
 
-```
+```text
 Operators:
   +    -    *    /    %
   =    ==   !=   <    >    <=   >=
@@ -135,19 +135,19 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 
 Type annotations are optional but recommended. They appear after identifiers:
 
-```
+```ebnf
 TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "list" .
 ```
 
 Variable declaration with type:
 
-```
+```ebnf
 VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr .
 ```
 
 Function with typed parameters and return type:
 
-```
+```ebnf
 FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 ParamList = Param { "," Param } .
 Param = identifier [ TypeExpr ] .
@@ -159,7 +159,7 @@ Go-style grouped types propagate right-to-left: in `(a, b int)`, both `a` and `b
 
 ### Literal Expressions
 
-```
+```ebnf
 IntLit     = int_lit .
 FloatLit   = float_lit .
 StringLit  = string_lit .
@@ -172,7 +172,7 @@ MapEntry   = StringLit ":" Expr .
 
 ### Identifier Expression
 
-```
+```ebnf
 Ident = identifier .
 ```
 
@@ -180,7 +180,7 @@ Evaluates to the value bound to the identifier in the current scope.
 
 ### Unary Expressions
 
-```
+```ebnf
 UnaryExpr = ( "-" | "!" ) Expr .
 ```
 
@@ -189,7 +189,7 @@ UnaryExpr = ( "-" | "!" ) Expr .
 
 ### Binary Expressions
 
-```
+```ebnf
 BinaryExpr = Expr op Expr .
 ```
 
@@ -201,7 +201,7 @@ Logical operators (`&&`, `||`) use short-circuit evaluation. `&&` returns the le
 
 ### Call Expression
 
-```
+```ebnf
 CallExpr = Expr "(" [ Expr { "," Expr } ] ")" .
 ```
 
@@ -209,7 +209,7 @@ Calls a function, lambda, or builtin. Also used to construct `kitty` instances b
 
 ### Lambda Expression
 
-```
+```ebnf
 LambdaExpr = "paw" "(" [ ParamList ] ")" "{" Expr "}" .
 ```
 
@@ -221,7 +221,7 @@ paw(x int) { x * 2 }
 
 ### Index Expression
 
-```
+```ebnf
 IndexExpr = Expr "[" Expr "]" .
 ```
 
@@ -229,7 +229,7 @@ Accesses a list element by zero-based index.
 
 ### Member Expression
 
-```
+```ebnf
 MemberExpr = Expr "." identifier .
 ```
 
@@ -237,7 +237,7 @@ Accesses a field on a `kitty` instance, or calls a function in an imported packa
 
 ### Pipe Expression
 
-```
+```ebnf
 PipeExpr = Expr "|=|" Expr .
 ```
 
@@ -250,7 +250,7 @@ x |=| f       # equivalent to f(x)
 
 ### Catch Expression
 
-```
+```ebnf
 CatchExpr = Expr "~>" Expr .
 ```
 
@@ -263,7 +263,7 @@ risky() ~> paw(err) { handle(err) }  # handler function
 
 ### Match Expression
 
-```
+```ebnf
 MatchExpr = "peek" "(" Expr ")" "{" { MatchArm } "}" .
 MatchArm  = Pattern "=>" Expr [ "," ] .
 Pattern   = LitPattern | RangePattern | WildcardPattern .
@@ -286,7 +286,7 @@ peek(n) {
 
 ### Variable Declaration
 
-```
+```ebnf
 VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr newline .
 ```
 
@@ -299,7 +299,7 @@ nyan name = "Nyantyu"
 
 ### Reassignment
 
-```
+```ebnf
 AssignStmt = identifier "=" Expr newline .
 ```
 
@@ -307,7 +307,7 @@ Rebinds an existing variable to a new value.
 
 ### Function Declaration
 
-```
+```ebnf
 FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 Block    = "{" { Stmt } "}" .
 ```
@@ -322,7 +322,7 @@ meow greet(name string) string {
 
 ### Return Statement
 
-```
+```ebnf
 ReturnStmt = "bring" [ Expr ] newline .
 ```
 
@@ -330,7 +330,7 @@ Returns a value from the enclosing function.
 
 ### Conditional Statement
 
-```
+```ebnf
 IfStmt = "sniff" "(" Expr ")" Block [ "scratch" ( IfStmt | Block ) ] .
 ```
 
@@ -348,7 +348,7 @@ sniff (x > 0) {
 
 ### Loop Statement
 
-```
+```ebnf
 RangeStmt = "purr" identifier "(" RangeExpr ")" Block .
 RangeExpr = Expr [ ".." Expr ] .
 ```
@@ -365,7 +365,7 @@ purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
 
 ### Fetch Statement
 
-```
+```ebnf
 FetchStmt = "fetch" string_lit newline .
 ```
 
@@ -377,7 +377,7 @@ fetch "http"
 
 ### Kitty Statement
 
-```
+```ebnf
 KittyStmt  = "kitty" identifier "{" { KittyField } "}" .
 KittyField = identifier ":" TypeExpr [ "," ] newline .
 ```
@@ -396,7 +396,7 @@ nya(p.x)   # => 3
 
 ### Expression Statement
 
-```
+```ebnf
 ExprStmt = Expr newline .
 ```
 

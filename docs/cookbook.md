@@ -117,7 +117,7 @@ purr i (len(cats)) {
 
 Output:
 
-```
+```text
 Nyantyu is 3 years old
 Tyako is 5 years old
 Tyomusuke is 2 years old
@@ -140,7 +140,7 @@ purr i (10) {
 
 Output:
 
-```
+```text
 0
 1
 1
@@ -175,7 +175,7 @@ purr i (len(temps)) {
 
 Output:
 
-```
+```text
 -10 C => freezing
 5 C => cold
 20 C => pleasant
@@ -342,6 +342,8 @@ nya(result)   # => default
 Nested recovery:
 
 ```meow
+fetch "file"
+
 meow get_config() string {
   bring file.snoop("config.json")
     ~> paw(err) { file.snoop("config.default.json") }

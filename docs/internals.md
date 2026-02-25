@@ -4,7 +4,7 @@ This document describes the internal architecture of the Meow compiler for contr
 
 ## Pipeline Overview
 
-```
+```text
 .nyan source
     │
     ▼
@@ -154,7 +154,7 @@ Newlines are significant as statement terminators. The parser skips consecutive 
 
 ### Node Hierarchy
 
-```
+```text
 Node (interface)
 ├── Expr (interface) — produces a value
 │   ├── IntLit, FloatLit, StringLit, BoolLit, NilLit

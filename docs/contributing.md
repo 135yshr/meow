@@ -58,7 +58,7 @@ go generate ./...
 
 ## Project Structure
 
-```
+```text
 meow/
 ├── cmd/meow/               # CLI entry point
 │   └── main.go
@@ -207,7 +207,7 @@ meow/
 
 Located in `testdata/` with `.nyan` input and `.golden` expected output:
 
-```
+```text
 testdata/
   hello.nyan        # Input program
   hello.golden      # Expected output
@@ -271,7 +271,7 @@ We use [gitmoji](https://gitmoji.dev/) prefixes in commit messages:
 Commit messages are in **English**.
 
 Example:
-```
+```text
 ✨ feat: Add string interpolation support
 ```
 
@@ -296,4 +296,4 @@ Example:
 
 ## Dependencies
 
-Meow has **zero external dependencies** — standard library only. Please do not introduce third-party packages.
+Meow has **zero runtime dependencies** — standard library only. Development tools like `stringer` are allowed as build-time dependencies. Please do not introduce third-party runtime packages.

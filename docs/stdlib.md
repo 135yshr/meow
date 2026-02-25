@@ -398,7 +398,7 @@ Usually you don't call `catwalk` directly — the `catwalk_` prefix handles it a
 Print the test summary and exit with code 1 if any tests failed.
 
 Output format:
-```
+```text
   PASS: test_name
   FAIL: test_name - error message
 
@@ -406,7 +406,7 @@ All 5 tests passed, nya~!
 ```
 
 Or on failure:
-```
+```text
 3 passed, 2 failed, nya~
 ```
 

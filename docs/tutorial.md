@@ -29,7 +29,7 @@ meow run hello.nyan
 
 Output:
 
-```
+```text
 Hello, World!
 ```
 
@@ -440,7 +440,7 @@ meow test math_test.nyan
 
 Output:
 
-```
+```text
   PASS: test_addition
   PASS: test_division
 
