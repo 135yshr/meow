@@ -202,6 +202,12 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	prevReturnType := c.currentReturnType
 	c.currentReturnType = c.resolveTypeExpr(fn.ReturnType)
 
+	// Typed functions must return on all paths
+	if !types.IsAny(c.currentReturnType) && !blockAlwaysReturns(fn.Body) {
+		c.addError(fn.Token.Pos, "Function %s declares return type %s but does not return on all paths",
+			fn.Name, c.currentReturnType)
+	}
+
 	c.pushScope()
 	for _, p := range fn.Params {
 		pt := c.resolveTypeExpr(p.TypeAnn)
@@ -213,6 +219,31 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	c.popScope()
 
 	c.currentReturnType = prevReturnType
+}
+
+// isPrimitiveType reports whether t is a simple scalar type (int, float, string, bool, nil).
+func isPrimitiveType(t types.Type) bool {
+	switch t.(type) {
+	case types.IntType, types.FloatType, types.StringType, types.BoolType, types.NilType:
+		return true
+	default:
+		return false
+	}
+}
+
+// blockAlwaysReturns checks if all control-flow paths end with a return statement.
+func blockAlwaysReturns(stmts []ast.Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
+	switch s := stmts[len(stmts)-1].(type) {
+	case *ast.ReturnStmt:
+		return true
+	case *ast.IfStmt:
+		return blockAlwaysReturns(s.Body) && blockAlwaysReturns(s.ElseBody)
+	default:
+		return false
+	}
 }
 
 // hasReturnStmt checks whether a slice of statements contains any ReturnStmt (bring).
@@ -537,7 +568,13 @@ func (c *Checker) inferList(e *ast.ListLit) types.Type {
 	}
 	elemType := c.inferExpr(e.Items[0])
 	for _, item := range e.Items[1:] {
-		c.inferExpr(item)
+		t := c.inferExpr(item)
+		if !types.IsAny(elemType) && !types.IsAny(t) && !elemType.Equals(t) {
+			if isPrimitiveType(elemType) && isPrimitiveType(t) {
+				c.addError(e.Token.Pos, "List elements must have consistent types: %s vs %s", elemType, t)
+			}
+			elemType = types.AnyType{}
+		}
 	}
 	return types.ListType{Elem: elemType}
 }

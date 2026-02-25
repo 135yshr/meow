@@ -668,23 +668,14 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return call
 	}
 
-	// Typed user-defined functions
+	// Typed user-defined functions (only for fully native signatures)
 	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
-		if !types.IsAny(ft.Return) {
-			allParamsTyped := true
-			for _, p := range ft.Params {
-				if types.IsAny(p) {
-					allParamsTyped = false
-					break
-				}
+		if isFullyTypedFuncType(ft) {
+			args := make([]string, len(e.Args))
+			for i, a := range e.Args {
+				args[i] = g.genTypedExpr(a)
 			}
-			if allParamsTyped {
-				args := make([]string, len(e.Args))
-				for i, a := range e.Args {
-					args[i] = g.genTypedExpr(a)
-				}
-				return fmt.Sprintf("%s(%s)", ident.Name, strings.Join(args, ", "))
-			}
+			return fmt.Sprintf("%s(%s)", ident.Name, strings.Join(args, ", "))
 		}
 	}
 
@@ -1088,10 +1079,6 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 }
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
-	params := make([]string, len(e.Params))
-	for i, p := range e.Params {
-		params[i] = p.Name + " meow.Value"
-	}
 	body := g.genExpr(e.Body)
 	return fmt.Sprintf("meow.NewFunc(\"lambda\", func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+

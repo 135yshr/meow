@@ -322,3 +322,38 @@ func TestLambdaUntypedParam(t *testing.T) {
 		t.Fatal("expected error for untyped lambda parameter, got none")
 	}
 }
+
+func TestFuncNotAllPathsReturn(t *testing.T) {
+	_, errs := check(t, `
+meow abs(x int) int {
+  sniff (x < 0) {
+    bring -x
+  }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for not returning on all paths, got none")
+	}
+}
+
+func TestFuncAllPathsReturn(t *testing.T) {
+	_, errs := check(t, `
+meow abs(x int) int {
+  sniff (x < 0) {
+    bring -x
+  } scratch {
+    bring x
+  }
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestListMixedTypes(t *testing.T) {
+	_, errs := check(t, `nyan xs = [1, "hello"]`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for mixed-type list, got none")
+	}
+}
