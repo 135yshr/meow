@@ -4,4 +4,4 @@ fetch "file"
 file.snoop("examples/data.txt") |=| nya
 
 # Read file line by line and print with prefix
-file.stalk("examples/data.txt") |=| lick(paw(line) { "=> " + line }) |=| nya
+file.stalk("examples/data.txt") |=| lick(paw(line string) { "=> " + line }) |=| nya

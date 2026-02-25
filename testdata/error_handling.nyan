@@ -1,13 +1,13 @@
 # Error handling functions
 
-meow divide(a, b) {
+meow divide(a int, b int) int {
   sniff (b == 0) {
     hiss("division by zero")
   }
   bring a / b
 }
 
-meow risky_chain(x) {
+meow risky_chain(x int) int {
   sniff (x < 0) {
     hiss("negative input")
   }

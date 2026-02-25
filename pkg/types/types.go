@@ -36,8 +36,16 @@ type NilType struct{}
 func (NilType) String() string    { return "nil" }
 func (NilType) Equals(t Type) bool { _, ok := t.(NilType); return ok }
 
-// AnyType represents an untyped value (backward compatibility).
-// Operations involving AnyType skip static type checks.
+// FurballType represents an error (Furball) type.
+type FurballType struct{}
+
+func (FurballType) String() string    { return "furball" }
+func (FurballType) Equals(t Type) bool { _, ok := t.(FurballType); return ok }
+
+// AnyType is an internal fallback type for built-in operations whose types
+// cannot be statically determined (e.g. head, tail, gag). User code must
+// provide explicit type annotations; AnyType is not part of the user-facing
+// type system.
 type AnyType struct{}
 
 func (AnyType) String() string    { return "any" }
@@ -49,7 +57,14 @@ type ListType struct{ Elem Type }
 func (l ListType) String() string { return "list[" + l.Elem.String() + "]" }
 func (l ListType) Equals(t Type) bool {
 	o, ok := t.(ListType)
-	return ok && l.Elem.Equals(o.Elem)
+	if !ok {
+		return false
+	}
+	// list[any] matches any list type (covariant)
+	if IsAny(l.Elem) || IsAny(o.Elem) {
+		return true
+	}
+	return l.Elem.Equals(o.Elem)
 }
 
 // FuncType represents a function type.

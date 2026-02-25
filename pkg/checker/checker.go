@@ -36,9 +36,10 @@ func (e *TypeError) Error() string {
 
 // Checker performs type checking on a Meow AST.
 type Checker struct {
-	info   *TypeInfo
-	errors []*TypeError
-	scopes []map[string]types.Type
+	info              *TypeInfo
+	errors            []*TypeError
+	scopes            []map[string]types.Type
+	currentReturnType types.Type // return type of the function currently being checked
 }
 
 // New creates a new Checker.
@@ -126,6 +127,10 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 		return types.StringType{}
 	case "bool":
 		return types.BoolType{}
+	case "furball":
+		return types.FurballType{}
+	case "list":
+		return types.ListType{Elem: types.AnyType{}}
 	default:
 		return types.AnyType{}
 	}
@@ -182,6 +187,21 @@ func (c *Checker) checkAssignStmt(s *ast.AssignStmt) {
 }
 
 func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
+	// Enforce type annotations on all parameters
+	for _, p := range fn.Params {
+		if p.TypeAnn == nil {
+			c.addError(fn.Token.Pos, "Parameter %q of function %s must have a type annotation", p.Name, fn.Name)
+		}
+	}
+
+	// Enforce return type when function has bring statements
+	if fn.ReturnType == nil && hasReturnStmt(fn.Body) {
+		c.addError(fn.Token.Pos, "Function %s has bring statements but no return type annotation", fn.Name)
+	}
+
+	prevReturnType := c.currentReturnType
+	c.currentReturnType = c.resolveTypeExpr(fn.ReturnType)
+
 	c.pushScope()
 	for _, p := range fn.Params {
 		pt := c.resolveTypeExpr(p.TypeAnn)
@@ -191,11 +211,38 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 		c.checkStmt(stmt)
 	}
 	c.popScope()
+
+	c.currentReturnType = prevReturnType
+}
+
+// hasReturnStmt checks whether a slice of statements contains any ReturnStmt (bring).
+func hasReturnStmt(stmts []ast.Stmt) bool {
+	for _, stmt := range stmts {
+		switch s := stmt.(type) {
+		case *ast.ReturnStmt:
+			return true
+		case *ast.IfStmt:
+			if hasReturnStmt(s.Body) || hasReturnStmt(s.ElseBody) {
+				return true
+			}
+		case *ast.WhileStmt:
+			if hasReturnStmt(s.Body) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (c *Checker) checkReturnStmt(s *ast.ReturnStmt) {
-	if s.Value != nil {
-		c.inferExpr(s.Value)
+	if s.Value == nil {
+		return
+	}
+	valType := c.inferExpr(s.Value)
+	if c.currentReturnType != nil && !types.IsAny(c.currentReturnType) && !types.IsAny(valType) {
+		if !c.currentReturnType.Equals(valType) {
+			c.addError(s.Token.Pos, "Return type mismatch: expected %s but got %s", c.currentReturnType, valType)
+		}
 	}
 }
 
@@ -255,17 +302,29 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 	case *ast.ListLit:
 		return c.inferList(e)
 	case *ast.IndexExpr:
-		c.inferExpr(e.Left)
+		leftType := c.inferExpr(e.Left)
 		c.inferExpr(e.Index)
+		if lt, ok := leftType.(types.ListType); ok {
+			return lt.Elem
+		}
 		return types.AnyType{}
 	case *ast.PipeExpr:
 		c.inferExpr(e.Left)
-		c.inferExpr(e.Right)
+		rightType := c.inferExpr(e.Right)
+		if ft, ok := rightType.(types.FuncType); ok {
+			return ft.Return
+		}
 		return types.AnyType{}
 	case *ast.CatchExpr:
-		c.inferExpr(e.Left)
-		c.inferExpr(e.Right)
-		return types.AnyType{}
+		leftType := c.inferExpr(e.Left)
+		rightType := c.inferExpr(e.Right)
+		if !types.IsAny(leftType) {
+			return leftType
+		}
+		if ft, ok := rightType.(types.FuncType); ok {
+			return ft.Return
+		}
+		return rightType
 	case *ast.MapLit:
 		for _, k := range e.Keys {
 			c.inferExpr(k)
@@ -276,8 +335,15 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		return types.AnyType{}
 	case *ast.MatchExpr:
 		c.inferExpr(e.Subject)
+		var armType types.Type
 		for _, arm := range e.Arms {
-			c.inferExpr(arm.Body)
+			t := c.inferExpr(arm.Body)
+			if armType == nil {
+				armType = t
+			}
+		}
+		if armType != nil {
+			return armType
 		}
 		return types.AnyType{}
 	case *ast.MemberExpr:

@@ -74,10 +74,12 @@ const (
 	HAIRBALL // hairball (false)
 
 	// Type keywords
-	TYPE_INT    // int
-	TYPE_FLOAT  // float
-	TYPE_STRING // string
-	TYPE_BOOL   // bool
+	TYPE_INT     // int
+	TYPE_FLOAT   // float
+	TYPE_STRING  // string
+	TYPE_BOOL    // bool
+	TYPE_FURBALL // furball
+	TYPE_LIST    // list
 	keywordsEnd
 )
 
@@ -104,6 +106,8 @@ var keywords = map[string]TokenType{
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,
 	"bool":     TYPE_BOOL,
+	"furball":  TYPE_FURBALL,
+	"list":     TYPE_LIST,
 }
 
 // LookupIdent returns the token type for a given identifier.

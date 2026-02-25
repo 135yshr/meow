@@ -115,13 +115,33 @@ func TestInferComparison(t *testing.T) {
 	}
 }
 
-func TestUntypedCodePassesCheck(t *testing.T) {
-	// Existing untyped code should pass without errors
+func TestUntypedParamRequiresAnnotation(t *testing.T) {
 	_, errs := check(t, `
 meow greet(name) {
   bring "Hello, " + name
 }
-nyan msg = greet("World")
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing type annotation, got none")
+	}
+}
+
+func TestMissingReturnTypeWithBring(t *testing.T) {
+	_, errs := check(t, `
+meow greet(name string) {
+  bring "Hello, " + name
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing return type, got none")
+	}
+}
+
+func TestVoidFunctionNoReturnType(t *testing.T) {
+	// Void functions (no bring) don't need return type
+	_, errs := check(t, `
+meow noop() {
+}
 `)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
@@ -184,5 +204,49 @@ func TestToStringReturnsString(t *testing.T) {
 	}
 	if _, ok := info.VarTypes["x"].(types.StringType); !ok {
 		t.Errorf("expected string, got %v", info.VarTypes["x"])
+	}
+}
+
+func TestReturnTypeMismatch(t *testing.T) {
+	_, errs := check(t, `
+meow greet(name string) int {
+  bring "hello"
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected return type mismatch error, got none")
+	}
+}
+
+func TestReturnTypeMatch(t *testing.T) {
+	_, errs := check(t, `
+meow add(a int, b int) int {
+  bring a + b
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestUntypedFunctionRejected(t *testing.T) {
+	_, errs := check(t, `
+meow identity(x) {
+  bring x
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected errors for untyped function, got none")
+	}
+}
+
+func TestTypedIdentityPasses(t *testing.T) {
+	_, errs := check(t, `
+meow identity(x int) int {
+  bring x
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
 	}
 }

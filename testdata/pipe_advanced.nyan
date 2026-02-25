@@ -1,13 +1,13 @@
 # Advanced pipe helper functions
 
-meow double(x) {
+meow double(x int) int {
   bring x * 2
 }
 
-meow square(x) {
+meow square(x int) int {
   bring x * x
 }
 
-meow negate(x) {
+meow negate(x int) int {
   bring 0 - x
 }

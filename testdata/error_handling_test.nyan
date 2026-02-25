@@ -29,12 +29,12 @@ meow test_error_recovery_no_error() {
 }
 
 meow test_error_recovery_with_handler() {
-  nyan result = divide(10, 0) ~> paw(err) { 42 }
+  nyan result = divide(10, 0) ~> paw(err furball) { 42 }
   expect(result, 42)
 }
 
 meow test_error_recovery_handler_no_error() {
-  nyan result = divide(10, 5) ~> paw(err) { 42 }
+  nyan result = divide(10, 5) ~> paw(err furball) { 42 }
   expect(result, 2)
 }
 

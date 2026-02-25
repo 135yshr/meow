@@ -1,6 +1,6 @@
 # List helper functions
 
-meow find_max(nums) {
+meow find_max(nums list) int {
   sniff (len(nums) == 0) {
     hiss("find_max: empty list")
   }

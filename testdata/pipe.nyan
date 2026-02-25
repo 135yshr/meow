@@ -1,9 +1,9 @@
 # Pipe helper functions
 
-meow double(x) {
+meow double(x int) int {
   bring x * 2
 }
 
-meow add_one(x) {
+meow add_one(x int) int {
   bring x + 1
 }

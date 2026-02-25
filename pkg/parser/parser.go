@@ -162,6 +162,10 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 		return &ast.BasicType{Token: tok, Name: "string"}
 	case token.TYPE_BOOL:
 		return &ast.BasicType{Token: tok, Name: "bool"}
+	case token.TYPE_FURBALL:
+		return &ast.BasicType{Token: tok, Name: "furball"}
+	case token.TYPE_LIST:
+		return &ast.BasicType{Token: tok, Name: "list"}
 	default:
 		p.errs = append(p.errs, newError(tok.Pos, "expected type, got %v (%q)", tok.Type, tok.Literal))
 		return &ast.BasicType{Token: tok, Name: tok.Literal}
@@ -170,7 +174,7 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 
 func (p *Parser) isTypeToken() bool {
 	switch p.cur.Type {
-	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL:
+	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LIST:
 		return true
 	}
 	return false

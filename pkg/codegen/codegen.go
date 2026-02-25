@@ -26,7 +26,8 @@ type Generator struct {
 	coverEnabled  bool
 	coverFilename string
 	coverBlocks   []coverBlock
-	typeInfo *checker.TypeInfo
+	typeInfo      *checker.TypeInfo
+	currentReturnType types.Type // return type of the function currently being generated
 }
 
 type coverBlock struct {
@@ -318,19 +319,14 @@ func (g *Generator) isFullyTypedFunc(fn *ast.FuncStmt) bool {
 	if !ok {
 		return false
 	}
-	if types.IsAny(ft.Return) {
-		return false
-	}
-	for _, p := range ft.Params {
-		if types.IsAny(p) {
-			return false
-		}
-	}
-	return true
+	return isFullyTypedFuncType(ft)
 }
 
 func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 	ft := g.typeInfo.FuncTypes[fn.Name]
+	prevReturnType := g.currentReturnType
+	g.currentReturnType = ft.Return
+	defer func() { g.currentReturnType = prevReturnType }()
 	var b strings.Builder
 	params := make([]string, len(fn.Params))
 	for i, p := range fn.Params {
@@ -404,7 +400,13 @@ func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
 	if t != nil && !types.IsAny(t) {
 		return fmt.Sprintf("return %s", g.genTypedExpr(s.Value))
 	}
-	return fmt.Sprintf("return %s", g.genExpr(s.Value))
+	// Expression is AnyType (e.g. match expression) but function has a concrete return type.
+	// Generate the expression with typed boxing, then unbox the meow.Value result.
+	exprCode := g.genTypedExpr(s.Value)
+	if g.currentReturnType != nil && !types.IsAny(g.currentReturnType) {
+		return fmt.Sprintf("return %s", unboxToNative(exprCode, g.currentReturnType))
+	}
+	return fmt.Sprintf("return %s", exprCode)
 }
 
 func (g *Generator) genTypedExprStmt(s *ast.ExprStmt) string {
@@ -465,8 +467,17 @@ func (g *Generator) getExprType(expr ast.Expr) types.Type {
 
 func (g *Generator) genTypedExpr(expr ast.Expr) string {
 	t := g.getExprType(expr)
+	// Handle match expressions specially: they always produce meow.Value
+	// but may contain typed variables that need boxing.
+	if _, isMatch := expr.(*ast.MatchExpr); isMatch {
+		matchCode := g.genTypedMatch(expr.(*ast.MatchExpr))
+		if t != nil && isNativeType(t) {
+			return unboxToNative(matchCode, t)
+		}
+		return matchCode
+	}
 	if t == nil || types.IsAny(t) {
-		return g.genExpr(expr)
+		return g.genExprBoxed(expr)
 	}
 	switch e := expr.(type) {
 	case *ast.IntLit:
@@ -489,8 +500,64 @@ func (g *Generator) genTypedExpr(expr ast.Expr) string {
 	case *ast.CallExpr:
 		return g.genTypedCall(e)
 	default:
-		return g.genExpr(expr)
+		return g.genExprBoxed(expr)
 	}
+}
+
+// genExprBoxed generates an expression in untyped (meow.Value) mode,
+// but boxes any typed variables so they can be used as meow.Value.
+func (g *Generator) genExprBoxed(expr ast.Expr) string {
+	if ident, ok := expr.(*ast.Ident); ok {
+		t := g.getExprType(expr)
+		if t != nil && !types.IsAny(t) {
+			return g.boxNative(ident.Name, t)
+		}
+	}
+	return g.genExpr(expr)
+}
+
+// boxNative wraps a native Go value in its meow.Value constructor.
+func (g *Generator) boxNative(name string, t types.Type) string {
+	switch t.(type) {
+	case types.IntType:
+		return fmt.Sprintf("meow.NewInt(%s)", name)
+	case types.FloatType:
+		return fmt.Sprintf("meow.NewFloat(%s)", name)
+	case types.StringType:
+		return fmt.Sprintf("meow.NewString(%s)", name)
+	case types.BoolType:
+		return fmt.Sprintf("meow.NewBool(%s)", name)
+	default:
+		return name
+	}
+}
+
+// genTypedMatch generates a match expression where the subject may be a native type.
+// It boxes the subject to meow.Value and returns the match result as meow.Value.
+func (g *Generator) genTypedMatch(e *ast.MatchExpr) string {
+	var b strings.Builder
+	subject := g.boxValue(e.Subject)
+	b.WriteString(fmt.Sprintf("func() meow.Value {\n\t__subject := %s\n", subject))
+	for i, arm := range e.Arms {
+		if _, ok := arm.Pattern.(*ast.WildcardPattern); ok {
+			b.WriteString(fmt.Sprintf("\treturn %s\n", g.genExpr(arm.Body)))
+			break
+		}
+		keyword := "if"
+		if i > 0 {
+			keyword = "} else if"
+		}
+		b.WriteString(fmt.Sprintf("\t%s %s {\n", keyword, g.genPatternCond("__subject", arm.Pattern)))
+		b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.genExpr(arm.Body)))
+	}
+	for _, arm := range e.Arms {
+		if _, ok := arm.Pattern.(*ast.WildcardPattern); !ok {
+			b.WriteString("\t}\n")
+			break
+		}
+	}
+	b.WriteString("\treturn meow.NewNil()\n}()")
+	return b.String()
 }
 
 func (g *Generator) genTypedUnary(e *ast.UnaryExpr) string {
@@ -565,6 +632,40 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
+	case "to_string", "to_int", "to_float", "is_furball", "gag", "len",
+		"head", "tail", "append", "lick", "picky", "curl":
+		builtinNames := map[string]string{
+			"to_string":  "ToString",
+			"to_int":     "ToInt",
+			"to_float":   "ToFloat",
+			"is_furball":  "IsFurball",
+			"gag":        "Gag",
+			"len":        "Len",
+			"head":       "Head",
+			"tail":       "Tail",
+			"append":     "Append",
+			"lick":       "Lick",
+			"picky":      "Picky",
+			"curl":       "Curl",
+		}
+		// Known return types for builtins that produce typed results
+		builtinRetTypes := map[string]types.Type{
+			"to_string":  types.StringType{},
+			"to_int":     types.IntType{},
+			"to_float":   types.FloatType{},
+			"is_furball":  types.BoolType{},
+			"len":        types.IntType{},
+		}
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		call := fmt.Sprintf("meow.%s(%s)", builtinNames[ident.Name], strings.Join(args, ", "))
+		// If the builtin has a known return type and we're in a typed context, unbox
+		if retType, ok := builtinRetTypes[ident.Name]; ok {
+			return unboxToNative(call, retType)
+		}
+		return call
 	}
 
 	// Typed user-defined functions
@@ -610,12 +711,22 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 	}
 }
 
+// isNativeType reports whether t maps to a native Go type (int64, float64, string, bool).
+// ListType, FurballType, and AnyType are NOT native types; they use meow.Value.
+func isNativeType(t types.Type) bool {
+	switch t.(type) {
+	case types.IntType, types.FloatType, types.StringType, types.BoolType:
+		return true
+	}
+	return false
+}
+
 func isFullyTypedFuncType(ft types.FuncType) bool {
-	if types.IsAny(ft.Return) {
+	if !isNativeType(ft.Return) {
 		return false
 	}
 	for _, p := range ft.Params {
-		if types.IsAny(p) {
+		if !isNativeType(p) {
 			return false
 		}
 	}

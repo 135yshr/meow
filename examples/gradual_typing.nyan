@@ -2,7 +2,7 @@ meow add(a int, b int) int {
   bring a + b
 }
 
-meow greet(name) {
+meow greet(name string) string {
   bring "Hello, " + name + "!"
 }
 
