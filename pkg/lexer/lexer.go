@@ -156,7 +156,9 @@ func (l *Lexer) readBlockComment() token.Token {
 			lit := l.input[start:l.pos]
 			l.advance() // ~
 			l.advance() // -
-			return l.makeToken(token.COMMENT, lit, pos)
+			tok := l.makeToken(token.COMMENT, lit, pos)
+			tok.BlockComment = true
+			return tok
 		}
 		l.advance()
 	}

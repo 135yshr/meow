@@ -9,6 +9,10 @@ import (
 	"strings"
 
 	"github.com/135yshr/meow/compiler"
+	"github.com/135yshr/meow/pkg/formatter"
+	"github.com/135yshr/meow/pkg/lexer"
+	"github.com/135yshr/meow/pkg/linter"
+	"github.com/135yshr/meow/pkg/parser"
 )
 
 var (
@@ -93,6 +97,10 @@ func main() {
 		fmt.Print(code)
 	case "test":
 		runTestCommand(c, args[1:])
+	case "fmt":
+		runFmtCommand(args[1:])
+	case "lint":
+		runLintCommand(args[1:])
 	default:
 		// Treat as "run" if the argument looks like a file
 		if len(args) >= 1 && len(args[0]) > 0 && args[0][0] != '-' {
@@ -223,125 +231,212 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 	}
 }
 
-func discoverTestFiles(dir string) ([]string, error) {
-	pattern := filepath.Join(dir, "*_test.nyan")
-	matches, err := filepath.Glob(pattern)
+func discoverFiles(dir, pattern string) ([]string, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, pattern))
 	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
+		return nil, fmt.Errorf("Hiss! Cannot search for files, nya~: %w", err)
 	}
 	return matches, nil
+}
+
+func discoverFilesRecursive(root string, match func(string) bool) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && match(d.Name()) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Hiss! Cannot search for files, nya~: %w", err)
+	}
+	return files, nil
+}
+
+func resolvePaths(patterns []string, discover func(string) ([]string, error), discoverRecursive func(string) ([]string, error)) ([]string, error) {
+	var result []string
+	seen := make(map[string]struct{})
+	add := func(paths []string) {
+		for _, p := range paths {
+			if _, ok := seen[p]; ok {
+				continue
+			}
+			seen[p] = struct{}{}
+			result = append(result, p)
+		}
+	}
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
+			root := strings.TrimSuffix(p, "/...")
+			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
+			if root == "." || root == "" {
+				root = "."
+			}
+			found, err := discoverRecursive(root)
+			if err != nil {
+				return nil, err
+			}
+			add(found)
+		} else {
+			info, err := os.Stat(p)
+			if err != nil {
+				add([]string{p})
+				continue
+			}
+			if info.IsDir() {
+				found, err := discover(p)
+				if err != nil {
+					return nil, err
+				}
+				add(found)
+			} else {
+				add([]string{p})
+			}
+		}
+	}
+	return result, nil
+}
+
+func discoverTestFiles(dir string) ([]string, error) {
+	return discoverFiles(dir, "*_test.nyan")
 }
 
 func discoverTestFilesRecursive(root string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.nyan") {
-			files = append(files, path)
-		}
-		return nil
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasSuffix(name, "_test.nyan")
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
-	}
-	return files, nil
 }
 
 func resolveTestPaths(patterns []string) ([]string, error) {
-	var result []string
-	for _, p := range patterns {
-		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
-			root := strings.TrimSuffix(p, "/...")
-			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
-			if root == "." || root == "" {
-				root = "."
-			}
-			found, err := discoverTestFilesRecursive(root)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, found...)
-		} else {
-			info, err := os.Stat(p)
-			if err != nil {
-				// Not a file/dir — treat as literal path
-				result = append(result, p)
-				continue
-			}
-			if info.IsDir() {
-				found, err := discoverTestFiles(p)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, found...)
-			} else {
-				result = append(result, p)
-			}
-		}
-	}
-	return result, nil
+	return resolvePaths(patterns, discoverTestFiles, discoverTestFilesRecursive)
 }
 
 func discoverFuzzFiles(dir string) ([]string, error) {
-	pattern := filepath.Join(dir, "fuzz_*.nyan")
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
-	}
-	return matches, nil
+	return discoverFiles(dir, "fuzz_*.nyan")
 }
 
 func discoverFuzzFilesRecursive(root string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasPrefix(d.Name(), "fuzz_") && strings.HasSuffix(d.Name(), ".nyan") {
-			files = append(files, path)
-		}
-		return nil
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasPrefix(name, "fuzz_") && strings.HasSuffix(name, ".nyan")
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
-	}
-	return files, nil
 }
 
 func resolveFuzzPaths(patterns []string) ([]string, error) {
-	var result []string
-	for _, p := range patterns {
-		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
-			root := strings.TrimSuffix(p, "/...")
-			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
-			if root == "." || root == "" {
-				root = "."
-			}
-			found, err := discoverFuzzFilesRecursive(root)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, found...)
+	return resolvePaths(patterns, discoverFuzzFiles, discoverFuzzFilesRecursive)
+}
+
+func runFmtCommand(args []string) {
+	write := false
+	var files []string
+	for _, a := range args {
+		if a == "-w" {
+			write = true
+		} else if strings.HasPrefix(a, "-") {
+			fmt.Fprintf(os.Stderr, "Hiss! Unknown flag for fmt: %s, nya~\n", a)
+			os.Exit(1)
 		} else {
-			info, err := os.Stat(p)
-			if err != nil {
-				result = append(result, p)
-				continue
-			}
-			if info.IsDir() {
-				found, err := discoverFuzzFiles(p)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, found...)
-			} else {
-				result = append(result, p)
-			}
+			files = append(files, a)
 		}
 	}
-	return result, nil
+
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "Hiss! Please specify .nyan files to format, nya~")
+		os.Exit(1)
+	}
+
+	for _, f := range files {
+		source, err := os.ReadFile(f)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Hiss! Cannot read %s, nya~: %v\n", f, err)
+			os.Exit(1)
+		}
+		formatted := formatter.FormatSource(string(source), f)
+		if write {
+			info, err := os.Stat(f)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Hiss! Cannot stat %s, nya~: %v\n", f, err)
+				os.Exit(1)
+			}
+			if err := os.WriteFile(f, []byte(formatted), info.Mode().Perm()); err != nil {
+				fmt.Fprintf(os.Stderr, "Hiss! Cannot write %s, nya~: %v\n", f, err)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Print(formatted)
+		}
+	}
+}
+
+func runLintCommand(args []string) {
+	var patterns []string
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			fmt.Fprintf(os.Stderr, "Hiss! Unknown flag for lint: %s, nya~\n", a)
+			os.Exit(1)
+		}
+		patterns = append(patterns, a)
+	}
+
+	files, err := resolveLintPaths(patterns)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if len(files) == 0 {
+		fmt.Fprintln(os.Stderr, "Hiss! No .nyan files found, nya~")
+		os.Exit(1)
+	}
+
+	l := linter.New()
+	hasIssues := false
+
+	for _, f := range files {
+		source, err := os.ReadFile(f)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Hiss! Cannot read %s, nya~: %v\n", f, err)
+			os.Exit(1)
+		}
+		lex := lexer.New(string(source), f)
+		p := parser.New(lex.Tokens())
+		prog, parseErrs := p.Parse()
+		if len(parseErrs) > 0 {
+			for _, e := range parseErrs {
+				fmt.Fprintln(os.Stderr, e)
+			}
+			hasIssues = true
+			continue
+		}
+		diags := l.Lint(prog)
+		for _, d := range diags {
+			fmt.Fprintln(os.Stderr, d)
+			hasIssues = true
+		}
+	}
+
+	if hasIssues {
+		os.Exit(1)
+	}
+}
+
+func discoverNyanFiles(dir string) ([]string, error) {
+	return discoverFiles(dir, "*.nyan")
+}
+
+func discoverNyanFilesRecursive(root string) ([]string, error) {
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasSuffix(name, ".nyan")
+	})
+}
+
+func resolveLintPaths(patterns []string) ([]string, error) {
+	if len(patterns) == 0 {
+		return discoverNyanFiles(".")
+	}
+	return resolvePaths(patterns, discoverNyanFiles, discoverNyanFilesRecursive)
 }
 
 func runMutateCommand(c *compiler.Compiler, files []string) {
@@ -450,6 +545,8 @@ Commands:
   build <file.nyan> [-o name]  Build a binary
   transpile <file.nyan>        Show generated Go code
   test [files...]              Run _test.nyan files
+  fmt [-w] <files...>          Format .nyan source files
+  lint [files/patterns...]     Run static analysis
   version                      Show version info
   help [command]               Show help for a command
 
@@ -519,6 +616,40 @@ Examples:
   meow test -mutate ./...
   meow test -cover math_test.nyan
   meow test -coverprofile=coverage.out ./...`,
+
+		"fmt": `Usage: meow fmt [-w] <files...>
+
+Format .nyan source files. By default, prints the formatted output to stdout.
+
+Flags:
+  -w  Write the formatted output back to the file
+
+Examples:
+  meow fmt hello.nyan
+  meow fmt -w hello.nyan
+  meow fmt examples/fibonacci.nyan`,
+
+		"lint": `Usage: meow lint [files/patterns...]
+
+Run static analysis on .nyan files. Without arguments, checks all *.nyan files
+in the current directory.
+
+Patterns:
+  ./...                  Recursively check all *.nyan files
+  dir/...                Recursively check all *.nyan under dir/
+  dir/                   Check *.nyan in dir/ (non-recursive)
+  file.nyan              Check a specific file
+
+Rules:
+  snake-case             Identifiers must use snake_case
+  unused-var             Declared variables must be used
+  unreachable-code       Code after bring is unreachable
+  empty-block            Function/if/while bodies must not be empty
+
+Examples:
+  meow lint hello.nyan
+  meow lint ./...
+  meow lint examples/`,
 
 		"version": `Usage: meow version
 
