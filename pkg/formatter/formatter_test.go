@@ -206,6 +206,11 @@ func TestFormatUnaryMinus(t *testing.T) {
 			input: "nya(-1)\n",
 			want:  "nya(-1)\n",
 		},
+		{
+			name:  "binary minus after block comment",
+			input: "nyan x = a -~ c ~- - 1\n",
+			want:  "nyan x = a -~ c ~- - 1\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

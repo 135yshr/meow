@@ -195,9 +195,13 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 			}
 		}
 
-		// Track unary minus: MINUS is unary when previous token is not an
-		// expression-completing token (e.g. at line start, after operator, etc.)
-		if tok.Type == token.MINUS && !isExpressionEnd(prevMeaningful) {
+		// Track unary minus: MINUS is unary when previous non-trivia token
+		// is not an expression-completing token.
+		prevForUnary := prevMeaningful
+		if prevForUnary == token.COMMENT {
+			prevForUnary = previousNonTriviaType(toks, i-1)
+		}
+		if tok.Type == token.MINUS && !isExpressionEnd(prevForUnary) {
 			afterUnaryMinus = true
 		} else {
 			afterUnaryMinus = false
@@ -270,6 +274,15 @@ func canInlineBlock(toks []token.Token, idx int) bool {
 		}
 	}
 	return false
+}
+
+func previousNonTriviaType(toks []token.Token, idx int) token.TokenType {
+	for i := idx; i >= 0; i-- {
+		if toks[i].Type != token.NEWLINE && toks[i].Type != token.COMMENT {
+			return toks[i].Type
+		}
+	}
+	return token.EOF
 }
 
 func isExpressionEnd(t token.TokenType) bool {
