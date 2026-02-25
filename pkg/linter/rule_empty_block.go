@@ -31,7 +31,7 @@ func (r *EmptyBlockRule) Check(prog *ast.Program, report func(Diagnostic)) {
 				})
 			}
 			// ElseBody being empty is normal (else omitted)
-		case *ast.WhileStmt:
+		case *ast.RangeStmt:
 			if len(n.Body) == 0 {
 				report(Diagnostic{
 					Pos:      n.Token.Pos,

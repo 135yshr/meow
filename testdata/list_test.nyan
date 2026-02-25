@@ -71,9 +71,9 @@ meow test_reduce_find_max() {
 
 meow test_chained_list_ops() {
   nyan nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-  nyan result = picky(nums, paw(x int) { x % 2 == 0 })
-  result = lick(result, paw(x int) { x * x })
-  nyan total = curl(result, 0, paw(acc int, x int) { acc + x })
+  nyan filtered = picky(nums, paw(x int) { x % 2 == 0 })
+  nyan squared = lick(filtered, paw(x int) { x * x })
+  nyan total = curl(squared, 0, paw(acc int, x int) { acc + x })
   # evens: [2,4,6,8,10], squared: [4,16,36,64,100], sum: 220
   expect(total, 220)
 }

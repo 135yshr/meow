@@ -195,10 +195,8 @@ func TestLintCleanCode(t *testing.T) {
   bring fib(n - 1) + fib(n - 2)
 }
 
-nyan i = 0
-purr (i < 10) {
+purr i (0, 10) {
   nya(fib(i))
-  i = i + 1
 }`)
 	if len(diags) != 0 {
 		for _, d := range diags {

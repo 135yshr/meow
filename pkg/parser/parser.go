@@ -94,7 +94,7 @@ func (p *Parser) parseStmt() ast.Stmt {
 	case token.SNIFF:
 		return p.parseIfStmt()
 	case token.PURR:
-		return p.parseWhileStmt()
+		return p.parsePurrStmt()
 	case token.FETCH:
 		return p.parseFetchStmt()
 	default:
@@ -225,13 +225,16 @@ func (p *Parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Token: tok, Condition: cond, Body: body, ElseBody: elseBody}
 }
 
-func (p *Parser) parseWhileStmt() *ast.WhileStmt {
+func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 	tok := p.advance() // consume purr
+	varName := p.expect(token.IDENT)
 	p.expect(token.LPAREN)
-	cond := p.parseExpr(0)
+	start := p.parseExpr(0)
+	p.expect(token.COMMA)
+	end := p.parseExpr(0)
 	p.expect(token.RPAREN)
 	body := p.parseBlock()
-	return &ast.WhileStmt{Token: tok, Condition: cond, Body: body}
+	return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: start, End: end, Body: body}
 }
 
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {
@@ -254,10 +257,11 @@ func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
 func (p *Parser) parseExprStmtOrAssign() ast.Stmt {
 	expr := p.parseExpr(0)
 	if ident, ok := expr.(*ast.Ident); ok && p.cur.Type == token.ASSIGN {
-		tok := p.advance() // consume =
+		p.advance() // consume =
 		value := p.parseExpr(0)
 		p.consumeTerminator()
-		return &ast.AssignStmt{Token: tok, Name: ident.Name, Value: value}
+		// x = 42 is equivalent to nyan x = 42 (implicit variable declaration)
+		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value}
 	}
 	p.consumeTerminator()
 	return &ast.ExprStmt{Token: expr.(ast.Node).Pos().AsToken(), Expr: expr}

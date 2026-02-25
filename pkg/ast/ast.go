@@ -340,20 +340,6 @@ func (n *VarStmt) Pos() token.Position { return n.Token.Pos }
 func (n *VarStmt) nodeTag()            {}
 func (n *VarStmt) stmtTag()            {}
 
-// AssignStmt represents a variable reassignment (x = ...).
-type AssignStmt struct {
-	// Token is the assignment operator token.
-	Token token.Token
-	// Name is the variable name.
-	Name string
-	// Value is the new value expression.
-	Value Expr
-}
-
-func (n *AssignStmt) Pos() token.Position { return n.Token.Pos }
-func (n *AssignStmt) nodeTag()            {}
-func (n *AssignStmt) stmtTag()            {}
-
 // FuncStmt represents a function definition (meow f(x) { ... } or meow f(x int) int { ... }).
 type FuncStmt struct {
 	// Token is the meow keyword token.
@@ -400,19 +386,23 @@ func (n *IfStmt) Pos() token.Position { return n.Token.Pos }
 func (n *IfStmt) nodeTag()            {}
 func (n *IfStmt) stmtTag()            {}
 
-// WhileStmt represents a while loop (purr).
-type WhileStmt struct {
+// RangeStmt represents a range-based loop (purr i (start, end) { body }).
+type RangeStmt struct {
 	// Token is the purr keyword token.
 	Token token.Token
-	// Condition is the loop condition expression.
-	Condition Expr
+	// Var is the loop variable name.
+	Var string
+	// Start is the inclusive start expression.
+	Start Expr
+	// End is the exclusive end expression.
+	End Expr
 	// Body is the list of statements in the loop body.
 	Body []Stmt
 }
 
-func (n *WhileStmt) Pos() token.Position { return n.Token.Pos }
-func (n *WhileStmt) nodeTag()            {}
-func (n *WhileStmt) stmtTag()            {}
+func (n *RangeStmt) Pos() token.Position { return n.Token.Pos }
+func (n *RangeStmt) nodeTag()            {}
+func (n *RangeStmt) stmtTag()            {}
 
 // ExprStmt represents an expression used as a statement.
 type ExprStmt struct {

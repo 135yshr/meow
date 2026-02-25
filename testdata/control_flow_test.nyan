@@ -1,78 +1,67 @@
 # Control flow test (sniff/scratch, purr)
 
+meow if_true_result() int {
+  sniff (yarn) { bring 1 }
+  bring 0
+}
 meow test_if_true() {
-  nyan result = 0
-  sniff (yarn) {
-    result = 1
-  }
-  expect(result, 1)
+  expect(if_true_result(), 1)
 }
 
+meow if_false_result() int {
+  sniff (hairball) { bring 1 }
+  bring 0
+}
 meow test_if_false() {
-  nyan result = 0
-  sniff (hairball) {
-    result = 1
-  }
-  expect(result, 0)
+  expect(if_false_result(), 0)
 }
 
-meow test_if_else() {
-  nyan result = ""
+meow if_else_result() string {
   sniff (1 > 2) {
-    result = "greater"
+    bring "greater"
   } scratch {
-    result = "not greater"
+    bring "not greater"
   }
-  expect(result, "not greater")
+}
+meow test_if_else() {
+  expect(if_else_result(), "not greater")
 }
 
-meow test_if_else_if() {
-  nyan x = 15
-  nyan result = ""
+meow if_else_if_result(x int) string {
   sniff (x > 20) {
-    result = "big"
+    bring "big"
   } scratch sniff (x > 10) {
-    result = "medium"
+    bring "medium"
   } scratch {
-    result = "small"
+    bring "small"
   }
-  expect(result, "medium")
+}
+meow test_if_else_if() {
+  expect(if_else_if_result(15), "medium")
 }
 
-meow test_nested_if() {
-  nyan x = 5
-  nyan result = ""
+meow nested_if_result(x int) string {
   sniff (x > 0) {
     sniff (x < 10) {
-      result = "single digit positive"
+      bring "single digit positive"
     } scratch {
-      result = "large positive"
+      bring "large positive"
     }
   } scratch {
-    result = "non-positive"
+    bring "non-positive"
   }
-  expect(result, "single digit positive")
+}
+meow test_nested_if() {
+  expect(nested_if_result(5), "single digit positive")
 }
 
-meow test_while_loop() {
-  nyan sum = 0
-  nyan i = 1
-  purr (i <= 10) {
-    sum = sum + i
-    i = i + 1
-  }
+meow test_purr_sum() {
+  nyan nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  nyan sum = curl(nums, 0, paw(acc int, x int) { acc + x })
   expect(sum, 55)
 }
 
-meow test_while_loop_break_condition() {
-  nyan count = 0
-  nyan i = 0
-  purr (i < 100) {
-    count = count + 1
-    sniff (count == 5) {
-      i = 100
-    }
-    i = i + 1
-  }
-  expect(count, 5)
+meow test_purr_range() {
+  nyan sum = curl([0, 1, 2, 3, 4], 0, paw(acc int, x int) { acc + x })
+  expect(sum, 10)
 }

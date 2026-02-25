@@ -2,6 +2,6 @@
   PASS: test_typed_float_var
   PASS: test_typed_string_var
   PASS: test_typed_bool_var
-  PASS: test_typed_reassignment
+  PASS: test_typed_shadowing
 
 All 5 tests passed, nya~!

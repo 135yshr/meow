@@ -3,7 +3,7 @@
   PASS: test_if_else
   PASS: test_if_else_if
   PASS: test_nested_if
-  PASS: test_while_loop
-  PASS: test_while_loop_break_condition
+  PASS: test_purr_sum
+  PASS: test_purr_range
 
 All 7 tests passed, nya~!

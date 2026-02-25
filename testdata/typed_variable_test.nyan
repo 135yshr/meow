@@ -20,11 +20,9 @@ meow test_typed_bool_var() {
   refuse(f)
 }
 
-meow test_typed_reassignment() {
+meow test_typed_shadowing() {
   nyan x int = 10
   expect(x, 10)
-  x = 20
-  expect(x, 20)
-  x = x + 5
-  expect(x, 25)
+  nyan y int = x + 10
+  expect(y, 20)
 }

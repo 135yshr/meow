@@ -28,11 +28,9 @@ meow test_nil_variable() {
   judge(n == catnap)
 }
 
-meow test_reassignment() {
+meow test_shadowing() {
   nyan x = 10
   expect(x, 10)
-  x = 20
-  expect(x, 20)
-  x = x + 5
-  expect(x, 25)
+  nyan y = x + 10
+  expect(y, 20)
 }

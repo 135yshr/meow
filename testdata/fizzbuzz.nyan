@@ -10,8 +10,6 @@ meow fizzbuzz(n int) string {
   }
 }
 
-nyan i = 1
-purr (i <= 20) {
+purr i (1, 21) {
   nya(fizzbuzz(i))
-  i = i + 1
 }

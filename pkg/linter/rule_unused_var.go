@@ -92,10 +92,6 @@ func (c *unusedChecker) checkStmt(stmt ast.Stmt) {
 	case *ast.VarStmt:
 		c.checkExpr(s.Value)
 		c.define(s.Name, s.Token.Pos)
-	case *ast.AssignStmt:
-		c.checkExpr(s.Value)
-		// Assignment target is a write, not a read.
-		// Keep tracking it as unused until it is referenced in an expression.
 	case *ast.FuncStmt:
 		c.pushScope()
 		// Parameters are not checked for unused (caller provides them)
@@ -124,9 +120,12 @@ func (c *unusedChecker) checkStmt(stmt ast.Stmt) {
 			c.reportUnused()
 			c.popScope()
 		}
-	case *ast.WhileStmt:
-		c.checkExpr(s.Condition)
+	case *ast.RangeStmt:
+		c.checkExpr(s.Start)
+		c.checkExpr(s.End)
 		c.pushScope()
+		c.define(s.Var, s.Token.Pos)
+		c.markUsed(s.Var)
 		for _, stmt := range s.Body {
 			c.checkStmt(stmt)
 		}

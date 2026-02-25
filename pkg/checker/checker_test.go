@@ -276,10 +276,12 @@ func TestIfNonBoolCondition(t *testing.T) {
 	}
 }
 
-func TestWhileNonBoolCondition(t *testing.T) {
-	_, errs := check(t, `purr ("hello") {}`)
-	if len(errs) == 0 {
-		t.Fatal("expected error for non-bool while condition, got none")
+func TestRangeLoop(t *testing.T) {
+	_, errs := check(t, `purr i (0, 10) {
+  nya(i)
+}`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
 

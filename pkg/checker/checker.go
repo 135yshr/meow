@@ -146,12 +146,10 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		c.checkReturnStmt(s)
 	case *ast.IfStmt:
 		c.checkIfStmt(s)
-	case *ast.WhileStmt:
-		c.checkWhileStmt(s)
+	case *ast.RangeStmt:
+		c.checkRangeStmt(s)
 	case *ast.ExprStmt:
 		c.inferExpr(s.Expr)
-	case *ast.AssignStmt:
-		c.checkAssignStmt(s)
 	case *ast.FetchStmt:
 		// nothing to check
 	}
@@ -173,16 +171,6 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 	} else {
 		c.define(s.Name, valType)
 		c.info.VarTypes[s.Name] = valType
-	}
-}
-
-func (c *Checker) checkAssignStmt(s *ast.AssignStmt) {
-	valType := c.inferExpr(s.Value)
-	existing := c.lookup(s.Name)
-	if !types.IsAny(existing) && !types.IsAny(valType) {
-		if !existing.Equals(valType) {
-			c.addError(s.Token.Pos, "Cannot assign %s to variable %s of type %s", valType, s.Name, existing)
-		}
 	}
 }
 
@@ -256,7 +244,7 @@ func hasReturnStmt(stmts []ast.Stmt) bool {
 			if hasReturnStmt(s.Body) || hasReturnStmt(s.ElseBody) {
 				return true
 			}
-		case *ast.WhileStmt:
+		case *ast.RangeStmt:
 			if hasReturnStmt(s.Body) {
 				return true
 			}
@@ -305,14 +293,11 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 	}
 }
 
-func (c *Checker) checkWhileStmt(s *ast.WhileStmt) {
-	condType := c.inferExpr(s.Condition)
-	if !types.IsAny(condType) {
-		if _, ok := condType.(types.BoolType); !ok {
-			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
-		}
-	}
+func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
+	c.inferExpr(s.Start)
+	c.inferExpr(s.End)
 	c.pushScope()
+	c.define(s.Var, types.IntType{})
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
 	}

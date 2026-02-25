@@ -24,7 +24,7 @@ func (r *UnreachableCodeRule) checkStmt(stmt ast.Stmt, report func(Diagnostic)) 
 		if len(s.ElseBody) > 0 {
 			r.checkBlock(s.ElseBody, report)
 		}
-	case *ast.WhileStmt:
+	case *ast.RangeStmt:
 		r.checkBlock(s.Body, report)
 	}
 }

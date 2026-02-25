@@ -35,10 +35,8 @@ meow catwalk_arithmetic() {
 
 # ループの出力検証
 meow catwalk_countdown() {
-  nyan i = 3
-  purr (i > 0) {
-    nya(i)
-    i = i - 1
+  purr i (0, 3) {
+    nya(3 - i)
   }
   nya("Go!")
   # Output:

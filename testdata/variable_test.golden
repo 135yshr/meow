@@ -3,6 +3,6 @@
   PASS: test_string_variable
   PASS: test_boolean_variables
   PASS: test_nil_variable
-  PASS: test_reassignment
+  PASS: test_shadowing
 
 All 6 tests passed, nya~!
