@@ -30,11 +30,12 @@ jobs:
     steps:
       - name: Install Hugo
         run: |
-          wget -q -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb
-          wget -q -O ${{ runner.temp }}/checksums.txt https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_checksums.txt
+          DEB="hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
+          wget -q -O "${{ runner.temp }}/${DEB}" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${DEB}"
+          wget -q -O "${{ runner.temp }}/checksums.txt" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_checksums.txt"
           cd ${{ runner.temp }}
-          grep "hugo_extended_${HUGO_VERSION}_linux-amd64.deb" checksums.txt | sha256sum --check --status
-          sudo dpkg -i hugo.deb
+          grep "${DEB}" checksums.txt | sha256sum --check --status
+          sudo dpkg -i "${DEB}"
 
       - name: Checkout
         uses: actions/checkout@v4
