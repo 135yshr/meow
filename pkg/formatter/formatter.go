@@ -247,7 +247,8 @@ func isLambdaBrace(toks []token.Token, idx int) bool {
 }
 
 // canInlineBlock checks if the brace block at toks[idx] (LBRACE) has no
-// nested braces and can be rendered on a single line.
+// nested braces, no comments, and no newlines, so it can be safely rendered
+// on a single line.
 func canInlineBlock(toks []token.Token, idx int) bool {
 	depth := 0
 	for i := idx; i < len(toks); i++ {
@@ -261,6 +262,10 @@ func canInlineBlock(toks []token.Token, idx int) bool {
 			depth--
 			if depth == 0 {
 				return true
+			}
+		case token.NEWLINE, token.COMMENT:
+			if depth == 1 {
+				return false
 			}
 		}
 	}

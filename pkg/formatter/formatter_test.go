@@ -217,6 +217,17 @@ func TestFormatUnaryMinus(t *testing.T) {
 	}
 }
 
+func TestFormatInlineLambdaSingleLine(t *testing.T) {
+	input := `nyan result = lick(paw(x int) { x * 2 })
+`
+	want := `nyan result = lick(paw(x int) { x * 2 })
+`
+	got := format(t, input)
+	if got != want {
+		t.Errorf("inline lambda formatting mismatch\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestFormatPipeOperator(t *testing.T) {
 	input := `nyan result = xs|=|lick(paw(x int) { x * 2 })
 `
