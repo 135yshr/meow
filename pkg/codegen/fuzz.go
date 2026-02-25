@@ -90,22 +90,11 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 	fb.WriteString("var _ = meow.NewNil\n")
 	fb.WriteString("var _ = meow_testing.Judge\n\n")
 
-	// Validate seed arity and type consistency
+	// Validate seed arity
 	for _, ff := range funcs {
 		for i, seed := range ff.seeds {
 			if len(seed) != len(ff.params) {
 				return "", "", nil, fmt.Errorf("fuzz function %s: seed %d has %d values but function takes %d parameters", ff.name, i+1, len(seed), len(ff.params))
-			}
-		}
-		for paramIdx := range ff.params {
-			var expectedType string
-			for seedIdx, seed := range ff.seeds {
-				typ := seedExprType(seed[paramIdx])
-				if expectedType == "" {
-					expectedType = typ
-				} else if typ != expectedType {
-					return "", "", nil, fmt.Errorf("fuzz function %s: seed %d has type %s for parameter %s but previous seeds have type %s", ff.name, seedIdx+1, typ, ff.params[paramIdx].Name, expectedType)
-				}
 			}
 		}
 	}
@@ -130,7 +119,7 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 		fuzzParams := make([]string, len(ff.params))
 		fuzzParamTypes := make([]string, len(ff.params))
 		for i, p := range ff.params {
-			typ := g.inferFuzzType(ff.seeds, i)
+			typ := g.fuzzGoType(p)
 			fuzzParams[i] = fmt.Sprintf("%s_raw %s", p.Name, typ)
 			fuzzParamTypes[i] = typ
 		}
@@ -200,37 +189,24 @@ func (g *Generator) fuzzSeedLiteral(expr ast.Expr) string {
 	}
 }
 
-func (g *Generator) inferFuzzType(seeds [][]ast.Expr, paramIndex int) string {
-	for _, seed := range seeds {
-		if paramIndex < len(seed) {
-			switch seed[paramIndex].(type) {
-			case *ast.IntLit:
-				return "int64"
-			case *ast.FloatLit:
-				return "float64"
-			case *ast.StringLit:
-				return "string"
-			case *ast.BoolLit:
-				return "bool"
-			}
+// fuzzGoType returns the Go type string for a fuzz parameter based on its type annotation.
+func (g *Generator) fuzzGoType(p ast.Param) string {
+	if p.TypeAnn == nil {
+		return "int64" // fallback
+	}
+	if bt, ok := p.TypeAnn.(*ast.BasicType); ok {
+		switch bt.Name {
+		case "int":
+			return "int64"
+		case "float":
+			return "float64"
+		case "string":
+			return "string"
+		case "bool":
+			return "bool"
 		}
 	}
 	return "int64"
-}
-
-func seedExprType(expr ast.Expr) string {
-	switch expr.(type) {
-	case *ast.IntLit:
-		return "int64"
-	case *ast.FloatLit:
-		return "float64"
-	case *ast.StringLit:
-		return "string"
-	case *ast.BoolLit:
-		return "bool"
-	default:
-		return "unknown"
-	}
 }
 
 func (g *Generator) fuzzConverter(typ, rawVar string) string {

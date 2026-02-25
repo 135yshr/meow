@@ -2,7 +2,6 @@ package checker
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/token"
@@ -188,19 +187,16 @@ func (c *Checker) checkAssignStmt(s *ast.AssignStmt) {
 }
 
 func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
-	// Enforce type annotations on all parameters (fuzz_ functions are exempt
-	// because their parameter types are inferred from seed values).
-	if !strings.HasPrefix(fn.Name, "fuzz_") {
-		for _, p := range fn.Params {
-			if p.TypeAnn == nil {
-				c.addError(fn.Token.Pos, "Parameter %q of function %s must have a type annotation", p.Name, fn.Name)
-			}
+	// Enforce type annotations on all parameters
+	for _, p := range fn.Params {
+		if p.TypeAnn == nil {
+			c.addError(fn.Token.Pos, "Parameter %q of function %s must have a type annotation", p.Name, fn.Name)
 		}
+	}
 
-		// Enforce return type when function has bring statements
-		if fn.ReturnType == nil && hasReturnStmt(fn.Body) {
-			c.addError(fn.Token.Pos, "Function %s has bring statements but no return type annotation", fn.Name)
-		}
+	// Enforce return type when function has bring statements
+	if fn.ReturnType == nil && hasReturnStmt(fn.Body) {
+		c.addError(fn.Token.Pos, "Function %s has bring statements but no return type annotation", fn.Name)
 	}
 
 	prevReturnType := c.currentReturnType

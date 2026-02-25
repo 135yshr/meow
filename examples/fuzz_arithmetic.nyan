@@ -11,7 +11,7 @@ meow abs(x int) int {
   bring x
 }
 
-meow fuzz_add_commutative(a, b) {
+meow fuzz_add_commutative(a int, b int) {
   seed(1, 2)
   seed(0, 0)
   seed(100, 42)
@@ -20,7 +20,7 @@ meow fuzz_add_commutative(a, b) {
   expect(add(a, b), add(b, a))
 }
 
-meow fuzz_add_identity(a) {
+meow fuzz_add_identity(a int) {
   seed(0)
   seed(1)
   seed(999)
@@ -30,7 +30,7 @@ meow fuzz_add_identity(a) {
   expect(0 + a, a)
 }
 
-meow fuzz_abs_non_negative(x) {
+meow fuzz_abs_non_negative(x int) {
   seed(0)
   seed(1)
   seed(42)
