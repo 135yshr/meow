@@ -1,4 +1,8 @@
-# Meow vs Go Comparison
+---
+title: "Meow vs Go"
+description: "Side-by-side reference for Go developers learning Meow"
+weight: 3
+---
 
 A side-by-side reference for Go developers learning Meow. Meow transpiles to Go, so many concepts map directly.
 

@@ -1,4 +1,8 @@
-# Contributing to Meow
+---
+title: "Contributing"
+description: "How to contribute to the Meow project"
+weight: 1
+---
 
 Thank you for your interest in contributing to the Meow programming language! This guide covers everything you need to know to get started.
 

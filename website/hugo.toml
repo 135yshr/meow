@@ -1,0 +1,49 @@
+baseURL = "https://135yshr.github.io/meow/"
+languageCode = "en"
+title = "Meow Programming Language"
+enableRobotsTXT = true
+enableGitInfo = true
+
+[params]
+  description = "The purrfect cat-themed programming language that transpiles to Go"
+  tagline = "The purrfect functional programming language"
+  githubRepo = "https://github.com/135yshr/meow"
+  goPackage = "https://pkg.go.dev/github.com/135yshr/meow"
+
+[markup]
+  [markup.highlight]
+    style = "dracula"
+    lineNos = false
+    guessSyntax = true
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[menu]
+  [[menu.main]]
+    name = "Learn"
+    url = "/learn/"
+    weight = 1
+  [[menu.main]]
+    name = "Docs"
+    url = "/doc/"
+    weight = 2
+  [[menu.main]]
+    name = "Cookbook"
+    url = "/cookbook/"
+    weight = 3
+  [[menu.main]]
+    name = "Blog"
+    url = "/blog/"
+    weight = 4
+  [[menu.main]]
+    name = "Community"
+    url = "/community/"
+    weight = 5
+
+[outputs]
+  home = ["HTML"]
+
+[sitemap]
+  changefreq = "weekly"
+  priority = 0.5

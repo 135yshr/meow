@@ -1,0 +1,19 @@
+{{ define "main" }}
+<div class="doc-layout">
+  <div class="container doc-container">
+    {{ partial "sidebar.html" . }}
+    <article class="doc-content">
+      <h1>{{ .Title }}</h1>
+      {{ .Content }}
+    </article>
+    <aside class="toc">
+      {{ if .TableOfContents }}
+      <div class="toc-inner">
+        <h4>On this page</h4>
+        {{ .TableOfContents }}
+      </div>
+      {{ end }}
+    </aside>
+  </div>
+</div>
+{{ end }}

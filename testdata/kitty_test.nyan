@@ -11,20 +11,20 @@ kitty Point {
 }
 
 meow test_kitty_constructor() {
-  nyan nyantyu = Cat("Nyantyu", 3)
+  nyan nyantyu = Cat("Nyantyu", 11)
   judge(nyantyu.name == "Nyantyu", "constructor sets name")
-  judge(nyantyu.age == 3, "constructor sets age")
+  judge(nyantyu.age == 11, "constructor sets age")
 }
 
 meow test_kitty_string() {
-  nyan nyantyu = Cat("Nyantyu", 3)
-  judge(to_string(nyantyu) == "Cat{name: Nyantyu, age: 3}", "kitty string representation")
+  nyan nyantyu = Cat("Nyantyu", 11)
+  judge(to_string(nyantyu) == "Cat{name: Nyantyu, age: 11}", "kitty string representation")
 }
 
 meow test_kitty_equality() {
-  nyan a = Cat("Nyantyu", 3)
-  nyan b = Cat("Nyantyu", 3)
-  nyan c = Cat("Tyomusuke", 5)
+  nyan a = Cat("Nyantyu", 11)
+  nyan b = Cat("Nyantyu", 11)
+  nyan c = Cat("Tyomusuke", 1)
   judge(a == b, "same fields are equal")
   judge(a != c, "different fields are not equal")
 }

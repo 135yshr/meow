@@ -1,4 +1,7 @@
-# Meow Cookbook
+---
+title: "Cookbook"
+description: "Practical recipes and patterns for Meow"
+---
 
 Task-based recipes for common programming patterns in Meow. Each recipe is a complete, runnable `.nyan` program.
 

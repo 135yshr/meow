@@ -1,4 +1,8 @@
-# Effective Meow
+---
+title: "Effective Meow"
+description: "Idiomatic patterns and conventions for writing clean Meow code"
+weight: 2
+---
 
 Idiomatic patterns and conventions for writing clean, consistent Meow code.
 

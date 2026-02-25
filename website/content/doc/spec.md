@@ -1,4 +1,8 @@
-# Meow Language Specification
+---
+title: "Language Specification"
+description: "Formal definition of Meow syntax and semantics"
+weight: 1
+---
 
 This document defines the syntax and semantics of the Meow programming language.
 
