@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/token"
 )
 
 // GenerateFuzz produces Go fuzz test source from a Program AST.
@@ -184,6 +185,16 @@ func (g *Generator) fuzzSeedLiteral(expr ast.Expr) string {
 		return fmt.Sprintf("%q", e.Value)
 	case *ast.BoolLit:
 		return fmt.Sprintf("%t", e.Value)
+	case *ast.UnaryExpr:
+		if e.Op == token.MINUS {
+			switch inner := e.Right.(type) {
+			case *ast.IntLit:
+				return fmt.Sprintf("int64(%d)", -inner.Value)
+			case *ast.FloatLit:
+				return fmt.Sprintf("float64(%g)", -inner.Value)
+			}
+		}
+		return "int64(0)"
 	default:
 		return "int64(0)"
 	}

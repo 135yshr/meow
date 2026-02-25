@@ -235,11 +235,18 @@ func hasReturnStmt(stmts []ast.Stmt) bool {
 }
 
 func (c *Checker) checkReturnStmt(s *ast.ReturnStmt) {
+	if c.currentReturnType == nil {
+		c.addError(s.Token.Pos, "bring used outside function")
+		return
+	}
 	if s.Value == nil {
+		if !types.IsAny(c.currentReturnType) {
+			c.addError(s.Token.Pos, "Function requires a return value of type %s", c.currentReturnType)
+		}
 		return
 	}
 	valType := c.inferExpr(s.Value)
-	if c.currentReturnType != nil && !types.IsAny(c.currentReturnType) && !types.IsAny(valType) {
+	if !types.IsAny(c.currentReturnType) && !types.IsAny(valType) {
 		if !c.currentReturnType.Equals(valType) {
 			c.addError(s.Token.Pos, "Return type mismatch: expected %s but got %s", c.currentReturnType, valType)
 		}
@@ -247,7 +254,12 @@ func (c *Checker) checkReturnStmt(s *ast.ReturnStmt) {
 }
 
 func (c *Checker) checkIfStmt(s *ast.IfStmt) {
-	c.inferExpr(s.Condition)
+	condType := c.inferExpr(s.Condition)
+	if !types.IsAny(condType) {
+		if _, ok := condType.(types.BoolType); !ok {
+			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
+		}
+	}
 	c.pushScope()
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
@@ -263,7 +275,12 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 }
 
 func (c *Checker) checkWhileStmt(s *ast.WhileStmt) {
-	c.inferExpr(s.Condition)
+	condType := c.inferExpr(s.Condition)
+	if !types.IsAny(condType) {
+		if _, ok := condType.(types.BoolType); !ok {
+			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
+		}
+	}
 	c.pushScope()
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
@@ -314,7 +331,7 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		if ft, ok := rightType.(types.FuncType); ok {
 			return ft.Return
 		}
-		return types.AnyType{}
+		return rightType
 	case *ast.CatchExpr:
 		leftType := c.inferExpr(e.Left)
 		rightType := c.inferExpr(e.Right)
@@ -340,6 +357,11 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 			t := c.inferExpr(arm.Body)
 			if armType == nil {
 				armType = t
+				continue
+			}
+			if !types.IsAny(armType) && !types.IsAny(t) && !armType.Equals(t) {
+				c.addError(e.Token.Pos, "Match arms have inconsistent types: %s vs %s", armType, t)
+				armType = types.AnyType{}
 			}
 		}
 		if armType != nil {
@@ -428,6 +450,11 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 		return types.BoolType{}
 
 	case token.AND, token.OR:
+		_, lok := left.(types.BoolType)
+		_, rok := right.(types.BoolType)
+		if !lok || !rok {
+			c.addError(e.Token.Pos, "Logical operator requires bool operands, got %s and %s", left, right)
+		}
 		return types.BoolType{}
 	}
 
@@ -466,14 +493,17 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 
 		// Check user-defined functions
 		if ft, ok := c.info.FuncTypes[ident.Name]; ok {
+			if len(e.Args) != len(ft.Params) {
+				c.addError(e.Token.Pos, "Function %s expects %d arguments but got %d",
+					ident.Name, len(ft.Params), len(e.Args))
+				return ft.Return
+			}
 			// Validate argument types
-			if len(e.Args) == len(ft.Params) {
-				for i, arg := range e.Args {
-					argType := c.info.ExprTypes[arg]
-					if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) {
-						if !ft.Params[i].Equals(argType) {
-							c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
-						}
+			for i, arg := range e.Args {
+				argType := c.info.ExprTypes[arg]
+				if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) {
+					if !ft.Params[i].Equals(argType) {
+						c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
 					}
 				}
 			}
@@ -489,6 +519,9 @@ func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {
 	c.pushScope()
 	paramTypes := make([]types.Type, len(e.Params))
 	for i, p := range e.Params {
+		if p.TypeAnn == nil {
+			c.addError(e.Token.Pos, "Lambda parameter %q must have a type annotation", p.Name)
+		}
 		pt := c.resolveTypeExpr(p.TypeAnn)
 		paramTypes[i] = pt
 		c.define(p.Name, pt)

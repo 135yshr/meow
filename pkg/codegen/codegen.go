@@ -540,7 +540,7 @@ func (g *Generator) genTypedMatch(e *ast.MatchExpr) string {
 	b.WriteString(fmt.Sprintf("func() meow.Value {\n\t__subject := %s\n", subject))
 	for i, arm := range e.Arms {
 		if _, ok := arm.Pattern.(*ast.WildcardPattern); ok {
-			b.WriteString(fmt.Sprintf("\treturn %s\n", g.genExpr(arm.Body)))
+			b.WriteString(fmt.Sprintf("\treturn %s\n", g.boxValue(arm.Body)))
 			break
 		}
 		keyword := "if"
@@ -548,7 +548,7 @@ func (g *Generator) genTypedMatch(e *ast.MatchExpr) string {
 			keyword = "} else if"
 		}
 		b.WriteString(fmt.Sprintf("\t%s %s {\n", keyword, g.genPatternCond("__subject", arm.Pattern)))
-		b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.genExpr(arm.Body)))
+		b.WriteString(fmt.Sprintf("\t\treturn %s\n", g.boxValue(arm.Body)))
 	}
 	for _, arm := range e.Arms {
 		if _, ok := arm.Pattern.(*ast.WildcardPattern); !ok {

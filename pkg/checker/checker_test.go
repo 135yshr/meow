@@ -250,3 +250,75 @@ meow identity(x int) int {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
+
+func TestBringOutsideFunction(t *testing.T) {
+	_, errs := check(t, `bring 42`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for bring outside function, got none")
+	}
+}
+
+func TestBareBringWithReturnType(t *testing.T) {
+	_, errs := check(t, `
+meow f(x int) int {
+  bring
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for bare bring with return type, got none")
+	}
+}
+
+func TestIfNonBoolCondition(t *testing.T) {
+	_, errs := check(t, `sniff (42) {}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-bool if condition, got none")
+	}
+}
+
+func TestWhileNonBoolCondition(t *testing.T) {
+	_, errs := check(t, `purr ("hello") {}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-bool while condition, got none")
+	}
+}
+
+func TestMatchArmTypeMismatch(t *testing.T) {
+	_, errs := check(t, `
+nyan x = 1
+nyan y = peek(x) {
+  1 => 42,
+  2 => "hello",
+  _ => 0
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for match arm type mismatch, got none")
+	}
+}
+
+func TestAndNonBoolOperands(t *testing.T) {
+	_, errs := check(t, `nyan x = 1 && 2`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-bool AND operands, got none")
+	}
+}
+
+func TestFuncArityMismatch(t *testing.T) {
+	_, errs := check(t, `
+meow add(a int, b int) int {
+  bring a + b
+}
+nyan x = add(1)
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for arity mismatch, got none")
+	}
+}
+
+func TestLambdaUntypedParam(t *testing.T) {
+	_, errs := check(t, `nyan f = paw(x) { x }`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for untyped lambda parameter, got none")
+	}
+}

@@ -11,7 +11,7 @@ type TypeExpr interface {
 // BasicType represents a primitive type (int, float, string, bool).
 type BasicType struct {
 	Token token.Token
-	Name  string // "int", "float", "string", "bool"
+	Name  string // "int", "float", "string", "bool", "furball", "list"
 }
 
 func (n *BasicType) Pos() token.Position { return n.Token.Pos }

@@ -34,6 +34,8 @@ meow fuzz_abs_non_negative(x int) {
   seed(0)
   seed(1)
   seed(42)
+  seed(-1)
+  seed(-42)
 
   # abs should always return non-negative
   nyan result = abs(x)
