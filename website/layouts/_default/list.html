@@ -1,0 +1,21 @@
+{{ define "main" }}
+<div class="doc-layout">
+  <div class="container doc-container">
+    {{ partial "sidebar.html" . }}
+    <article class="doc-content">
+      <h1>{{ .Title }}</h1>
+      {{ .Content }}
+      {{ if .Pages }}
+      <div class="section-list">
+        {{ range .Pages }}
+        <a href="{{ .RelPermalink }}" class="section-card">
+          <h3>{{ .Title }}</h3>
+          <p>{{ .Description | default .Summary | truncate 120 }}</p>
+        </a>
+        {{ end }}
+      </div>
+      {{ end }}
+    </article>
+  </div>
+</div>
+{{ end }}

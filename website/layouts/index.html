@@ -1,0 +1,226 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-text">
+        <pre class="hero-cat" aria-hidden="true">  /\_____/\
+ /  o   o  \
+( ==  ^  == )
+ )         (
+(           )
+( (  )   (  ) )
+(__(__)___(__)__)</pre>
+        <h1>Meow</h1>
+        <p class="hero-tagline">{{ .Site.Params.tagline }}</p>
+        <p class="hero-description">
+          Cat-themed syntax. Transpiles to Go. Compiles to native binaries.
+        </p>
+        <div class="hero-actions">
+          <a href="{{ "learn/tutorial/" | relURL }}" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/135yshr/meow/releases" class="btn btn-secondary">Download</a>
+        </div>
+      </div>
+      <div class="hero-code">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-filename">hello.nyan</span>
+          </div>
+          <pre class="code-body"><code><span class="kw">kitty</span> <span class="type">Cat</span> {
+  name: <span class="type">string</span>
+  age: <span class="type">int</span>
+}
+
+<span class="kw">nyan</span> tama = <span class="type">Cat</span>(<span class="str">"Tama"</span>, <span class="num">3</span>)
+
+<span class="kw">meow</span> <span class="fn">greet</span>(cat <span class="type">Cat</span>) <span class="type">string</span> {
+  <span class="kw">bring</span> cat.name + <span class="str">" says hello!"</span>
+}
+
+<span class="fn">nya</span>(<span class="fn">greet</span>(tama))</code></pre>
+        </div>
+        <div class="code-output">
+          <span class="output-prompt">$</span> meow run hello.nyan<br>
+          <span class="output-result">Tama says hello!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2>Why Meow?</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#128049;</div>
+        <h3>Cat-Themed Syntax</h3>
+        <p>Every keyword is a cat word &mdash; <code>nyan</code>, <code>meow</code>, <code>sniff</code>, <code>purr</code>, <code>hiss</code>. Programming has never been this fun.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9889;</div>
+        <h3>Native Performance</h3>
+        <p>Transpiles to Go and compiles to native binaries. Your cat code runs at full speed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128736;</div>
+        <h3>First-Class Functions</h3>
+        <p>Lambdas with <code>paw(x) { x * 2 }</code>, plus <code>lick</code> (map), <code>picky</code> (filter), and <code>curl</code> (reduce).</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128640;</div>
+        <h3>Pattern Matching</h3>
+        <p>Powerful <code>peek</code> expressions with ranges, wildcards, and multi-case support.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128679;</div>
+        <h3>Pipe Operator</h3>
+        <p>Chain operations elegantly with <code>|=|</code>. Transform data in a readable, functional style.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128230;</div>
+        <h3>Standard Library</h3>
+        <p>Built-in packages for file I/O and HTTP. Just <code>fetch "http"</code> and start building.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="examples">
+  <div class="container">
+    <h2>See it in action</h2>
+    <div class="example-tabs">
+      <button class="tab active" data-tab="fizzbuzz">FizzBuzz</button>
+      <button class="tab" data-tab="fibonacci">Fibonacci</button>
+      <button class="tab" data-tab="struct">Structs</button>
+      <button class="tab" data-tab="functional">Functional</button>
+    </div>
+    <div class="example-panels">
+      <div class="example-panel active" id="tab-fizzbuzz">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-filename">fizzbuzz.nyan</span>
+          </div>
+          <pre class="code-body"><code><span class="kw">meow</span> <span class="fn">fizzbuzz</span>(n <span class="type">int</span>) <span class="type">string</span> {
+  <span class="kw">sniff</span> (n % <span class="num">15</span> == <span class="num">0</span>) {
+    <span class="kw">bring</span> <span class="str">"FizzBuzz"</span>
+  } <span class="kw">scratch</span> <span class="kw">sniff</span> (n % <span class="num">3</span> == <span class="num">0</span>) {
+    <span class="kw">bring</span> <span class="str">"Fizz"</span>
+  } <span class="kw">scratch</span> <span class="kw">sniff</span> (n % <span class="num">5</span> == <span class="num">0</span>) {
+    <span class="kw">bring</span> <span class="str">"Buzz"</span>
+  } <span class="kw">scratch</span> {
+    <span class="kw">bring</span> <span class="fn">to_string</span>(n)
+  }
+}
+
+<span class="kw">purr</span> i (<span class="num">1</span>..<span class="num">20</span>) {
+  <span class="fn">nya</span>(<span class="fn">fizzbuzz</span>(i))
+}</code></pre>
+        </div>
+      </div>
+      <div class="example-panel" id="tab-fibonacci">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-filename">fibonacci.nyan</span>
+          </div>
+          <pre class="code-body"><code><span class="kw">meow</span> <span class="fn">fib</span>(n <span class="type">int</span>) <span class="type">int</span> {
+  <span class="kw">sniff</span> (n <= <span class="num">1</span>) {
+    <span class="kw">bring</span> n
+  }
+  <span class="kw">bring</span> <span class="fn">fib</span>(n - <span class="num">1</span>) + <span class="fn">fib</span>(n - <span class="num">2</span>)
+}
+
+<span class="kw">purr</span> i (<span class="num">10</span>) {
+  <span class="fn">nya</span>(<span class="fn">fib</span>(i))
+}</code></pre>
+        </div>
+      </div>
+      <div class="example-panel" id="tab-struct">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-filename">kitty_example.nyan</span>
+          </div>
+          <pre class="code-body"><code><span class="kw">kitty</span> <span class="type">Cat</span> {
+  name: <span class="type">string</span>
+  age: <span class="type">int</span>
+}
+
+<span class="kw">nyan</span> nyanchu = <span class="type">Cat</span>(<span class="str">"Nyanchu"</span>, <span class="num">3</span>)
+<span class="kw">nyan</span> tyako = <span class="type">Cat</span>(<span class="str">"Tyako"</span>, <span class="num">5</span>)
+<span class="kw">nyan</span> tyomusuke = <span class="type">Cat</span>(<span class="str">"Tyomusuke"</span>, <span class="num">2</span>)
+
+<span class="fn">nya</span>(nyanchu.name + <span class="str">" is "</span> + <span class="fn">to_string</span>(nyanchu.age) + <span class="str">" years old"</span>)</code></pre>
+        </div>
+      </div>
+      <div class="example-panel" id="tab-functional">
+        <div class="code-window">
+          <div class="code-header">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span class="code-filename">functional.nyan</span>
+          </div>
+          <pre class="code-body"><code><span class="kw">nyan</span> numbers = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>, <span class="num">7</span>, <span class="num">8</span>, <span class="num">9</span>, <span class="num">10</span>]
+
+<span class="cm"># Pipeline: filter evens, double them, sum</span>
+<span class="kw">nyan</span> result = numbers
+  |=| <span class="fn">picky</span>(<span class="kw">paw</span>(x) { x % <span class="num">2</span> == <span class="num">0</span> })
+  |=| <span class="fn">lick</span>(<span class="kw">paw</span>(x) { x * <span class="num">2</span> })
+  |=| <span class="fn">curl</span>(<span class="kw">paw</span>(acc, x) { acc + x }, <span class="num">0</span>)
+
+<span class="fn">nya</span>(result)  <span class="cm"># 60</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quickstart">
+  <div class="container">
+    <h2>Get started in seconds</h2>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Install</h3>
+          <div class="code-inline">
+            <code>brew install 135yshr/homebrew-tap/meow</code>
+          </div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Write</h3>
+          <div class="code-inline">
+            <code>echo 'nya("Hello, World!")' > hello.nyan</code>
+          </div>
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Run</h3>
+          <div class="code-inline">
+            <code>meow run hello.nyan</code>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="quickstart-cta">
+      <a href="{{ "learn/tutorial/" | relURL }}" class="btn btn-primary">Read the Tutorial</a>
+    </div>
+  </div>
+</section>
+{{ end }}
