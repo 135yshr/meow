@@ -60,6 +60,9 @@ func New() *Linter {
 
 // Lint runs all rules and returns sorted diagnostics.
 func (l *Linter) Lint(prog *ast.Program) []Diagnostic {
+	if l == nil || prog == nil {
+		return nil
+	}
 	var diags []Diagnostic
 	report := func(d Diagnostic) {
 		diags = append(diags, d)
@@ -67,11 +70,15 @@ func (l *Linter) Lint(prog *ast.Program) []Diagnostic {
 	for _, rule := range l.rules {
 		rule.Check(prog, report)
 	}
-	sort.Slice(diags, func(i, j int) bool {
-		if diags[i].Pos.Line != diags[j].Pos.Line {
-			return diags[i].Pos.Line < diags[j].Pos.Line
+	sort.SliceStable(diags, func(i, j int) bool {
+		a, b := diags[i], diags[j]
+		if a.Pos.Line != b.Pos.Line {
+			return a.Pos.Line < b.Pos.Line
 		}
-		return diags[i].Pos.Column < diags[j].Pos.Column
+		if a.Pos.Column != b.Pos.Column {
+			return a.Pos.Column < b.Pos.Column
+		}
+		return a.Rule < b.Rule
 	})
 	return diags
 }

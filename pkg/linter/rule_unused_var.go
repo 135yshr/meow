@@ -52,7 +52,16 @@ func (c *unusedChecker) popScope() {
 }
 
 func (c *unusedChecker) define(name string, pos token.Position) {
-	c.scopes[len(c.scopes)-1].vars[name] = &varEntry{pos: pos, name: name}
+	scope := c.scopes[len(c.scopes)-1]
+	if prev, ok := scope.vars[name]; ok && !prev.used && prev.name != "_" {
+		c.report(Diagnostic{
+			Pos:      prev.pos,
+			Severity: Warning,
+			Rule:     c.rule,
+			Message:  "variable \"" + prev.name + "\" is declared but never used",
+		})
+	}
+	scope.vars[name] = &varEntry{pos: pos, name: name}
 }
 
 func (c *unusedChecker) markUsed(name string) {

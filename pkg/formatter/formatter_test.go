@@ -1,16 +1,13 @@
 package formatter
 
 import (
+	"strings"
 	"testing"
 )
 
 func format(t *testing.T, input string) string {
 	t.Helper()
-	out, err := FormatSource(input, "test.nyan")
-	if err != nil {
-		t.Fatalf("FormatSource failed: %v", err)
-	}
-	return out
+	return FormatSource(input, "test.nyan")
 }
 
 func TestFormatBasicIndentation(t *testing.T) {
@@ -181,20 +178,7 @@ func TestFormatPipeOperator(t *testing.T) {
 		t.Fatal("unexpected empty output")
 	}
 	// Should contain spaces around |=|
-	if !contains(got, "|=|") {
+	if !strings.Contains(got, "|=|") {
 		t.Errorf("expected pipe operator in output, got: %s", got)
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

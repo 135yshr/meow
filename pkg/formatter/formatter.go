@@ -22,9 +22,9 @@ func DefaultConfig() Config {
 }
 
 // FormatSource formats Meow source code.
-func FormatSource(source, filename string) (string, error) {
+func FormatSource(source, filename string) string {
 	l := lexer.New(source, filename)
-	return Format(l.Tokens(), DefaultConfig()), nil
+	return Format(l.Tokens(), DefaultConfig())
 }
 
 // Format formats a token stream into normalized source.
@@ -102,6 +102,8 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 				}
 				buf.WriteString(tok.Literal)
 			} else {
+				// The lexer strips block-comment delimiters (-~ ... ~-) and stores
+				// only the inner content in tok.Literal, so we re-wrap here.
 				if lineStart {
 					writeIndent()
 				} else {

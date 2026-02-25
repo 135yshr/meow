@@ -231,125 +231,91 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 	}
 }
 
-func discoverTestFiles(dir string) ([]string, error) {
-	pattern := filepath.Join(dir, "*_test.nyan")
-	matches, err := filepath.Glob(pattern)
+func discoverFiles(dir, pattern string) ([]string, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, pattern))
 	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
+		return nil, fmt.Errorf("Hiss! Cannot search for files, nya~: %w", err)
 	}
 	return matches, nil
+}
+
+func discoverFilesRecursive(root string, match func(string) bool) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && match(d.Name()) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Hiss! Cannot search for files, nya~: %w", err)
+	}
+	return files, nil
+}
+
+func resolvePaths(patterns []string, discover func(string) ([]string, error), discoverRecursive func(string) ([]string, error)) ([]string, error) {
+	var result []string
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
+			root := strings.TrimSuffix(p, "/...")
+			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
+			if root == "." || root == "" {
+				root = "."
+			}
+			found, err := discoverRecursive(root)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, found...)
+		} else {
+			info, err := os.Stat(p)
+			if err != nil {
+				result = append(result, p)
+				continue
+			}
+			if info.IsDir() {
+				found, err := discover(p)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, found...)
+			} else {
+				result = append(result, p)
+			}
+		}
+	}
+	return result, nil
+}
+
+func discoverTestFiles(dir string) ([]string, error) {
+	return discoverFiles(dir, "*_test.nyan")
 }
 
 func discoverTestFilesRecursive(root string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.nyan") {
-			files = append(files, path)
-		}
-		return nil
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasSuffix(name, "_test.nyan")
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for test files, nya~: %w", err)
-	}
-	return files, nil
 }
 
 func resolveTestPaths(patterns []string) ([]string, error) {
-	var result []string
-	for _, p := range patterns {
-		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
-			root := strings.TrimSuffix(p, "/...")
-			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
-			if root == "." || root == "" {
-				root = "."
-			}
-			found, err := discoverTestFilesRecursive(root)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, found...)
-		} else {
-			info, err := os.Stat(p)
-			if err != nil {
-				// Not a file/dir — treat as literal path
-				result = append(result, p)
-				continue
-			}
-			if info.IsDir() {
-				found, err := discoverTestFiles(p)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, found...)
-			} else {
-				result = append(result, p)
-			}
-		}
-	}
-	return result, nil
+	return resolvePaths(patterns, discoverTestFiles, discoverTestFilesRecursive)
 }
 
 func discoverFuzzFiles(dir string) ([]string, error) {
-	pattern := filepath.Join(dir, "fuzz_*.nyan")
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
-	}
-	return matches, nil
+	return discoverFiles(dir, "fuzz_*.nyan")
 }
 
 func discoverFuzzFilesRecursive(root string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasPrefix(d.Name(), "fuzz_") && strings.HasSuffix(d.Name(), ".nyan") {
-			files = append(files, path)
-		}
-		return nil
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasPrefix(name, "fuzz_") && strings.HasSuffix(name, ".nyan")
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
-	}
-	return files, nil
 }
 
 func resolveFuzzPaths(patterns []string) ([]string, error) {
-	var result []string
-	for _, p := range patterns {
-		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
-			root := strings.TrimSuffix(p, "/...")
-			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
-			if root == "." || root == "" {
-				root = "."
-			}
-			found, err := discoverFuzzFilesRecursive(root)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, found...)
-		} else {
-			info, err := os.Stat(p)
-			if err != nil {
-				result = append(result, p)
-				continue
-			}
-			if info.IsDir() {
-				found, err := discoverFuzzFiles(p)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, found...)
-			} else {
-				result = append(result, p)
-			}
-		}
-	}
-	return result, nil
+	return resolvePaths(patterns, discoverFuzzFiles, discoverFuzzFilesRecursive)
 }
 
 func runFmtCommand(args []string) {
@@ -374,13 +340,14 @@ func runFmtCommand(args []string) {
 			fmt.Fprintf(os.Stderr, "Hiss! Cannot read %s, nya~: %v\n", f, err)
 			os.Exit(1)
 		}
-		formatted, err := formatter.FormatSource(string(source), f)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hiss! Cannot format %s, nya~: %v\n", f, err)
-			os.Exit(1)
-		}
+		formatted := formatter.FormatSource(string(source), f)
 		if write {
-			if err := os.WriteFile(f, []byte(formatted), 0644); err != nil {
+			info, err := os.Stat(f)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Hiss! Cannot stat %s, nya~: %v\n", f, err)
+				os.Exit(1)
+			}
+			if err := os.WriteFile(f, []byte(formatted), info.Mode().Perm()); err != nil {
 				fmt.Fprintf(os.Stderr, "Hiss! Cannot write %s, nya~: %v\n", f, err)
 				os.Exit(1)
 			}
@@ -441,66 +408,20 @@ func runLintCommand(args []string) {
 }
 
 func discoverNyanFiles(dir string) ([]string, error) {
-	pattern := filepath.Join(dir, "*.nyan")
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for .nyan files, nya~: %w", err)
-	}
-	return matches, nil
+	return discoverFiles(dir, "*.nyan")
 }
 
 func discoverNyanFilesRecursive(root string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), ".nyan") {
-			files = append(files, path)
-		}
-		return nil
+	return discoverFilesRecursive(root, func(name string) bool {
+		return strings.HasSuffix(name, ".nyan")
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Hiss! Cannot search for .nyan files, nya~: %w", err)
-	}
-	return files, nil
 }
 
 func resolveLintPaths(patterns []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return discoverNyanFiles(".")
 	}
-	var result []string
-	for _, p := range patterns {
-		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
-			root := strings.TrimSuffix(p, "/...")
-			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
-			if root == "." || root == "" {
-				root = "."
-			}
-			found, err := discoverNyanFilesRecursive(root)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, found...)
-		} else {
-			info, err := os.Stat(p)
-			if err != nil {
-				result = append(result, p)
-				continue
-			}
-			if info.IsDir() {
-				found, err := discoverNyanFiles(p)
-				if err != nil {
-					return nil, err
-				}
-				result = append(result, found...)
-			} else {
-				result = append(result, p)
-			}
-		}
-	}
-	return result, nil
+	return resolvePaths(patterns, discoverNyanFiles, discoverNyanFilesRecursive)
 }
 
 func runMutateCommand(c *compiler.Compiler, files []string) {
