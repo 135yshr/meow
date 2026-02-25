@@ -10,17 +10,19 @@ import (
 
 // TypeInfo stores resolved type information for AST nodes.
 type TypeInfo struct {
-	ExprTypes map[ast.Expr]types.Type
-	VarTypes  map[string]types.Type
-	FuncTypes map[string]types.FuncType
+	ExprTypes  map[ast.Expr]types.Type
+	VarTypes   map[string]types.Type
+	FuncTypes  map[string]types.FuncType
+	KittyTypes map[string]types.KittyType
 }
 
 // NewTypeInfo creates an empty TypeInfo.
 func NewTypeInfo() *TypeInfo {
 	return &TypeInfo{
-		ExprTypes: make(map[ast.Expr]types.Type),
-		VarTypes:  make(map[string]types.Type),
-		FuncTypes: make(map[string]types.FuncType),
+		ExprTypes:  make(map[ast.Expr]types.Type),
+		VarTypes:   make(map[string]types.Type),
+		FuncTypes:  make(map[string]types.FuncType),
+		KittyTypes: make(map[string]types.KittyType),
 	}
 }
 
@@ -81,8 +83,15 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
-	// First pass: register all function declarations
+	// First pass: register all kitty and function declarations
 	for _, stmt := range prog.Stmts {
+		if ks, ok := stmt.(*ast.KittyStmt); ok {
+			fields := make([]types.KittyFieldType, len(ks.Fields))
+			for i, f := range ks.Fields {
+				fields[i] = types.KittyFieldType{Name: f.Name, Type: c.resolveTypeExpr(f.TypeAnn)}
+			}
+			c.info.KittyTypes[ks.Name] = types.KittyType{Name: ks.Name, Fields: fields}
+		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			ft := c.funcSignatureType(fn)
 			c.info.FuncTypes[fn.Name] = ft
@@ -152,6 +161,8 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		c.inferExpr(s.Expr)
 	case *ast.FetchStmt:
 		// nothing to check
+	case *ast.KittyStmt:
+		// already registered in first pass
 	}
 }
 
@@ -406,7 +417,15 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		return types.AnyType{}
 	case *ast.MemberExpr:
-		c.inferExpr(e.Object)
+		objType := c.inferExpr(e.Object)
+		if kt, ok := objType.(types.KittyType); ok {
+			for _, f := range kt.Fields {
+				if f.Name == e.Member {
+					return f.Type
+				}
+			}
+			c.addError(e.Token.Pos, "%s has no field %s", kt.Name, e.Member)
+		}
 		return types.AnyType{}
 	default:
 		return types.AnyType{}
@@ -527,6 +546,15 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.AnyType{}
 		case "judge", "expect", "refuse":
 			return types.AnyType{}
+		}
+
+		// Check kitty constructors
+		if kt, ok := c.info.KittyTypes[ident.Name]; ok {
+			if len(e.Args) != len(kt.Fields) {
+				c.addError(e.Token.Pos, "%s expects %d fields but got %d",
+					ident.Name, len(kt.Fields), len(e.Args))
+			}
+			return kt
 		}
 
 		// Check user-defined functions

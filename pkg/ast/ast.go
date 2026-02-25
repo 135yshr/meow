@@ -413,6 +413,26 @@ func (n *RangeStmt) Pos() token.Position { return n.Token.Pos }
 func (n *RangeStmt) nodeTag()            {}
 func (n *RangeStmt) stmtTag()            {}
 
+// KittyField represents a field in a kitty (struct) definition.
+type KittyField struct {
+	Name    string
+	TypeAnn TypeExpr
+}
+
+// KittyStmt represents a kitty (struct) definition.
+type KittyStmt struct {
+	// Token is the kitty keyword token.
+	Token token.Token
+	// Name is the struct type name.
+	Name string
+	// Fields is the list of fields.
+	Fields []KittyField
+}
+
+func (n *KittyStmt) Pos() token.Position { return n.Token.Pos }
+func (n *KittyStmt) nodeTag()            {}
+func (n *KittyStmt) stmtTag()            {}
+
 // ExprStmt represents an expression used as a statement.
 type ExprStmt struct {
 	// Token is the first token of the expression.

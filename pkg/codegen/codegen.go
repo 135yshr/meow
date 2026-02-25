@@ -28,6 +28,7 @@ type Generator struct {
 	coverBlocks   []coverBlock
 	typeInfo      *checker.TypeInfo
 	currentReturnType types.Type // return type of the function currently being generated
+	kittyDefs     map[string]*ast.KittyStmt
 }
 
 type coverBlock struct {
@@ -82,7 +83,11 @@ func (g *Generator) EnableCoverage(filename string) {
 
 // Generate produces Go source code from a Program AST.
 func (g *Generator) Generate(prog *ast.Program) (string, error) {
+	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
+		if _, ok := stmt.(*ast.KittyStmt); ok {
+			continue
+		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			g.funcs = append(g.funcs, g.genFuncDecl(fn))
 		} else {
@@ -102,7 +107,11 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 // It auto-imports the testing package and wraps test_ functions with Run/Report
 // and catwalk_ functions with Catwalk.
 func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
+	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
+		if _, ok := stmt.(*ast.KittyStmt); ok {
+			continue
+		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			g.funcs = append(g.funcs, g.genFuncDecl(fn))
 			if strings.HasPrefix(fn.Name, "test_") {
@@ -856,7 +865,19 @@ func (g *Generator) estimateEndPos(stmt ast.Stmt) (int, int) {
 	}
 }
 
+func (g *Generator) collectKittyDefs(prog *ast.Program) {
+	g.kittyDefs = make(map[string]*ast.KittyStmt)
+	for _, stmt := range prog.Stmts {
+		if ks, ok := stmt.(*ast.KittyStmt); ok {
+			g.kittyDefs[ks.Name] = ks
+		}
+	}
+}
+
 func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
+	if _, ok := stmt.(*ast.KittyStmt); ok {
+		return "", nil
+	}
 	if s, ok := stmt.(*ast.FetchStmt); ok {
 		path, ok := stdPackages[s.Path]
 		if !ok {
@@ -956,9 +977,12 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 	case *ast.MemberExpr:
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
-			return fmt.Sprintf("meow_%s.%s", obj.Name, capitalizeFirst(e.Member))
+			if _, imported := g.imports[obj.Name]; imported {
+				return fmt.Sprintf("meow_%s.%s", obj.Name, capitalizeFirst(e.Member))
+			}
+			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
 		}
-		return "/* unsupported member access */"
+		return fmt.Sprintf("(%s).(*meow.Kitty).GetField(%q)", g.genExpr(e.Object), e.Member)
 	default:
 		return fmt.Sprintf("/* unsupported expr: %T */", expr)
 	}
@@ -1067,6 +1091,14 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 		case "seed":
 			return "meow.NewNil()"
 		default:
+			if ks, ok := g.kittyDefs[ident.Name]; ok {
+				fieldNames := make([]string, len(ks.Fields))
+				for i, f := range ks.Fields {
+					fieldNames[i] = fmt.Sprintf("%q", f.Name)
+				}
+				return fmt.Sprintf("meow.NewKitty(%q, []string{%s}, %s)",
+					ident.Name, strings.Join(fieldNames, ", "), argStr)
+			}
 			if g.typeInfo != nil {
 				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
 					if len(e.Args) == len(ft.Params) && isFullyTypedFuncType(ft) {
@@ -1090,19 +1122,22 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 }
 
 func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) string {
-	obj, ok := member.Object.(*ast.Ident)
-	if !ok {
-		return fmt.Sprintf("/* unsupported member access on %T */", member.Object)
-	}
-	if _, imported := g.imports[obj.Name]; !imported {
-		return fmt.Sprintf("/* package %s not imported */", obj.Name)
-	}
 	args := make([]string, len(rawArgs))
 	for i, a := range rawArgs {
 		args[i] = g.genExpr(a)
 	}
 	argStr := strings.Join(args, ", ")
-	return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, capitalizeFirst(member.Member), argStr)
+
+	obj, ok := member.Object.(*ast.Ident)
+	if !ok {
+		return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q), %s)",
+			g.genExpr(member.Object), member.Member, argStr)
+	}
+	if _, imported := g.imports[obj.Name]; imported {
+		return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, capitalizeFirst(member.Member), argStr)
+	}
+	return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q), %s)",
+		obj.Name, member.Member, argStr)
 }
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {

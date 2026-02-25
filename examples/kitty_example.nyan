@@ -1,0 +1,25 @@
+# Kitty (struct) example
+
+kitty Cat {
+  name: string
+  age: int
+}
+
+kitty Point {
+  x: int
+  y: int
+}
+
+nyan nyantyu = Cat("Nyantyu", 3)
+nyan tyako = Cat("Tyako", 5)
+nyan tyomusuke = Cat("Tyomusuke", 2)
+
+nya(nyantyu)
+nya(tyako)
+nya(tyomusuke)
+nya(nyantyu.name + " is " + to_string(nyantyu.age) + " years old")
+
+nyan origin = Point(0, 0)
+nyan p = Point(3, 4)
+nya(origin)
+nya(p)

@@ -140,6 +140,8 @@ func walk(node Node, yield func(Node) bool) bool {
 		}
 	case *FetchStmt:
 		// leaf node, no children
+	case *KittyStmt:
+		// leaf node, no children
 	case *MemberExpr:
 		if !walk(n.Object, yield) {
 			return false

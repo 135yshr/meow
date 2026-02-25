@@ -72,6 +72,7 @@ const (
 	CATNAP   // catnap (nil)
 	YARN     // yarn (true)
 	HAIRBALL // hairball (false)
+	KITTY    // kitty (struct)
 
 	// Type keywords
 	TYPE_INT     // int
@@ -102,6 +103,7 @@ var keywords = map[string]TokenType{
 	"catnap":   CATNAP,
 	"yarn":     YARN,
 	"hairball": HAIRBALL,
+	"kitty":    KITTY,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,

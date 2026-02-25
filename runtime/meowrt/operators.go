@@ -133,6 +133,10 @@ func Equal(a, b Value) Value {
 		if b, ok := b.(*List); ok {
 			return NewBool(listEqual(a, b))
 		}
+	case *Kitty:
+		if b, ok := b.(*Kitty); ok {
+			return NewBool(kittyEqual(a, b))
+		}
 	}
 	panic(fmt.Sprintf("Hiss! Cannot compare %s and %s, nya~", a.Type(), b.Type()))
 }
@@ -143,6 +147,22 @@ func listEqual(a, b *List) bool {
 	}
 	for i := range a.Items {
 		eq := Equal(a.Items[i], b.Items[i]).(*Bool)
+		if !eq.Val {
+			return false
+		}
+	}
+	return true
+}
+
+func kittyEqual(a, b *Kitty) bool {
+	if a.TypeName != b.TypeName {
+		return false
+	}
+	if len(a.FieldNames) != len(b.FieldNames) {
+		return false
+	}
+	for _, name := range a.FieldNames {
+		eq := Equal(a.Fields[name], b.Fields[name]).(*Bool)
 		if !eq.Val {
 			return false
 		}

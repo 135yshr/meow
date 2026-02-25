@@ -97,6 +97,8 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parsePurrStmt()
 	case token.FETCH:
 		return p.parseFetchStmt()
+	case token.KITTY:
+		return p.parseKittyStmt()
 	default:
 		return p.parseExprStmtOrAssign()
 	}
@@ -259,6 +261,28 @@ func (p *Parser) parseFetchStmt() *ast.FetchStmt {
 	path := p.expect(token.STRING)
 	p.consumeTerminator()
 	return &ast.FetchStmt{Token: tok, Path: path.Literal}
+}
+
+func (p *Parser) parseKittyStmt() *ast.KittyStmt {
+	tok := p.advance() // consume kitty
+	name := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var fields []ast.KittyField
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		fieldName := p.expect(token.IDENT)
+		p.expect(token.COLON)
+		typeAnn := p.parseTypeExpr()
+		fields = append(fields, ast.KittyField{Name: fieldName.Literal, TypeAnn: typeAnn})
+		p.skipNewlines()
+		if p.cur.Type == token.COMMA {
+			p.advance()
+			p.skipNewlines()
+		}
+	}
+	p.expect(token.RBRACE)
+	return &ast.KittyStmt{Token: tok, Name: name.Literal, Fields: fields}
 }
 
 func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {

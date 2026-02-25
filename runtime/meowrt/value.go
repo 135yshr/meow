@@ -127,6 +127,44 @@ func (l *List) Get(index int) Value {
 	return l.Items[index]
 }
 
+// Kitty represents a user-defined struct value.
+type Kitty struct {
+	TypeName   string
+	FieldNames []string
+	Fields     map[string]Value
+}
+
+// NewKitty creates a new Kitty value. Panics if argument count does not match field count.
+func NewKitty(typeName string, fieldNames []string, args ...Value) *Kitty {
+	if len(args) != len(fieldNames) {
+		panic(fmt.Sprintf("Hiss! %s expects %d fields but got %d, nya~", typeName, len(fieldNames), len(args)))
+	}
+	fields := make(map[string]Value, len(fieldNames))
+	for i, name := range fieldNames {
+		fields[name] = args[i]
+	}
+	return &Kitty{TypeName: typeName, FieldNames: fieldNames, Fields: fields}
+}
+
+func (k *Kitty) Type() string   { return k.TypeName }
+func (k *Kitty) IsTruthy() bool { return true }
+func (k *Kitty) String() string {
+	parts := make([]string, len(k.FieldNames))
+	for i, name := range k.FieldNames {
+		parts[i] = name + ": " + k.Fields[name].String()
+	}
+	return k.TypeName + "{" + strings.Join(parts, ", ") + "}"
+}
+
+// GetField returns the value of a field by name. Panics if the field does not exist.
+func (k *Kitty) GetField(name string) Value {
+	v, ok := k.Fields[name]
+	if !ok {
+		panic(fmt.Sprintf("Hiss! %s has no field %s, nya~", k.TypeName, name))
+	}
+	return v
+}
+
 // Map represents a map value with string keys.
 type Map struct {
 	Items map[string]Value
@@ -186,6 +224,13 @@ func ToJSON(v Value) string {
 		for _, k := range keys {
 			kb, _ := json.Marshal(k)
 			parts = append(parts, string(kb)+":"+ToJSON(val.Items[k]))
+		}
+		return "{" + strings.Join(parts, ",") + "}"
+	case *Kitty:
+		parts := make([]string, len(val.FieldNames))
+		for i, name := range val.FieldNames {
+			kb, _ := json.Marshal(name)
+			parts[i] = string(kb) + ":" + ToJSON(val.Fields[name])
 		}
 		return "{" + strings.Join(parts, ",") + "}"
 	default:
