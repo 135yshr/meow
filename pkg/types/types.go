@@ -98,6 +98,24 @@ func (f FuncType) Equals(t Type) bool {
 	return f.Return.Equals(o.Return)
 }
 
+// KittyFieldType represents a field in a kitty type.
+type KittyFieldType struct {
+	Name string
+	Type Type
+}
+
+// KittyType represents a user-defined struct type.
+type KittyType struct {
+	Name   string
+	Fields []KittyFieldType
+}
+
+func (k KittyType) String() string { return k.Name }
+func (k KittyType) Equals(t Type) bool {
+	o, ok := t.(KittyType)
+	return ok && k.Name == o.Name
+}
+
 // IsAny reports whether t is AnyType.
 func IsAny(t Type) bool {
 	_, ok := t.(AnyType)

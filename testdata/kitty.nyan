@@ -1,0 +1,11 @@
+# Kitty (struct) basic test
+
+kitty Cat {
+  name: string
+  age: int
+}
+
+nyan tama = Cat("Tama", 3)
+nya(tama.name)
+nya(tama.age)
+nya(tama)

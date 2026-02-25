@@ -1,0 +1,36 @@
+# Kitty (struct) unit tests
+
+kitty Cat {
+  name: string
+  age: int
+}
+
+kitty Point {
+  x: int
+  y: int
+}
+
+meow test_kitty_constructor() {
+  nyan tama = Cat("Tama", 3)
+  judge(tama.name == "Tama", "constructor sets name")
+  judge(tama.age == 3, "constructor sets age")
+}
+
+meow test_kitty_string() {
+  nyan tama = Cat("Tama", 3)
+  judge(to_string(tama) == "Cat{name: Tama, age: 3}", "kitty string representation")
+}
+
+meow test_kitty_equality() {
+  nyan a = Cat("Tama", 3)
+  nyan b = Cat("Tama", 3)
+  nyan c = Cat("Mike", 5)
+  judge(a == b, "same fields are equal")
+  judge(a != c, "different fields are not equal")
+}
+
+meow test_kitty_point() {
+  nyan p = Point(10, 20)
+  judge(p.x == 10, "point x")
+  judge(p.y == 20, "point y")
+}
