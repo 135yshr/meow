@@ -23,6 +23,9 @@ meow test_typed_bool_var() {
 meow test_typed_shadowing() {
   nyan x int = 10
   expect(x, 10)
-  nyan y int = x + 10
-  expect(y, 20)
+  sniff (yarn) {
+    nyan x int = x + 10
+    expect(x, 20)
+  }
+  expect(x, 10)
 }

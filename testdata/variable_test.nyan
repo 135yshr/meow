@@ -31,6 +31,9 @@ meow test_nil_variable() {
 meow test_shadowing() {
   nyan x = 10
   expect(x, 10)
-  nyan y = x + 10
-  expect(y, 20)
+  sniff (yarn) {
+    nyan x = x + 10
+    expect(x, 20)
+  }
+  expect(x, 10)
 }

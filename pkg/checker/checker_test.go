@@ -294,6 +294,47 @@ func TestRangeLoopRangeForm(t *testing.T) {
 	}
 }
 
+func TestRangeLoopNonIntBound(t *testing.T) {
+	_, errs := check(t, `purr i ("hello") {
+  nya(i)
+}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-int range bound, got none")
+	}
+}
+
+func TestRangeLoopNonIntStart(t *testing.T) {
+	_, errs := check(t, `purr i (1.5..10) {
+  nya(i)
+}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-int range start, got none")
+	}
+}
+
+func TestSameScopeRedeclaration(t *testing.T) {
+	_, errs := check(t, `
+nyan x = 1
+nyan x = 2
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for same-scope redeclaration, got none")
+	}
+}
+
+func TestCrossScopeShadowingAllowed(t *testing.T) {
+	_, errs := check(t, `
+nyan x = 1
+sniff (yarn) {
+  nyan x = 2
+  nya(x)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for cross-scope shadowing: %v", errs)
+	}
+}
+
 func TestMatchArmTypeMismatch(t *testing.T) {
 	_, errs := check(t, `
 nyan x = 1

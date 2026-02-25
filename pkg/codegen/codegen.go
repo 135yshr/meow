@@ -457,7 +457,7 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 		}
 		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 			startExpr, cmp, g.genExpr(s.End))
-		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
+		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
 	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")

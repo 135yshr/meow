@@ -159,6 +159,14 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 	valType := c.inferExpr(s.Value)
 	declType := c.resolveTypeExpr(s.TypeAnn)
 
+	// Reject same-scope redeclaration (shadowing in inner scopes is allowed)
+	if s.Name != "_" {
+		currentScope := c.scopes[len(c.scopes)-1]
+		if _, exists := currentScope[s.Name]; exists {
+			c.addError(s.Token.Pos, "Variable %s already declared in this scope", s.Name)
+		}
+	}
+
 	if !types.IsAny(declType) && !types.IsAny(valType) {
 		if !declType.Equals(valType) {
 			c.addError(s.Token.Pos, "Variable %s declared as %s but assigned %s", s.Name, declType, valType)
@@ -295,9 +303,19 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 
 func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 	if s.Start != nil {
-		c.inferExpr(s.Start)
+		startType := c.inferExpr(s.Start)
+		if !types.IsAny(startType) {
+			if _, ok := startType.(types.IntType); !ok {
+				c.addError(s.Token.Pos, "Range start must be int, got %s", startType)
+			}
+		}
 	}
-	c.inferExpr(s.End)
+	endType := c.inferExpr(s.End)
+	if !types.IsAny(endType) {
+		if _, ok := endType.(types.IntType); !ok {
+			c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
+		}
+	}
 	c.pushScope()
 	c.define(s.Var, types.IntType{})
 	for _, stmt := range s.Body {
