@@ -571,7 +571,10 @@ func (g *Generator) genTypedUnary(e *ast.UnaryExpr) string {
 	case token.MINUS:
 		return fmt.Sprintf("(-%s)", g.genTypedExpr(e.Right))
 	case token.NOT:
-		return fmt.Sprintf("(!%s)", g.genTypedExpr(e.Right))
+		if _, ok := g.getExprType(e.Right).(types.BoolType); ok {
+			return fmt.Sprintf("(!%s)", g.genTypedExpr(e.Right))
+		}
+		return fmt.Sprintf("(!(%s).IsTruthy())", g.boxValue(e.Right))
 	}
 	return g.genUnary(e)
 }

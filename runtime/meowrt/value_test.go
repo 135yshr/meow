@@ -101,7 +101,10 @@ func TestAsIntPanic(t *testing.T) {
 		if r == nil {
 			t.Fatal("expected panic")
 		}
-		msg := r.(string)
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic, got %T", r)
+		}
 		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "expected int") {
 			t.Errorf("unexpected panic message: %q", msg)
 		}
