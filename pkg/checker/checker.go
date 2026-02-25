@@ -318,6 +318,7 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 	}
 	c.pushScope()
 	c.define(s.Var, types.IntType{})
+	c.info.VarTypes[s.Var] = types.IntType{}
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
 	}
