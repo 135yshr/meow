@@ -4,34 +4,22 @@ This document describes the internal architecture of the Meow compiler for contr
 
 ## Pipeline Overview
 
-```text
-.nyan source
-    │
-    ▼
-┌─────────┐     iter.Seq[Token]     ┌──────────┐
-│  Lexer   │ ──────────────────────▶ │  Parser  │
-│ pkg/lexer│                         │pkg/parser│
-└─────────┘                         └──────────┘
-                                         │ AST
-                                         ▼
-                                    ┌──────────┐
-                                    │ Checker  │
-                                    │pkg/checker│
-                                    └──────────┘
-                                         │ TypeInfo
-                                         ▼
-                                    ┌──────────┐
-                                    │ Codegen  │
-                                    │pkg/codegen│
-                                    └──────────┘
-                                         │ Go source
-                                         ▼
-                                    ┌──────────┐
-                                    │ go build │
-                                    └──────────┘
-                                         │
-                                         ▼
-                                      binary
+```mermaid
+flowchart TD
+    src[".nyan source"]
+    lexer["Lexer<br/>pkg/lexer"]
+    parser["Parser<br/>pkg/parser"]
+    checker["Checker<br/>pkg/checker"]
+    codegen["Codegen<br/>pkg/codegen"]
+    gobuild["go build"]
+    bin(["binary"])
+
+    src --> lexer
+    lexer -- "iter.Seq[Token]" --> parser
+    parser -- "AST" --> checker
+    checker -- "TypeInfo" --> codegen
+    codegen -- "Go source" --> gobuild
+    gobuild --> bin
 ```
 
 The pipeline is orchestrated by `compiler/compiler.go`:
@@ -154,29 +142,65 @@ Newlines are significant as statement terminators. The parser skips consecutive 
 
 ### Node Hierarchy
 
-```text
-Node (interface)
-├── Expr (interface) — produces a value
-│   ├── IntLit, FloatLit, StringLit, BoolLit, NilLit
-│   ├── Ident
-│   ├── UnaryExpr, BinaryExpr
-│   ├── CallExpr
-│   ├── LambdaExpr
-│   ├── ListLit, MapLit
-│   ├── IndexExpr
-│   ├── PipeExpr, CatchExpr
-│   ├── MatchExpr
-│   └── MemberExpr
-├── Stmt (interface) — performs an action
-│   ├── VarStmt, FuncStmt, ReturnStmt
-│   ├── IfStmt, RangeStmt
-│   ├── FetchStmt, KittyStmt
-│   └── ExprStmt
-├── Pattern (interface) — for pattern matching
-│   ├── LiteralPattern, RangePattern
-│   └── WildcardPattern
-└── TypeExpr (interface) — type annotations
-    └── BasicType
+```mermaid
+classDiagram
+    class Node {
+        <<interface>>
+    }
+    class Expr {
+        <<interface>>
+        produces a value
+    }
+    class Stmt {
+        <<interface>>
+        performs an action
+    }
+    class Pattern {
+        <<interface>>
+        for pattern matching
+    }
+    class TypeExpr {
+        <<interface>>
+        type annotations
+    }
+
+    Node <|-- Expr
+    Node <|-- Stmt
+    Node <|-- Pattern
+    Node <|-- TypeExpr
+
+    Expr <|-- IntLit
+    Expr <|-- FloatLit
+    Expr <|-- StringLit
+    Expr <|-- BoolLit
+    Expr <|-- NilLit
+    Expr <|-- Ident
+    Expr <|-- UnaryExpr
+    Expr <|-- BinaryExpr
+    Expr <|-- CallExpr
+    Expr <|-- LambdaExpr
+    Expr <|-- ListLit
+    Expr <|-- MapLit
+    Expr <|-- IndexExpr
+    Expr <|-- PipeExpr
+    Expr <|-- CatchExpr
+    Expr <|-- MatchExpr
+    Expr <|-- MemberExpr
+
+    Stmt <|-- VarStmt
+    Stmt <|-- FuncStmt
+    Stmt <|-- ReturnStmt
+    Stmt <|-- IfStmt
+    Stmt <|-- RangeStmt
+    Stmt <|-- FetchStmt
+    Stmt <|-- KittyStmt
+    Stmt <|-- ExprStmt
+
+    Pattern <|-- LiteralPattern
+    Pattern <|-- RangePattern
+    Pattern <|-- WildcardPattern
+
+    TypeExpr <|-- BasicType
 ```
 
 ### Key Nodes

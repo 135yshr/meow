@@ -314,12 +314,14 @@ Run with: `meow test -fuzz fuzz_file.nyan`
 
 Keep `.nyan` files focused on a single module or concept:
 
-```text
-project/
-  main.nyan           # Entry point
-  math.nyan           # Math utilities
-  math_test.nyan      # Tests for math
-  http_client.nyan    # HTTP operations
+```mermaid
+flowchart LR
+    subgraph project["project/"]
+        main["main.nyan — Entry point"]
+        math["math.nyan — Math utilities"]
+        math_test["math_test.nyan — Tests for math"]
+        http_client["http_client.nyan — HTTP operations"]
+    end
 ```
 
 ### Use `fetch` for standard library
