@@ -153,4 +153,6 @@ type Token struct {
 	Literal string
 	// Pos is the source location of the token.
 	Pos Position
+	// BlockComment is true when Type is COMMENT and the comment uses -~ ~- delimiters.
+	BlockComment bool
 }

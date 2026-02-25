@@ -258,6 +258,16 @@ func discoverFilesRecursive(root string, match func(string) bool) ([]string, err
 
 func resolvePaths(patterns []string, discover func(string) ([]string, error), discoverRecursive func(string) ([]string, error)) ([]string, error) {
 	var result []string
+	seen := make(map[string]struct{})
+	add := func(paths []string) {
+		for _, p := range paths {
+			if _, ok := seen[p]; ok {
+				continue
+			}
+			seen[p] = struct{}{}
+			result = append(result, p)
+		}
+	}
 	for _, p := range patterns {
 		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
 			root := strings.TrimSuffix(p, "/...")
@@ -269,11 +279,11 @@ func resolvePaths(patterns []string, discover func(string) ([]string, error), di
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, found...)
+			add(found)
 		} else {
 			info, err := os.Stat(p)
 			if err != nil {
-				result = append(result, p)
+				add([]string{p})
 				continue
 			}
 			if info.IsDir() {
@@ -281,9 +291,9 @@ func resolvePaths(patterns []string, discover func(string) ([]string, error), di
 				if err != nil {
 					return nil, err
 				}
-				result = append(result, found...)
+				add(found)
 			} else {
-				result = append(result, p)
+				add([]string{p})
 			}
 		}
 	}
@@ -324,7 +334,10 @@ func runFmtCommand(args []string) {
 	for _, a := range args {
 		if a == "-w" {
 			write = true
-		} else if len(a) > 0 && a[0] != '-' {
+		} else if strings.HasPrefix(a, "-") {
+			fmt.Fprintf(os.Stderr, "Hiss! Unknown flag for fmt: %s, nya~\n", a)
+			os.Exit(1)
+		} else {
 			files = append(files, a)
 		}
 	}
@@ -360,9 +373,11 @@ func runFmtCommand(args []string) {
 func runLintCommand(args []string) {
 	var patterns []string
 	for _, a := range args {
-		if len(a) > 0 && a[0] != '-' {
-			patterns = append(patterns, a)
+		if strings.HasPrefix(a, "-") {
+			fmt.Fprintf(os.Stderr, "Hiss! Unknown flag for lint: %s, nya~\n", a)
+			os.Exit(1)
 		}
+		patterns = append(patterns, a)
 	}
 
 	files, err := resolveLintPaths(patterns)

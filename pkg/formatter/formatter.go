@@ -29,6 +29,13 @@ func FormatSource(source, filename string) string {
 
 // Format formats a token stream into normalized source.
 func Format(tokens func(func(token.Token) bool), cfg Config) string {
+	if cfg.IndentWidth <= 0 {
+		cfg.IndentWidth = DefaultConfig().IndentWidth
+	}
+	if cfg.MaxBlankLines < 0 {
+		cfg.MaxBlankLines = 0
+	}
+
 	// Collect all tokens first
 	var toks []token.Token
 	for tok := range tokens {
@@ -94,24 +101,19 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		case token.COMMENT:
 			afterBrace = false
-			if tok.Literal != "" && tok.Literal[0] == '#' {
-				if lineStart {
-					writeIndent()
-				} else {
-					buf.WriteByte(' ')
-				}
-				buf.WriteString(tok.Literal)
+			if lineStart {
+				writeIndent()
 			} else {
+				buf.WriteByte(' ')
+			}
+			if tok.BlockComment {
 				// The lexer strips block-comment delimiters (-~ ... ~-) and stores
 				// only the inner content in tok.Literal, so we re-wrap here.
-				if lineStart {
-					writeIndent()
-				} else {
-					buf.WriteByte(' ')
-				}
 				buf.WriteString("-~")
 				buf.WriteString(tok.Literal)
 				buf.WriteString("~-")
+			} else {
+				buf.WriteString(tok.Literal)
 			}
 			lineStart = false
 			blankCount = 0

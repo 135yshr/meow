@@ -94,7 +94,8 @@ func (c *unusedChecker) checkStmt(stmt ast.Stmt) {
 		c.define(s.Name, s.Token.Pos)
 	case *ast.AssignStmt:
 		c.checkExpr(s.Value)
-		c.markUsed(s.Name)
+		// Assignment target is a write, not a read.
+		// Keep tracking it as unused until it is referenced in an expression.
 	case *ast.FuncStmt:
 		c.pushScope()
 		// Parameters are not checked for unused (caller provides them)
