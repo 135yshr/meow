@@ -276,10 +276,62 @@ func TestIfNonBoolCondition(t *testing.T) {
 	}
 }
 
-func TestWhileNonBoolCondition(t *testing.T) {
-	_, errs := check(t, `purr ("hello") {}`)
+func TestRangeLoopCountForm(t *testing.T) {
+	_, errs := check(t, `purr i (10) {
+  nya(i)
+}`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestRangeLoopRangeForm(t *testing.T) {
+	_, errs := check(t, `purr i (1..20) {
+  nya(i)
+}`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestRangeLoopNonIntBound(t *testing.T) {
+	_, errs := check(t, `purr i ("hello") {
+  nya(i)
+}`)
 	if len(errs) == 0 {
-		t.Fatal("expected error for non-bool while condition, got none")
+		t.Fatal("expected error for non-int range bound, got none")
+	}
+}
+
+func TestRangeLoopNonIntStart(t *testing.T) {
+	_, errs := check(t, `purr i (1.5..10) {
+  nya(i)
+}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for non-int range start, got none")
+	}
+}
+
+func TestSameScopeRedeclaration(t *testing.T) {
+	_, errs := check(t, `
+nyan x = 1
+nyan x = 2
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for same-scope redeclaration, got none")
+	}
+}
+
+func TestCrossScopeShadowingAllowed(t *testing.T) {
+	_, errs := check(t, `
+nyan x = 1
+sniff (yarn) {
+  nyan x = 2
+  nya(x)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for cross-scope shadowing: %v", errs)
 	}
 }
 

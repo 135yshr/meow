@@ -156,7 +156,7 @@ func walkStmtTree(stmt ast.Stmt, fn func(ast.Stmt)) {
 		for _, body := range s.ElseBody {
 			walkStmtTree(body, fn)
 		}
-	case *ast.WhileStmt:
+	case *ast.RangeStmt:
 		for _, body := range s.Body {
 			walkStmtTree(body, fn)
 		}
@@ -184,8 +184,11 @@ func walkStmtExprs(stmt ast.Stmt, fn func(ast.Expr)) {
 		for _, body := range s.ElseBody {
 			walkStmtExprs(body, fn)
 		}
-	case *ast.WhileStmt:
-		walkExprTree(s.Condition, fn)
+	case *ast.RangeStmt:
+		if s.Start != nil {
+			walkExprTree(s.Start, fn)
+		}
+		walkExprTree(s.End, fn)
 		for _, body := range s.Body {
 			walkStmtExprs(body, fn)
 		}
@@ -194,8 +197,6 @@ func walkStmtExprs(stmt ast.Stmt, fn func(ast.Expr)) {
 			walkExprTree(s.Value, fn)
 		}
 	case *ast.VarStmt:
-		walkExprTree(s.Value, fn)
-	case *ast.AssignStmt:
 		walkExprTree(s.Value, fn)
 	case *ast.ExprStmt:
 		walkExprTree(s.Expr, fn)

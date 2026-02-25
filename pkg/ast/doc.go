@@ -29,12 +29,11 @@
 //
 // # Statements
 //
-//   - [VarStmt]     variable declaration (nyan x = ...)
-//   - [AssignStmt]  variable reassignment (x = ...)
+//   - [VarStmt]     variable declaration (nyan x = ... or x = ...)
 //   - [FuncStmt]    function definition (meow f(x) { ... })
 //   - [ReturnStmt]  return statement (bring ...)
 //   - [IfStmt]      conditional (sniff / scratch)
-//   - [WhileStmt]   while loop (purr)
+//   - [RangeStmt]   range-based loop (purr i (n) or purr i (a..b))
 //   - [ExprStmt]    expression used as a statement
 //
 // # Patterns

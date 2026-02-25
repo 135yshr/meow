@@ -60,8 +60,11 @@ func (e *enumerator) enumStmt(stmt ast.Stmt) {
 		for _, body := range s.ElseBody {
 			e.enumStmt(body)
 		}
-	case *ast.WhileStmt:
-		e.enumExpr(s.Condition)
+	case *ast.RangeStmt:
+		if s.Start != nil {
+			e.enumExpr(s.Start)
+		}
+		e.enumExpr(s.End)
 		for _, body := range s.Body {
 			e.enumStmt(body)
 		}
@@ -77,8 +80,6 @@ func (e *enumerator) enumStmt(stmt ast.Stmt) {
 			e.enumExpr(s.Value)
 		}
 	case *ast.VarStmt:
-		e.enumExpr(s.Value)
-	case *ast.AssignStmt:
 		e.enumExpr(s.Value)
 	case *ast.ExprStmt:
 		e.enumExpr(s.Expr)

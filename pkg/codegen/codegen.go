@@ -361,16 +361,14 @@ func (g *Generator) genTypedStmt(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		return g.genTypedVarStmt(s)
-	case *ast.AssignStmt:
-		return g.genTypedAssignStmt(s)
 	case *ast.ReturnStmt:
 		return g.genTypedReturnStmt(s)
 	case *ast.ExprStmt:
 		return g.genTypedExprStmt(s)
 	case *ast.IfStmt:
 		return g.genTypedIf(s)
-	case *ast.WhileStmt:
-		return g.genTypedWhile(s)
+	case *ast.RangeStmt:
+		return g.genTypedRange(s)
 	default:
 		return g.genStmt(stmt)
 	}
@@ -382,14 +380,6 @@ func (g *Generator) genTypedVarStmt(s *ast.VarStmt) string {
 		return fmt.Sprintf("var %s %s = %s", s.Name, goTypeString(t), g.genTypedExpr(s.Value))
 	}
 	return fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
-}
-
-func (g *Generator) genTypedAssignStmt(s *ast.AssignStmt) string {
-	t := g.getExprType(s.Value)
-	if t != nil && !types.IsAny(t) {
-		return fmt.Sprintf("%s = %s", s.Name, g.genTypedExpr(s.Value))
-	}
-	return fmt.Sprintf("%s = %s", s.Name, g.genExpr(s.Value))
 }
 
 func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
@@ -441,13 +431,33 @@ func (g *Generator) genTypedIf(s *ast.IfStmt) string {
 	return b.String()
 }
 
-func (g *Generator) genTypedWhile(s *ast.WhileStmt) string {
+func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	var b strings.Builder
-	condType := g.getExprType(s.Condition)
-	if condType != nil && !types.IsAny(condType) {
-		fmt.Fprintf(&b, "for %s {\n", g.genTypedExpr(s.Condition))
+	cmp := "<"
+	if s.Inclusive {
+		cmp = "<="
+	}
+	startCode := "int64(0)"
+	if s.Start != nil {
+		startType := g.getExprType(s.Start)
+		if startType != nil && !types.IsAny(startType) {
+			startCode = g.genTypedExpr(s.Start)
+		} else {
+			startCode = ""
+		}
+	}
+	endType := g.getExprType(s.End)
+	if startCode != "" && endType != nil && !types.IsAny(endType) {
+		fmt.Fprintf(&b, "for %s := %s; %s %s %s; %s++ {\n",
+			s.Var, startCode, s.Var, cmp, g.genTypedExpr(s.End), s.Var)
 	} else {
-		fmt.Fprintf(&b, "for (%s).IsTruthy() {\n", g.genExpr(s.Condition))
+		startExpr := "meow.NewInt(0)"
+		if s.Start != nil {
+			startExpr = g.boxValue(s.Start)
+		}
+		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
+			startExpr, cmp, g.boxValue(s.End))
+		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
 	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
@@ -804,8 +814,6 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		return fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
-	case *ast.AssignStmt:
-		return fmt.Sprintf("%s = %s", s.Name, g.genExpr(s.Value))
 	case *ast.ReturnStmt:
 		if s.Value != nil {
 			return fmt.Sprintf("return %s", g.genExpr(s.Value))
@@ -815,8 +823,8 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 		return g.genExpr(s.Expr)
 	case *ast.IfStmt:
 		return g.genIf(s)
-	case *ast.WhileStmt:
-		return g.genWhile(s)
+	case *ast.RangeStmt:
+		return g.genRange(s)
 	default:
 		return fmt.Sprintf("/* unsupported stmt: %T */", stmt)
 	}
@@ -836,7 +844,7 @@ func (g *Generator) estimateEndPos(stmt ast.Stmt) (int, int) {
 			return endLine + 1, 1
 		}
 		return pos.Line + 1, 1
-	case *ast.WhileStmt:
+	case *ast.RangeStmt:
 		if len(s.Body) > 0 {
 			last := s.Body[len(s.Body)-1]
 			endLine, _ := g.estimateEndPos(last)
@@ -883,9 +891,19 @@ func (g *Generator) genIf(s *ast.IfStmt) string {
 	return b.String()
 }
 
-func (g *Generator) genWhile(s *ast.WhileStmt) string {
+func (g *Generator) genRange(s *ast.RangeStmt) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "for (%s).IsTruthy() {\n", g.genExpr(s.Condition))
+	cmp := "<"
+	if s.Inclusive {
+		cmp = "<="
+	}
+	startExpr := "meow.NewInt(0)"
+	if s.Start != nil {
+		startExpr = g.genExpr(s.Start)
+	}
+	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
+		startExpr, cmp, g.genExpr(s.End))
+	fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))

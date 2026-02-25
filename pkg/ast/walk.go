@@ -27,10 +27,6 @@ func walk(node Node, yield func(Node) bool) bool {
 		if !walk(n.Value, yield) {
 			return false
 		}
-	case *AssignStmt:
-		if !walk(n.Value, yield) {
-			return false
-		}
 	case *FuncStmt:
 		for _, s := range n.Body {
 			if !walk(s, yield) {
@@ -57,8 +53,13 @@ func walk(node Node, yield func(Node) bool) bool {
 				return false
 			}
 		}
-	case *WhileStmt:
-		if !walk(n.Condition, yield) {
+	case *RangeStmt:
+		if n.Start != nil {
+			if !walk(n.Start, yield) {
+				return false
+			}
+		}
+		if !walk(n.End, yield) {
 			return false
 		}
 		for _, s := range n.Body {

@@ -128,10 +128,8 @@ func TestFormatIdempotent(t *testing.T) {
   bring fib(n - 1) + fib(n - 2)
 }
 
-nyan i = 0
-purr (i < 10) {
+purr i (10) {
   nya(fib(i))
-  i = i + 1
 }
 `
 	first := format(t, input)

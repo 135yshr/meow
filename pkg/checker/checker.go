@@ -146,12 +146,10 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		c.checkReturnStmt(s)
 	case *ast.IfStmt:
 		c.checkIfStmt(s)
-	case *ast.WhileStmt:
-		c.checkWhileStmt(s)
+	case *ast.RangeStmt:
+		c.checkRangeStmt(s)
 	case *ast.ExprStmt:
 		c.inferExpr(s.Expr)
-	case *ast.AssignStmt:
-		c.checkAssignStmt(s)
 	case *ast.FetchStmt:
 		// nothing to check
 	}
@@ -160,6 +158,14 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 	valType := c.inferExpr(s.Value)
 	declType := c.resolveTypeExpr(s.TypeAnn)
+
+	// Reject same-scope redeclaration (shadowing in inner scopes is allowed)
+	if s.Name != "_" {
+		currentScope := c.scopes[len(c.scopes)-1]
+		if _, exists := currentScope[s.Name]; exists {
+			c.addError(s.Token.Pos, "Variable %s already declared in this scope", s.Name)
+		}
+	}
 
 	if !types.IsAny(declType) && !types.IsAny(valType) {
 		if !declType.Equals(valType) {
@@ -173,16 +179,6 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 	} else {
 		c.define(s.Name, valType)
 		c.info.VarTypes[s.Name] = valType
-	}
-}
-
-func (c *Checker) checkAssignStmt(s *ast.AssignStmt) {
-	valType := c.inferExpr(s.Value)
-	existing := c.lookup(s.Name)
-	if !types.IsAny(existing) && !types.IsAny(valType) {
-		if !existing.Equals(valType) {
-			c.addError(s.Token.Pos, "Cannot assign %s to variable %s of type %s", valType, s.Name, existing)
-		}
 	}
 }
 
@@ -256,7 +252,7 @@ func hasReturnStmt(stmts []ast.Stmt) bool {
 			if hasReturnStmt(s.Body) || hasReturnStmt(s.ElseBody) {
 				return true
 			}
-		case *ast.WhileStmt:
+		case *ast.RangeStmt:
 			if hasReturnStmt(s.Body) {
 				return true
 			}
@@ -305,14 +301,24 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 	}
 }
 
-func (c *Checker) checkWhileStmt(s *ast.WhileStmt) {
-	condType := c.inferExpr(s.Condition)
-	if !types.IsAny(condType) {
-		if _, ok := condType.(types.BoolType); !ok {
-			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
+func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
+	if s.Start != nil {
+		startType := c.inferExpr(s.Start)
+		if !types.IsAny(startType) {
+			if _, ok := startType.(types.IntType); !ok {
+				c.addError(s.Token.Pos, "Range start must be int, got %s", startType)
+			}
+		}
+	}
+	endType := c.inferExpr(s.End)
+	if !types.IsAny(endType) {
+		if _, ok := endType.(types.IntType); !ok {
+			c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
 		}
 	}
 	c.pushScope()
+	c.define(s.Var, types.IntType{})
+	c.info.VarTypes[s.Var] = types.IntType{}
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
 	}

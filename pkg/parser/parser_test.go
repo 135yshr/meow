@@ -83,16 +83,68 @@ func TestIfStmt(t *testing.T) {
 	}
 }
 
-func TestWhileStmt(t *testing.T) {
-	prog := parse(t, `purr (x > 0) {
-  x = x - 1
+func TestPurrCountForm(t *testing.T) {
+	prog := parse(t, `purr i (10) {
+  nya(i)
 }`)
 	if len(prog.Stmts) != 1 {
 		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
 	}
-	_, ok := prog.Stmts[0].(*ast.WhileStmt)
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
 	if !ok {
-		t.Fatalf("expected WhileStmt, got %T", prog.Stmts[0])
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if rs.Var != "i" {
+		t.Errorf("expected var 'i', got %q", rs.Var)
+	}
+	if rs.Start != nil {
+		t.Errorf("expected nil Start for count form, got %T", rs.Start)
+	}
+	if rs.Inclusive {
+		t.Error("expected Inclusive=false for count form")
+	}
+}
+
+func TestPurrRangeForm(t *testing.T) {
+	prog := parse(t, `purr i (1..20) {
+  nya(i)
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
+	if !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if rs.Var != "i" {
+		t.Errorf("expected var 'i', got %q", rs.Var)
+	}
+	if rs.Start == nil {
+		t.Fatal("expected non-nil Start for range form")
+	}
+	if !rs.Inclusive {
+		t.Error("expected Inclusive=true for range form")
+	}
+}
+
+func TestImplicitVarStmt(t *testing.T) {
+	prog := parse(t, `x = 42`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	v, ok := prog.Stmts[0].(*ast.VarStmt)
+	if !ok {
+		t.Fatalf("expected VarStmt, got %T", prog.Stmts[0])
+	}
+	if v.Name != "x" {
+		t.Errorf("expected name 'x', got %q", v.Name)
+	}
+	lit, ok := v.Value.(*ast.IntLit)
+	if !ok {
+		t.Fatalf("expected IntLit, got %T", v.Value)
+	}
+	if lit.Value != 42 {
+		t.Errorf("expected 42, got %d", lit.Value)
 	}
 }
 
