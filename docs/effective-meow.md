@@ -94,7 +94,7 @@ meow distance(x1, y1, x2, y2 int) float { ... }
 
 ## Error Handling Patterns
 
-Meow provides three error handling mechanisms. Choose the right one for each situation:
+Meow provides three error-handling mechanisms. Choose the right one for each situation:
 
 ### `~>` — Use for inline recovery with a default value
 

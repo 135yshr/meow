@@ -10,7 +10,7 @@ Thank you for your interest in contributing to the Meow programming language! Th
 
 ### Prerequisites
 
-- **Go 1.26+** — required for `iter` package support
+- **Go 1.26+** — required (see `go.mod`)
 - **stringer** — for code generation of token type names
 
 ```bash
@@ -255,7 +255,7 @@ We use [gitmoji](https://gitmoji.dev/) prefixes in commit messages:
 | `🎨 style:` | Code style/formatting |
 | `⬆️ chore:` | Dependencies/tooling |
 | `🚀 ci:` | CI/CD changes |
-| `🔧 fix:` | Configuration changes |
+| `🔧 config:` | Configuration changes |
 
 Commit messages are in **English**.
 

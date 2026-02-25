@@ -9,7 +9,7 @@ A step-by-step guide to learning the Meow programming language. Each section bui
 ## Prerequisites
 
 - Go 1.26+ installed
-- Meow compiler installed (see [README](../README.md#installation))
+- Meow compiler installed (see [Installation]({{< relref "/community/contributing#clone-and-build" >}}))
 
 Verify your installation:
 
@@ -414,7 +414,7 @@ nyan response = http.pounce("https://api.example.com/data", {
 nya(response)
 ```
 
-See [stdlib.md](stdlib.md) for the full API reference.
+See [Standard Library]({{< relref "/doc/stdlib" >}}) for the full API reference.
 
 ## 11. Testing
 
@@ -469,7 +469,7 @@ meow catwalk_hello() {
 - `expect(actual, expected)` — assert equal
 - `refuse(condition)` — assert falsy
 
-See [stdlib.md](stdlib.md) for details.
+See [Standard Library]({{< relref "/doc/stdlib" >}}) for details.
 
 ## 12. Build and Tools
 
@@ -498,9 +498,9 @@ This is useful for understanding how Meow features map to Go.
 
 ## Next Steps
 
-- [Language Reference](reference.md) — Complete keyword and operator reference
-- [Language Specification](spec.md) — Formal grammar and semantics
-- [Standard Library](stdlib.md) — Full API documentation
-- [Effective Meow](effective-meow.md) — Idiomatic patterns and best practices
-- [Cookbook](cookbook.md) — Task-based recipes
-- [Go Comparison](go-comparison.md) — For Go developers learning Meow
+- [Language Reference]({{< relref "/doc/reference" >}}) — Complete keyword and operator reference
+- [Language Specification]({{< relref "/doc/spec" >}}) — Formal grammar and semantics
+- [Standard Library]({{< relref "/doc/stdlib" >}}) — Full API documentation
+- [Effective Meow]({{< relref "/learn/effective-meow" >}}) — Idiomatic patterns and best practices
+- [Cookbook]({{< relref "/cookbook" >}}) — Task-based recipes
+- [Meow vs Go]({{< relref "/learn/go-comparison" >}}) — For Go developers learning Meow

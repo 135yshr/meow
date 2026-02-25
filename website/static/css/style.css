@@ -23,7 +23,7 @@
   --color-border: #dfe6e9;
   --color-border-light: #eee;
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Inter", -apple-system, "BlinkMacSystemFont", "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 
   --radius: 8px;

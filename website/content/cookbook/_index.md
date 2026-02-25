@@ -90,6 +90,8 @@ nya(result)   # => [4, 16, 36, 64, 100]
 Sum of the transformed list:
 
 ```meow
+nyan nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
 nyan total = nums
   |=| picky(paw(x) { x % 2 == 0 })
   |=| lick(paw(x) { x * x })
@@ -304,6 +306,7 @@ meow find_min(nums list) {
   })
 }
 
+nyan numbers = [3, 7, 1, 9, 4, 6, 2, 8, 5]
 nya("Min:", find_min(numbers))   # => Min: 1
 ```
 

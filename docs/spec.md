@@ -205,7 +205,7 @@ Logical operators (`&&`, `||`) use short-circuit evaluation. `&&` returns the le
 CallExpr = Expr "(" [ Expr { "," Expr } ] ")" .
 ```
 
-Calls a function, lambda, or builtin. Also used to construct `kitty` instances by calling the type name.
+Calls a function, lambda, or built-in. Also used to construct `kitty` instances by calling the type name.
 
 ### Lambda Expression
 
@@ -422,7 +422,7 @@ Any expression can appear as a statement. The result is discarded.
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `to_int` | `to_int(v)` → int | Convert float or bool to int |
+| `to_int` | `to_int(v)` → int | Convert float, bool, or int to int |
 | `to_float` | `to_float(v)` → float | Convert int to float |
 | `to_string` | `to_string(v)` → string | Convert any value to its string representation |
 
@@ -468,6 +468,7 @@ package main
 import meow "github.com/135yshr/meow/runtime/meowrt"
 import meow_file "github.com/135yshr/meow/runtime/file"    // from fetch "file"
 import meow_http "github.com/135yshr/meow/runtime/http"    // from fetch "http"
+import meow_testing "github.com/135yshr/meow/runtime/testing" // from fetch "testing"
 
 // user-defined functions
 
@@ -490,8 +491,10 @@ All values have a truthiness used by `sniff` conditions and logical operators:
 | `""` (empty string) | no |
 | non-zero int/float | yes |
 | non-empty string | yes |
-| list | yes |
-| map | yes |
+| empty list `[]` | no |
+| non-empty list | yes |
+| empty map `{}` | no |
+| non-empty map | yes |
 | kitty | yes |
-| furball | yes |
+| furball | no |
 | func | yes |

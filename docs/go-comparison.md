@@ -13,7 +13,7 @@ A side-by-side reference for Go developers learning Meow. Meow transpiles to Go,
 | If | `if x > 0 { }` | `sniff (x > 0) { }` |
 | Else | `} else { }` | `} scratch { }` |
 | Else if | `} else if x == 0 {` | `} scratch sniff (x == 0) {` |
-| For (range) | `for i := 0; i < n; i++` | `purr i (n)` |
+| For (counting) | `for i := 0; i < n; i++` | `purr i (n)` |
 | For (inclusive) | `for i := a; i <= b; i++` | `purr i (a..b)` |
 | Lambda | `func(x int) int { return x*2 }` | `paw(x int) { x * 2 }` |
 | Print | `fmt.Println(x)` | `nya(x)` |
