@@ -229,12 +229,19 @@ func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 	tok := p.advance() // consume purr
 	varName := p.expect(token.IDENT)
 	p.expect(token.LPAREN)
-	start := p.parseExpr(0)
-	p.expect(token.COMMA)
-	end := p.parseExpr(0)
+	first := p.parseExpr(0)
+	if p.cur.Type == token.DOTDOT {
+		// purr i (start..end) — inclusive range
+		p.advance() // consume ..
+		end := p.parseExpr(0)
+		p.expect(token.RPAREN)
+		body := p.parseBlock()
+		return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: first, End: end, Inclusive: true, Body: body}
+	}
+	// purr i (count) — count form: 0 to count-1
 	p.expect(token.RPAREN)
 	body := p.parseBlock()
-	return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: start, End: end, Body: body}
+	return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: nil, End: first, Inclusive: false, Body: body}
 }
 
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {

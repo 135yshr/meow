@@ -121,7 +121,9 @@ func (c *unusedChecker) checkStmt(stmt ast.Stmt) {
 			c.popScope()
 		}
 	case *ast.RangeStmt:
-		c.checkExpr(s.Start)
+		if s.Start != nil {
+			c.checkExpr(s.Start)
+		}
 		c.checkExpr(s.End)
 		c.pushScope()
 		c.define(s.Var, s.Token.Pos)

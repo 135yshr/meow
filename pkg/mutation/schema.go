@@ -185,7 +185,9 @@ func walkStmtExprs(stmt ast.Stmt, fn func(ast.Expr)) {
 			walkStmtExprs(body, fn)
 		}
 	case *ast.RangeStmt:
-		walkExprTree(s.Start, fn)
+		if s.Start != nil {
+			walkExprTree(s.Start, fn)
+		}
 		walkExprTree(s.End, fn)
 		for _, body := range s.Body {
 			walkStmtExprs(body, fn)

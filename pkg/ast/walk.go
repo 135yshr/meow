@@ -54,8 +54,10 @@ func walk(node Node, yield func(Node) bool) bool {
 			}
 		}
 	case *RangeStmt:
-		if !walk(n.Start, yield) {
-			return false
+		if n.Start != nil {
+			if !walk(n.Start, yield) {
+				return false
+			}
 		}
 		if !walk(n.End, yield) {
 			return false

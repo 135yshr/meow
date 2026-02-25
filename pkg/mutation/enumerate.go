@@ -61,7 +61,9 @@ func (e *enumerator) enumStmt(stmt ast.Stmt) {
 			e.enumStmt(body)
 		}
 	case *ast.RangeStmt:
-		e.enumExpr(s.Start)
+		if s.Start != nil {
+			e.enumExpr(s.Start)
+		}
 		e.enumExpr(s.End)
 		for _, body := range s.Body {
 			e.enumStmt(body)

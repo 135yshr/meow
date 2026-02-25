@@ -294,7 +294,9 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 }
 
 func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
-	c.inferExpr(s.Start)
+	if s.Start != nil {
+		c.inferExpr(s.Start)
+	}
 	c.inferExpr(s.End)
 	c.pushScope()
 	c.define(s.Var, types.IntType{})

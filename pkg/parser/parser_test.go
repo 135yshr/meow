@@ -83,8 +83,8 @@ func TestIfStmt(t *testing.T) {
 	}
 }
 
-func TestPurrStmt(t *testing.T) {
-	prog := parse(t, `purr i (0, 10) {
+func TestPurrCountForm(t *testing.T) {
+	prog := parse(t, `purr i (10) {
   nya(i)
 }`)
 	if len(prog.Stmts) != 1 {
@@ -96,6 +96,34 @@ func TestPurrStmt(t *testing.T) {
 	}
 	if rs.Var != "i" {
 		t.Errorf("expected var 'i', got %q", rs.Var)
+	}
+	if rs.Start != nil {
+		t.Errorf("expected nil Start for count form, got %T", rs.Start)
+	}
+	if rs.Inclusive {
+		t.Error("expected Inclusive=false for count form")
+	}
+}
+
+func TestPurrRangeForm(t *testing.T) {
+	prog := parse(t, `purr i (1..20) {
+  nya(i)
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
+	if !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if rs.Var != "i" {
+		t.Errorf("expected var 'i', got %q", rs.Var)
+	}
+	if rs.Start == nil {
+		t.Fatal("expected non-nil Start for range form")
+	}
+	if !rs.Inclusive {
+		t.Error("expected Inclusive=true for range form")
 	}
 }
 

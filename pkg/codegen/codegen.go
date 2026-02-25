@@ -433,14 +433,30 @@ func (g *Generator) genTypedIf(s *ast.IfStmt) string {
 
 func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	var b strings.Builder
-	startType := g.getExprType(s.Start)
+	cmp := "<"
+	if s.Inclusive {
+		cmp = "<="
+	}
+	startCode := "int64(0)"
+	if s.Start != nil {
+		startType := g.getExprType(s.Start)
+		if startType != nil && !types.IsAny(startType) {
+			startCode = g.genTypedExpr(s.Start)
+		} else {
+			startCode = ""
+		}
+	}
 	endType := g.getExprType(s.End)
-	if startType != nil && !types.IsAny(startType) && endType != nil && !types.IsAny(endType) {
-		fmt.Fprintf(&b, "for %s := %s; %s < %s; %s++ {\n",
-			s.Var, g.genTypedExpr(s.Start), s.Var, g.genTypedExpr(s.End), s.Var)
+	if startCode != "" && endType != nil && !types.IsAny(endType) {
+		fmt.Fprintf(&b, "for %s := %s; %s %s %s; %s++ {\n",
+			s.Var, startCode, s.Var, cmp, g.genTypedExpr(s.End), s.Var)
 	} else {
-		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i < meow.AsInt(%s); __i++ {\n",
-			g.genExpr(s.Start), g.genExpr(s.End))
+		startExpr := "meow.NewInt(0)"
+		if s.Start != nil {
+			startExpr = g.genExpr(s.Start)
+		}
+		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
+			startExpr, cmp, g.genExpr(s.End))
 		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
 	}
 	for _, stmt := range s.Body {
@@ -877,8 +893,16 @@ func (g *Generator) genIf(s *ast.IfStmt) string {
 
 func (g *Generator) genRange(s *ast.RangeStmt) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i < meow.AsInt(%s); __i++ {\n",
-		g.genExpr(s.Start), g.genExpr(s.End))
+	cmp := "<"
+	if s.Inclusive {
+		cmp = "<="
+	}
+	startExpr := "meow.NewInt(0)"
+	if s.Start != nil {
+		startExpr = g.genExpr(s.Start)
+	}
+	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
+		startExpr, cmp, g.genExpr(s.End))
 	fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
 	for _, stmt := range s.Body {
 		b.WriteString("\t")

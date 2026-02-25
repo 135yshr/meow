@@ -276,8 +276,17 @@ func TestIfNonBoolCondition(t *testing.T) {
 	}
 }
 
-func TestRangeLoop(t *testing.T) {
-	_, errs := check(t, `purr i (0, 10) {
+func TestRangeLoopCountForm(t *testing.T) {
+	_, errs := check(t, `purr i (10) {
+  nya(i)
+}`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestRangeLoopRangeForm(t *testing.T) {
+	_, errs := check(t, `purr i (1..20) {
   nya(i)
 }`)
 	if len(errs) > 0 {

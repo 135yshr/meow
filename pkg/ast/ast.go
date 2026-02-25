@@ -386,16 +386,25 @@ func (n *IfStmt) Pos() token.Position { return n.Token.Pos }
 func (n *IfStmt) nodeTag()            {}
 func (n *IfStmt) stmtTag()            {}
 
-// RangeStmt represents a range-based loop (purr i (start, end) { body }).
+// RangeStmt represents a range-based loop.
+//
+// Two forms are supported:
+//
+//	purr i (n)        — count form: i = 0, 1, …, n-1 (n iterations)
+//	purr i (a..b)     — range form: i = a, a+1, …, b  (inclusive)
+//
+// In the count form, Start is nil and Inclusive is false.
 type RangeStmt struct {
 	// Token is the purr keyword token.
 	Token token.Token
 	// Var is the loop variable name.
 	Var string
-	// Start is the inclusive start expression.
+	// Start is the range start expression, or nil for the count form.
 	Start Expr
-	// End is the exclusive end expression.
+	// End is the upper bound expression.
 	End Expr
+	// Inclusive is true for the a..b form (closed interval).
+	Inclusive bool
 	// Body is the list of statements in the loop body.
 	Body []Stmt
 }

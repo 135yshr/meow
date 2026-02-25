@@ -195,7 +195,7 @@ func TestLintCleanCode(t *testing.T) {
   bring fib(n - 1) + fib(n - 2)
 }
 
-purr i (0, 10) {
+purr i (10) {
   nya(fib(i))
 }`)
 	if len(diags) != 0 {
