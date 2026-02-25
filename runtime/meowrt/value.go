@@ -192,3 +192,47 @@ func ToJSON(v Value) string {
 		panic(fmt.Sprintf("Hiss! cannot serialize %s to JSON, nya~", v.Type()))
 	}
 }
+
+// AsInt extracts an int64 from a Value, panicking with a descriptive message on type mismatch.
+func AsInt(v Value) int64 {
+	if i, ok := v.(*Int); ok {
+		return i.Val
+	}
+	if v == nil {
+		panic("Hiss! expected int but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected int but got %s, nya~", v.Type()))
+}
+
+// AsFloat extracts a float64 from a Value, panicking with a descriptive message on type mismatch.
+func AsFloat(v Value) float64 {
+	if f, ok := v.(*Float); ok {
+		return f.Val
+	}
+	if v == nil {
+		panic("Hiss! expected float but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected float but got %s, nya~", v.Type()))
+}
+
+// AsString extracts a string from a Value, panicking with a descriptive message on type mismatch.
+func AsString(v Value) string {
+	if s, ok := v.(*String); ok {
+		return s.Val
+	}
+	if v == nil {
+		panic("Hiss! expected string but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected string but got %s, nya~", v.Type()))
+}
+
+// AsBool extracts a bool from a Value, panicking with a descriptive message on type mismatch.
+func AsBool(v Value) bool {
+	if b, ok := v.(*Bool); ok {
+		return b.Val
+	}
+	if v == nil {
+		panic("Hiss! expected bool but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected bool but got %s, nya~", v.Type()))
+}

@@ -88,6 +88,51 @@ func TestToJSONNestedMapList(t *testing.T) {
 	}
 }
 
+func TestAsIntSuccess(t *testing.T) {
+	got := meowrt.AsInt(meowrt.NewInt(42))
+	if got != 42 {
+		t.Errorf("expected 42, got %d", got)
+	}
+}
+
+func TestAsIntPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("expected string panic, got %T", r)
+		}
+		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "expected int") {
+			t.Errorf("unexpected panic message: %q", msg)
+		}
+	}()
+	meowrt.AsInt(meowrt.NewString("hello"))
+}
+
+func TestAsFloatSuccess(t *testing.T) {
+	got := meowrt.AsFloat(meowrt.NewFloat(3.14))
+	if got != 3.14 {
+		t.Errorf("expected 3.14, got %g", got)
+	}
+}
+
+func TestAsStringSuccess(t *testing.T) {
+	got := meowrt.AsString(meowrt.NewString("hello"))
+	if got != "hello" {
+		t.Errorf("expected hello, got %s", got)
+	}
+}
+
+func TestAsBoolSuccess(t *testing.T) {
+	got := meowrt.AsBool(meowrt.NewBool(true))
+	if got != true {
+		t.Errorf("expected true, got %t", got)
+	}
+}
+
 func TestToJSONUnsupportedType(t *testing.T) {
 	defer func() {
 		r := recover()

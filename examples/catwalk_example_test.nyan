@@ -10,7 +10,7 @@ meow catwalk_hello() {
 }
 
 # 関数の戻り値を出力して検証
-meow greet(who) {
+meow greet(who string) string {
   bring "Hello, " + who + "!"
 }
 

@@ -1,42 +1,42 @@
 # Function definitions
 
-meow add(a, b) {
+meow add(a int, b int) int {
   bring a + b
 }
 
-meow factorial(n) {
+meow factorial(n int) int {
   sniff (n <= 1) {
     bring 1
   }
   bring n * factorial(n - 1)
 }
 
-meow greet(name) {
+meow greet(name string) string {
   bring "Hello, " + name + "!"
 }
 
-meow max_val(a, b) {
+meow max_val(a int, b int) int {
   sniff (a > b) {
     bring a
   }
   bring b
 }
 
-meow min_val(a, b) {
+meow min_val(a int, b int) int {
   sniff (a < b) {
     bring a
   }
   bring b
 }
 
-meow abs(x) {
+meow abs(x int) int {
   sniff (x < 0) {
     bring 0 - x
   }
   bring x
 }
 
-meow fib(n) {
+meow fib(n int) int {
   sniff (n <= 1) {
     bring n
   }

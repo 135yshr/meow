@@ -27,8 +27,8 @@ meow test_empty_function() {
 
 meow test_single_param() {
   expect(identity(42), 42)
-  expect(identity("hello"), "hello")
-  expect(identity(yarn), yarn)
+  expect(identity(0), 0)
+  expect(identity(-1), -1)
 }
 
 meow test_nested_calls() {

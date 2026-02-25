@@ -19,6 +19,6 @@ meow test_string_in_variable() {
 }
 
 meow test_string_with_numbers() {
-  nyan msg = "cat" + " #" + 1
+  nyan msg = "cat" + " #" + to_string(1)
   expect(msg, "cat #1")
 }

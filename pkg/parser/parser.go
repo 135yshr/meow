@@ -105,33 +105,79 @@ func (p *Parser) parseStmt() ast.Stmt {
 func (p *Parser) parseVarStmt() *ast.VarStmt {
 	tok := p.advance() // consume nyan
 	name := p.expect(token.IDENT)
+	var typeAnn ast.TypeExpr
+	if p.isTypeToken() {
+		typeAnn = p.parseTypeExpr()
+	}
 	p.expect(token.ASSIGN)
 	value := p.parseExpr(0)
 	p.consumeTerminator()
-	return &ast.VarStmt{Token: tok, Name: name.Literal, Value: value}
+	return &ast.VarStmt{Token: tok, Name: name.Literal, TypeAnn: typeAnn, Value: value}
 }
 
 func (p *Parser) parseFuncStmt() *ast.FuncStmt {
 	tok := p.advance() // consume meow
 	name := p.expect(token.IDENT)
 	p.expect(token.LPAREN)
-	params := p.parseParamList()
+	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
+	var returnType ast.TypeExpr
+	if p.isTypeToken() {
+		returnType = p.parseTypeExpr()
+	}
 	body := p.parseBlock()
-	return &ast.FuncStmt{Token: tok, Name: name.Literal, Params: params, Body: body}
+	return &ast.FuncStmt{Token: tok, Name: name.Literal, Params: params, ReturnType: returnType, Body: body}
 }
 
-func (p *Parser) parseParamList() []string {
-	var params []string
+func (p *Parser) parseTypedParamList() []ast.Param {
+	var params []ast.Param
 	if p.cur.Type == token.RPAREN {
 		return params
 	}
-	params = append(params, p.expect(token.IDENT).Literal)
+	params = append(params, p.parseParam())
 	for p.cur.Type == token.COMMA {
 		p.advance()
-		params = append(params, p.expect(token.IDENT).Literal)
+		params = append(params, p.parseParam())
 	}
 	return params
+}
+
+func (p *Parser) parseParam() ast.Param {
+	name := p.expect(token.IDENT)
+	var typeAnn ast.TypeExpr
+	if p.isTypeToken() {
+		typeAnn = p.parseTypeExpr()
+	}
+	return ast.Param{Name: name.Literal, TypeAnn: typeAnn}
+}
+
+func (p *Parser) parseTypeExpr() ast.TypeExpr {
+	tok := p.advance()
+	switch tok.Type {
+	case token.TYPE_INT:
+		return &ast.BasicType{Token: tok, Name: "int"}
+	case token.TYPE_FLOAT:
+		return &ast.BasicType{Token: tok, Name: "float"}
+	case token.TYPE_STRING:
+		return &ast.BasicType{Token: tok, Name: "string"}
+	case token.TYPE_BOOL:
+		return &ast.BasicType{Token: tok, Name: "bool"}
+	case token.TYPE_FURBALL:
+		return &ast.BasicType{Token: tok, Name: "furball"}
+	case token.TYPE_LIST:
+		return &ast.BasicType{Token: tok, Name: "list"}
+	default:
+		p.errs = append(p.errs, newError(tok.Pos, "expected type, got %v (%q)", tok.Type, tok.Literal))
+		return &ast.BasicType{Token: tok, Name: tok.Literal}
+	}
+}
+
+func (p *Parser) isTypeToken() bool {
+	switch p.cur.Type {
+	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LIST:
+		return true
+	}
+	return false
 }
 
 func (p *Parser) parseBlock() []ast.Stmt {
@@ -431,7 +477,7 @@ func (p *Parser) parseGrouped() ast.Expr {
 func (p *Parser) parseLambda() ast.Expr {
 	tok := p.advance() // consume paw
 	p.expect(token.LPAREN)
-	params := p.parseParamList()
+	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
 	p.expect(token.LBRACE)
 	body := p.parseExpr(0)

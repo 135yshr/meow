@@ -1,4 +1,4 @@
-meow fizzbuzz(n) {
+meow fizzbuzz(n int) string {
   sniff (n % 15 == 0) {
     bring "FizzBuzz"
   } scratch sniff (n % 3 == 0) {
@@ -6,7 +6,7 @@ meow fizzbuzz(n) {
   } scratch sniff (n % 5 == 0) {
     bring "Buzz"
   } scratch {
-    bring n
+    bring to_string(n)
   }
 }
 

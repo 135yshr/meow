@@ -150,7 +150,22 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 
 	if fuzz {
 		if len(files) == 0 {
-			fmt.Fprintln(os.Stderr, "Hiss! Please specify a .nyan file for fuzzing, nya~")
+			var err error
+			files, err = discoverFuzzFiles(".")
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		} else {
+			var err error
+			files, err = resolveFuzzPaths(files)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
+		if len(files) == 0 {
+			fmt.Fprintln(os.Stderr, "Hiss! No fuzz files found, nya~")
 			os.Exit(1)
 		}
 		for _, f := range files {
@@ -257,6 +272,66 @@ func resolveTestPaths(patterns []string) ([]string, error) {
 			}
 			if info.IsDir() {
 				found, err := discoverTestFiles(p)
+				if err != nil {
+					return nil, err
+				}
+				result = append(result, found...)
+			} else {
+				result = append(result, p)
+			}
+		}
+	}
+	return result, nil
+}
+
+func discoverFuzzFiles(dir string) ([]string, error) {
+	pattern := filepath.Join(dir, "fuzz_*.nyan")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
+	}
+	return matches, nil
+}
+
+func discoverFuzzFilesRecursive(root string) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasPrefix(d.Name(), "fuzz_") && strings.HasSuffix(d.Name(), ".nyan") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Hiss! Cannot search for fuzz files, nya~: %w", err)
+	}
+	return files, nil
+}
+
+func resolveFuzzPaths(patterns []string) ([]string, error) {
+	var result []string
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "/...") || strings.HasSuffix(p, string(filepath.Separator)+"...") {
+			root := strings.TrimSuffix(p, "/...")
+			root = strings.TrimSuffix(root, string(filepath.Separator)+"...")
+			if root == "." || root == "" {
+				root = "."
+			}
+			found, err := discoverFuzzFilesRecursive(root)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, found...)
+		} else {
+			info, err := os.Stat(p)
+			if err != nil {
+				result = append(result, p)
+				continue
+			}
+			if info.IsDir() {
+				found, err := discoverFuzzFiles(p)
 				if err != nil {
 					return nil, err
 				}

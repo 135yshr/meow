@@ -1,4 +1,4 @@
-meow fib(n) {
+meow fib(n int) int {
   sniff (n <= 1) {
     bring n
   }

@@ -1,0 +1,30 @@
+meow test_typed_int_var() {
+  nyan x int = 42
+  expect(x, 42)
+}
+
+meow test_typed_float_var() {
+  nyan f float = 3.14
+  expect(f, 3.14)
+}
+
+meow test_typed_string_var() {
+  nyan s string = "hello"
+  expect(s, "hello")
+}
+
+meow test_typed_bool_var() {
+  nyan t bool = yarn
+  nyan f bool = hairball
+  judge(t)
+  refuse(f)
+}
+
+meow test_typed_reassignment() {
+  nyan x int = 10
+  expect(x, 10)
+  x = 20
+  expect(x, 20)
+  x = x + 5
+  expect(x, 25)
+}

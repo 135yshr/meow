@@ -1,6 +1,6 @@
 # Pattern matching functions
 
-meow describe(n) {
+meow describe(n int) string {
   bring peek(n) {
     0 => "zero"
     1 => "one"
@@ -9,7 +9,7 @@ meow describe(n) {
   }
 }
 
-meow classify(n) {
+meow classify(n int) string {
   bring peek(n) {
     1..5 => "low"
     6..10 => "mid"
@@ -17,7 +17,7 @@ meow classify(n) {
   }
 }
 
-meow day_name(d) {
+meow day_name(d int) string {
   bring peek(d) {
     1 => "Monday"
     2 => "Tuesday"

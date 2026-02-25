@@ -1,14 +1,14 @@
 # Multiple parameter functions
 
-meow add3(a, b, c) {
+meow add3(a int, b int, c int) int {
   bring a + b + c
 }
 
-meow add4(a, b, c, d) {
+meow add4(a int, b int, c int, d int) int {
   bring a + b + c + d
 }
 
-meow clamp(val, lo, hi) {
+meow clamp(val int, lo int, hi int) int {
   sniff (val < lo) {
     bring lo
   }
@@ -21,6 +21,6 @@ meow clamp(val, lo, hi) {
 meow noop() {
 }
 
-meow identity(x) {
+meow identity(x int) int {
   bring x
 }

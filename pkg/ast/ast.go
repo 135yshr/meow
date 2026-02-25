@@ -154,8 +154,8 @@ func (n *CallExpr) exprTag()            {}
 type LambdaExpr struct {
 	// Token is the paw keyword token.
 	Token token.Token
-	// Params is the list of parameter names.
-	Params []string
+	// Params is the list of parameters with optional type annotations.
+	Params []Param
 	// Body is the lambda body expression.
 	Body Expr
 }
@@ -324,12 +324,14 @@ func (n *FetchStmt) Pos() token.Position { return n.Token.Pos }
 func (n *FetchStmt) nodeTag()            {}
 func (n *FetchStmt) stmtTag()            {}
 
-// VarStmt represents a variable declaration (nyan x = ...).
+// VarStmt represents a variable declaration (nyan x = ... or nyan x int = ...).
 type VarStmt struct {
 	// Token is the nyan keyword token.
 	Token token.Token
 	// Name is the variable name.
 	Name string
+	// TypeAnn is the optional type annotation (nil if absent).
+	TypeAnn TypeExpr
 	// Value is the initial value expression.
 	Value Expr
 }
@@ -352,14 +354,16 @@ func (n *AssignStmt) Pos() token.Position { return n.Token.Pos }
 func (n *AssignStmt) nodeTag()            {}
 func (n *AssignStmt) stmtTag()            {}
 
-// FuncStmt represents a function definition (meow f(x) { ... }).
+// FuncStmt represents a function definition (meow f(x) { ... } or meow f(x int) int { ... }).
 type FuncStmt struct {
 	// Token is the meow keyword token.
 	Token token.Token
 	// Name is the function name.
 	Name string
-	// Params is the list of parameter names.
-	Params []string
+	// Params is the list of parameters with optional type annotations.
+	Params []Param
+	// ReturnType is the optional return type annotation (nil if absent).
+	ReturnType TypeExpr
 	// Body is the list of statements in the function body.
 	Body []Stmt
 }

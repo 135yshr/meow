@@ -1,4 +1,4 @@
-meow divide(a, b) {
+meow divide(a int, b int) int {
   sniff (b == 0) {
     hiss("division by zero")
   }
@@ -30,5 +30,5 @@ nyan normal = divide(10, 2) ~> 0
 nya("normal:", normal)
 
 # ~> with handler function
-nyan handled = divide(10, 0) ~> paw(err) { 42 }
+nyan handled = divide(10, 0) ~> paw(err furball) { 42 }
 nya("handled:", handled)
