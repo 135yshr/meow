@@ -51,6 +51,8 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 	lineStart := true
 	var prevMeaningful token.TokenType // prev token type ignoring NEWLINE
 	afterBrace := false               // suppress newlines right after {
+	afterUnaryMinus := false           // suppress space after unary minus
+	inlineBlock := false               // inside an inline lambda body
 	firstToken := true
 
 	writeIndent := func() {
@@ -81,7 +83,7 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		switch tok.Type {
 		case token.NEWLINE:
-			if firstToken || afterBrace {
+			if firstToken || afterBrace || inlineBlock {
 				continue
 			}
 			// Skip newlines between } and scratch
@@ -126,6 +128,14 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		// Handle RBRACE: decrease indent before writing
 		if tok.Type == token.RBRACE {
+			if inlineBlock {
+				buf.WriteString(" }")
+				inlineBlock = false
+				lineStart = false
+				firstToken = false
+				prevMeaningful = tok.Type
+				continue
+			}
 			if indent > 0 {
 				indent--
 			}
@@ -157,7 +167,9 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 			writeIndent()
 			lineStart = false
 		} else {
-			if needsSpaceBefore(tok.Type, prevMeaningful) {
+			if afterUnaryMinus {
+				// No space after unary minus
+			} else if needsSpaceBefore(tok.Type, prevMeaningful) {
 				buf.WriteByte(' ')
 			}
 		}
@@ -174,9 +186,25 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		// Handle LBRACE: increase indent after writing
 		if tok.Type == token.LBRACE {
-			writeNewline()
-			indent++
-			afterBrace = true
+			if isLambdaBrace(toks, i) && canInlineBlock(toks, i) {
+				inlineBlock = true
+			} else {
+				writeNewline()
+				indent++
+				afterBrace = true
+			}
+		}
+
+		// Track unary minus: MINUS is unary when previous non-trivia token
+		// is not an expression-completing token.
+		prevForUnary := prevMeaningful
+		if prevForUnary == token.COMMENT {
+			prevForUnary = previousNonTriviaType(toks, i-1)
+		}
+		if tok.Type == token.MINUS && !isExpressionEnd(prevForUnary) {
+			afterUnaryMinus = true
+		} else {
+			afterUnaryMinus = false
 		}
 
 		firstToken = false
@@ -189,6 +217,82 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 		result += "\n"
 	}
 	return result
+}
+
+// isLambdaBrace checks if the LBRACE at toks[idx] belongs to a paw lambda.
+func isLambdaBrace(toks []token.Token, idx int) bool {
+	// Find previous meaningful token (should be RPAREN)
+	j := idx - 1
+	for j >= 0 && (toks[j].Type == token.NEWLINE || toks[j].Type == token.COMMENT) {
+		j--
+	}
+	if j < 0 || toks[j].Type != token.RPAREN {
+		return false
+	}
+	// Find matching LPAREN
+	depth := 0
+	for k := j; k >= 0; k-- {
+		switch toks[k].Type {
+		case token.RPAREN:
+			depth++
+		case token.LPAREN:
+			depth--
+			if depth == 0 {
+				// Check if PAW precedes this LPAREN
+				m := k - 1
+				for m >= 0 && (toks[m].Type == token.NEWLINE || toks[m].Type == token.COMMENT) {
+					m--
+				}
+				return m >= 0 && toks[m].Type == token.PAW
+			}
+		}
+	}
+	return false
+}
+
+// canInlineBlock checks if the brace block at toks[idx] (LBRACE) has no
+// nested braces, no comments, and no newlines, so it can be safely rendered
+// on a single line.
+func canInlineBlock(toks []token.Token, idx int) bool {
+	depth := 0
+	for i := idx; i < len(toks); i++ {
+		switch toks[i].Type {
+		case token.LBRACE:
+			depth++
+			if depth > 1 {
+				return false
+			}
+		case token.RBRACE:
+			depth--
+			if depth == 0 {
+				return true
+			}
+		case token.NEWLINE, token.COMMENT:
+			if depth == 1 {
+				return false
+			}
+		}
+	}
+	return false
+}
+
+func previousNonTriviaType(toks []token.Token, idx int) token.TokenType {
+	for i := idx; i >= 0; i-- {
+		if toks[i].Type != token.NEWLINE && toks[i].Type != token.COMMENT {
+			return toks[i].Type
+		}
+	}
+	return token.EOF
+}
+
+func isExpressionEnd(t token.TokenType) bool {
+	switch t {
+	case token.IDENT, token.INT, token.FLOAT, token.STRING,
+		token.RPAREN, token.RBRACKET, token.RBRACE,
+		token.YARN, token.HAIRBALL, token.CATNAP:
+		return true
+	}
+	return false
 }
 
 func isBinaryOp(t token.TokenType) bool {

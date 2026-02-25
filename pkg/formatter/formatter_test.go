@@ -170,6 +170,69 @@ func TestFormatEmptyInput(t *testing.T) {
 	}
 }
 
+func TestFormatUnaryMinus(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "negative literal",
+			input: "nyan x = -1\n",
+			want:  "nyan x = -1\n",
+		},
+		{
+			name:  "negative in expression",
+			input: "nyan x = 1 + -2\n",
+			want:  "nyan x = 1 + -2\n",
+		},
+		{
+			name:  "binary minus preserved",
+			input: "nyan x = 3 - 1\n",
+			want:  "nyan x = 3 - 1\n",
+		},
+		{
+			name:  "negative at line start",
+			input: "-1\n",
+			want:  "-1\n",
+		},
+		{
+			name:  "negative after assign",
+			input: "nyan x = -42\n",
+			want:  "nyan x = -42\n",
+		},
+		{
+			name:  "negative after paren",
+			input: "nya(-1)\n",
+			want:  "nya(-1)\n",
+		},
+		{
+			name:  "binary minus after block comment",
+			input: "nyan x = a -~ c ~- - 1\n",
+			want:  "nyan x = a -~ c ~- - 1\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := format(t, tt.input)
+			if got != tt.want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatInlineLambdaSingleLine(t *testing.T) {
+	input := `nyan result = lick(paw(x int) { x * 2 })
+`
+	want := `nyan result = lick(paw(x int) { x * 2 })
+`
+	got := format(t, input)
+	if got != want {
+		t.Errorf("inline lambda formatting mismatch\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestFormatPipeOperator(t *testing.T) {
 	input := `nyan result = xs|=|lick(paw(x int) { x * 2 })
 `

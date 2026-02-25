@@ -19,6 +19,7 @@ meow clamp(val int, lo int, hi int) int {
 }
 
 meow noop() {
+  catnap
 }
 
 meow identity(x int) int {
