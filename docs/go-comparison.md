@@ -21,6 +21,8 @@ A side-by-side reference for Go developers learning Meow. Meow transpiles to Go,
 | False | `false` | `hairball` |
 | Nil | `nil` | `catnap` |
 | Struct | `type Cat struct { ... }` | `kitty Cat { ... }` |
+| Type alias | `type Name = string` | `breed Name = string` |
+| Newtype | `type UserId int` | `collar UserId = int` |
 | Import | `import "net/http"` | `fetch "http"` |
 | Error | `errors.New("msg")` | `hiss("msg")` |
 | Panic | `panic("msg")` | `hiss("msg")` |
@@ -87,6 +89,38 @@ nya(c.name)
 ```
 
 Note: Meow uses positional constructor arguments instead of named fields.
+
+### Type Aliases and Newtypes
+
+**Go (type alias):**
+```go
+type Nickname = string
+var name Nickname = "Nyantyu"
+fmt.Println(name + " chan") // works — alias is transparent
+```
+
+**Meow (breed):**
+```meow
+breed Nickname = string
+nyan name Nickname = "Nyantyu"
+nya(name + " chan")   # works — breed is transparent
+```
+
+**Go (defined type / newtype):**
+```go
+type UserId int
+id := UserId(42)
+fmt.Println(int(id)) // must cast to access underlying value
+```
+
+**Meow (collar):**
+```meow
+collar UserId = int
+nyan id = UserId(42)
+nya(id.value)   # use .value to access underlying value
+```
+
+Go's defined types (`type X int`) and Meow's `collar` both create distinct types. The key difference: Go uses explicit casts (`int(id)`) while Meow uses `.value` (`id.value`). Both prevent accidental mixing of semantically different values.
 
 ### Error Handling
 

@@ -361,7 +361,78 @@ introduce(nyantyu)   # => Nyantyu is 3 years old
 introduce(tyako)     # => Tyako is 5 years old
 ```
 
-## 10. Standard Library
+## 10. Type Aliases and Newtypes
+
+### Type Alias with `breed`
+
+`breed` creates a transparent alias — a new name for an existing type. The alias is fully interchangeable with the original:
+
+```meow
+breed Nickname = string
+breed Score = int
+
+nyan name Nickname = "Nyantyu"
+nyan score Score = 42
+
+# Aliases work exactly like their original types
+nya(name + " chan")              # => Nyantyu chan
+nya(score + 8)                   # => 50
+```
+
+Use `breed` to make your code more readable without adding runtime cost:
+
+```meow
+breed Meters = float
+breed Seconds = float
+
+meow speed(distance Meters, time Seconds) float {
+  bring distance / time
+}
+
+nya(speed(100.0, 9.58))   # => 10.438...
+```
+
+### Newtype with `collar`
+
+`collar` creates a distinct wrapper type. Unlike `breed`, different `collar` types are **not** interchangeable, even if they wrap the same underlying type:
+
+```meow
+collar UserId = int
+collar Email = string
+
+nyan id = UserId(42)
+nyan email = Email("nyantyu@meow.cat")
+
+nya(id)           # => UserId{value: 42}
+nya(email)        # => Email{value: nyantyu@meow.cat}
+```
+
+Use `.value` to access the wrapped inner value:
+
+```meow
+nya(id.value)     # => 42
+nya(email.value)  # => nyantyu@meow.cat
+```
+
+The key advantage of `collar` is type safety — it prevents mixing up values that happen to have the same underlying type:
+
+```meow
+collar Temperature = int
+collar Humidity = int
+
+nyan temp = Temperature(72)
+nyan humid = Humidity(72)
+# temp != humid — the compiler treats them as different types
+```
+
+### When to use which?
+
+| Use | When |
+|-----|------|
+| `breed` | You want a readable alias with zero cost (documentation only) |
+| `collar` | You want the compiler to prevent accidental mixing of similar types |
+
+## 11. Standard Library
 
 ### File I/O
 
@@ -412,7 +483,7 @@ nya(response)
 
 See [stdlib.md](stdlib.md) for the full API reference.
 
-## 11. Testing
+## 12. Testing
 
 Create a test file with the `_test.nyan` suffix:
 
@@ -467,7 +538,7 @@ meow catwalk_hello() {
 
 See [stdlib.md](stdlib.md) for details.
 
-## 12. Build and Tools
+## 13. Build and Tools
 
 ### CLI Commands
 

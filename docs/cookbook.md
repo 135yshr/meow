@@ -275,7 +275,61 @@ meow test_division_success() {
 }
 ```
 
-## 10. Find Maximum in a List (curl pattern)
+## 10. Type-Safe IDs with Collar
+
+Prevent accidentally mixing different kinds of IDs:
+
+```meow
+collar UserId = int
+collar ProductId = int
+
+nyan user = UserId(1001)
+nyan product = ProductId(2042)
+
+nya(user)             # => UserId{value: 1001}
+nya(product)          # => ProductId{value: 2042}
+nya(user != product)  # => yarn — different collar types are never equal
+
+# Extract the raw value when needed
+nya("User #" + to_string(user.value))   # => User #1001
+```
+
+Combine with kitty for rich domain models:
+
+```meow
+collar Email = string
+collar Age = int
+
+kitty User {
+  name: string
+  age: int
+  email: string
+}
+
+nyan email = Email("nyantyu@meow.cat")
+nyan age = Age(3)
+nyan nyantyu = User("Nyantyu", age.value, email.value)
+nya(nyantyu)
+```
+
+## 11. Readable Units with Breed
+
+Use `breed` to add meaning without runtime cost:
+
+```meow
+breed Celsius = float
+breed Fahrenheit = float
+
+meow to_fahrenheit(c Celsius) Fahrenheit {
+  bring c * 9.0 / 5.0 + 32.0
+}
+
+nyan boiling Celsius = 100.0
+nya(to_string(boiling) + " C = " + to_string(to_fahrenheit(boiling)) + " F")
+# => 100 C = 212 F
+```
+
+## 12. Find Maximum in a List (curl pattern)
 
 ```meow
 meow find_max(nums list) {
@@ -307,7 +361,7 @@ nyan numbers = [3, 7, 1, 9, 4, 6, 2, 8, 5]
 nya("Min:", find_min(numbers))   # => Min: 1
 ```
 
-## 11. Error Recovery with Handler
+## 13. Error Recovery with Handler
 
 Handle different error scenarios:
 

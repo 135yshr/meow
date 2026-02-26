@@ -38,13 +38,14 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 19 identifiers are reserved as keywords:
+The following 21 identifiers are reserved as keywords:
 
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
 curl      peek      hiss      fetch     flaunt
-catnap    yarn      hairball  kitty
+catnap    yarn      hairball  kitty     breed
+collar
 ```
 
 ### Type Keywords
@@ -130,13 +131,56 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | `list` | Ordered collection of values | `[1, 2, 3]` |
 | Map | String-keyed dictionary | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
+| `breed` | Type alias (transparent) | `breed Nickname = string` |
+| `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
+
+### Type Alias (breed)
+
+A `breed` declaration creates a transparent alias for an existing type. The alias is fully interchangeable with the original type in all operations.
+
+```ebnf
+BreedStmt = "breed" identifier "=" TypeExpr newline .
+```
+
+```meow
+breed Nickname = string
+nyan name Nickname = "Nyantyu"   # string and Nickname are interchangeable
+nya(name + " chan")              # string operations work directly
+```
+
+`breed` is a compile-time construct only — it leaves no trace in the generated code.
+
+### Newtype (collar)
+
+A `collar` declaration creates a distinct new type that wraps an existing type. Values must be constructed explicitly, and the inner value is accessed via `.value`.
+
+```ebnf
+CollarStmt = "collar" identifier "=" TypeExpr newline .
+```
+
+```meow
+collar UserId = int
+nyan id = UserId(42)       # constructor wraps the value
+nya(id.value)              # .value unwraps it => 42
+nya(id)                    # => UserId{value: 42}
+```
+
+Two `collar` types with the same underlying type are distinct:
+
+```meow
+collar Temperature = int
+collar Humidity = int
+nyan temp = Temperature(72)
+nyan humid = Humidity(72)
+# temp != humid — different collar types are never equal
+```
 
 ### Type Annotations
 
 Type annotations are optional but recommended. They appear after identifiers:
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "list" .
+TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "list" | identifier .
 ```
 
 Variable declaration with type:
@@ -393,6 +437,22 @@ kitty Point {
 nyan p = Point(3, 7)
 nya(p.x)   # => 3
 ```
+
+### Breed Statement
+
+```ebnf
+BreedStmt = "breed" identifier "=" TypeExpr newline .
+```
+
+Declares a type alias. See [Type Alias (breed)](#type-alias-breed) above.
+
+### Collar Statement
+
+```ebnf
+CollarStmt = "collar" identifier "=" TypeExpr newline .
+```
+
+Declares a newtype wrapper. See [Newtype (collar)](#newtype-collar) above.
 
 ### Expression Statement
 
