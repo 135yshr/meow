@@ -13,21 +13,32 @@ flowchart TD
     codegen["Codegen<br/>pkg/codegen"]
     gobuild["go build"]
     bin(["binary"])
+    interp["Interpreter<br/>pkg/interpreter"]
+    output(["output"])
 
     src --> lexer
     lexer -- "iter.Seq[Token]" --> parser
     parser -- "AST" --> checker
     checker -- "TypeInfo" --> codegen
+    checker -- "TypeInfo" --> interp
     codegen -- "Go source" --> gobuild
     gobuild --> bin
+    interp -- "direct execution" --> output
 ```
 
-The pipeline is orchestrated by `compiler/compiler.go`:
+There are two execution paths from the AST:
+
+**Compiler path** (CLI: `meow run`, `meow build`), orchestrated by `compiler/compiler.go`:
 1. **Lexer** tokenizes `.nyan` source into a stream of tokens
 2. **Parser** builds an AST from the token stream
 3. **Checker** performs type checking and collects type information
 4. **Codegen** transforms the AST into Go source code
 5. **go build** compiles the Go source to a native binary
+
+**Interpreter path** (Playground / WASM):
+1. **Lexer**, **Parser**, and **Checker** are shared with the compiler path
+2. **Interpreter** walks the AST directly, evaluating expressions and executing statements
+3. Output is captured to an `io.Writer` (no `go build` required)
 
 ## Lexer (`pkg/lexer/`)
 
@@ -403,3 +414,117 @@ Operators in `operators.go` use type switches to dispatch on operand types. All 
 ### Error Convention
 
 Runtime errors panic with strings matching `"Hiss! <message>, nya~"`. Test assertion failures use a distinct `testFailure` panic type (not prefixed with "Hiss!") so the test runner can distinguish assertion failures from runtime errors.
+
+### Method Registry
+
+`tricks.go` maintains a package-level method registry for `groom` method dispatch:
+
+```go
+var methodRegistry = map[string]map[string]func(...Value) Value{}
+```
+
+- `RegisterMethod(typeName, methodName, fn)` — registers a method
+- `LookupMethod(typeName, methodName)` — looks up a method
+- `DispatchMethod(obj, methodName, args...)` — calls a method on a `Kitty` value
+- `ClearMethods()` — clears all registered methods (used by the interpreter between runs)
+
+## Interpreter (`pkg/interpreter/`)
+
+The interpreter provides an alternative execution path that walks the AST directly, without generating Go source or invoking `go build`. It is used by the WASM-based Playground to run `.nyan` code in the browser.
+
+### Why an Interpreter?
+
+The compiler pipeline requires `go build`, which cannot run in a browser. The interpreter reuses the existing Lexer, Parser, Checker, and `runtime/meowrt` packages, replacing only the Codegen + `go build` step with direct AST evaluation.
+
+### Architecture
+
+```go
+type Interpreter struct {
+    globals    *Environment      // top-level scope
+    typeInfo   *checker.TypeInfo // optional type info from checker
+    output     io.Writer         // nya() output destination
+    kittyDefs  map[string]*ast.KittyStmt
+    collarDefs map[string]*ast.CollarStmt
+    funcDefs   map[string]*ast.FuncStmt
+    stepCount  int64
+    stepLimit  int64             // infinite loop protection (default 10M)
+}
+```
+
+### Environment (Scope Chain)
+
+Variable bindings are managed by a linked list of `Environment` scopes:
+
+```go
+type Environment struct {
+    vars   map[string]meowrt.Value
+    parent *Environment
+}
+```
+
+- `Define(name, val)` — bind in current scope
+- `Set(name, val)` — update existing binding (walks up chain)
+- `Get(name)` — lookup (walks up chain, panics if not found)
+- `Child()` — create child scope
+
+### Two-Pass Execution
+
+Like the codegen, the interpreter uses a two-pass approach:
+
+1. **Pass 1 (Declaration collection)**: Registers `KittyStmt`, `CollarStmt`, `FuncStmt`, `LearnStmt`, `BreedStmt`, and `TrickStmt`
+2. **Pass 2 (Execution)**: Runs all other top-level statements sequentially
+
+### Return Signal
+
+`bring` (return) is implemented via `panic(returnSignal{Value: val})`. Each function call wraps its body in a `defer/recover` block that catches `returnSignal` and extracts the return value. Other panics (e.g., `Hiss!` errors) propagate normally.
+
+### Output Capture
+
+`meowrt.Nya` writes to `fmt.Print` (stdout), which cannot be captured in the interpreter. Instead, the interpreter implements its own `builtinNya` that writes to `interp.output` (`io.Writer`). The logic is identical to `meowrt.Nya`.
+
+### Step Limit
+
+To prevent infinite loops (critical in the browser), every call to `evalExpr` and `execStmt` increments a step counter. When `stepLimit` is exceeded, a `stepLimitExceeded` panic is raised and caught by `RunSafe`.
+
+### Runtime Reuse
+
+The interpreter reuses `runtime/meowrt` extensively:
+
+| Category | Reused Functions |
+|----------|-----------------|
+| Values | `NewInt`, `NewFloat`, `NewString`, `NewBool`, `NewNil`, `NewFunc`, `NewList`, `NewMap`, `NewKitty` |
+| Operators | `Add`, `Sub`, `Mul`, `Div`, `Mod`, `Negate`, `Not`, `Equal`, `NotEqual`, `LessThan`, `GreaterThan`, `LessEqual`, `GreaterEqual` |
+| Builtins | `Hiss`, `Gag`, `GagOr`, `IsFurball`, `ToInt`, `ToFloat`, `ToString`, `Len`, `Call` |
+| Lists | `Lick`, `Picky`, `Curl`, `Head`, `Tail`, `Append` |
+| Methods | `RegisterMethod`, `LookupMethod`, `DispatchMethod`, `ClearMethods` |
+| Matching | `MatchValue`, `MatchRange` |
+
+### Limitations
+
+- `nab` (stdlib imports) is not supported — `file` and `http` require OS-level APIs unavailable in the browser
+- Method registry is global — `ClearMethods()` is called at the start of each `Run` to avoid accumulation across invocations
+
+## WASM Playground (`cmd/playground/`, `playground/`)
+
+The Playground compiles the interpreter pipeline to WebAssembly, allowing `.nyan` code to run in the browser.
+
+### WASM Entry Point (`cmd/playground/main_wasm.go`)
+
+Exports a single JavaScript function `runMeow(source)` that:
+1. Lexes and parses the source
+2. Runs the checker
+3. Executes via the interpreter
+4. Returns a JSON string `{output, error}`
+
+Build: `GOOS=js GOARCH=wasm go build -o playground/meow.wasm ./cmd/playground/`
+
+### Frontend (`playground/`)
+
+| File | Purpose |
+|------|---------|
+| `index.html` | Editor, Run button, output panel, example selector |
+| `style.css` | Dark theme with cat-themed accents |
+| `app.js` | WASM loading, `runMeow()` invocation, Ctrl+Enter shortcut |
+| `examples.js` | Sample programs (Hello World, Fibonacci, FizzBuzz, etc.) |
+| `wasm_exec.js` | Go WASM runtime (copied from `$(go env GOROOT)/lib/wasm/wasm_exec.js`) |
+| `meow.wasm` | Compiled WASM binary (~3.6 MB) |
