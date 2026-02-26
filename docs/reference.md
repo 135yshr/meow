@@ -27,6 +27,8 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
 | `catnap` | Nil (represents no value) | `nyan nothing = catnap` |
 | `kitty` | Struct (composite type) definition | `kitty Cat { name: string }` |
+| `breed` | Type alias (transparent) | `breed Nickname = string` |
+| `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
 
 ## Type Keywords
 
@@ -192,6 +194,43 @@ nya(nyantyu.age)        # => 3
 ```
 
 Fields are defined with `name: type` syntax. Instances are created by calling the type name as a constructor. Fields are accessed with `.` notation.
+
+### Type Alias (Breed)
+
+```meow
+breed Nickname = string
+breed Score = int
+
+nyan name Nickname = "Nyantyu"
+nya(name + " chan")   # => Nyantyu chan — fully compatible with string
+```
+
+`breed` creates a transparent alias. The alias and the original type are interchangeable in all contexts including arithmetic, comparisons, and function calls. `breed` is erased at compile time — no runtime cost.
+
+### Newtype (Collar)
+
+```meow
+collar UserId = int
+collar Email = string
+
+nyan id = UserId(42)
+nyan email = Email("nyantyu@meow.cat")
+
+nya(id)           # => UserId{value: 42}
+nya(id.value)     # => 42
+nya(email.value)  # => nyantyu@meow.cat
+```
+
+`collar` creates a distinct wrapper type. Values are constructed with `TypeName(value)` and unwrapped with `.value`. Different collar types with the same underlying type are **not** interchangeable:
+
+```meow
+collar Celsius = int
+collar Fahrenheit = int
+
+nyan c = Celsius(100)
+nyan f = Fahrenheit(212)
+# c != f — different collar types are never equal
+```
 
 ### Conditionals
 

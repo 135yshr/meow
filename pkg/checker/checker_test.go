@@ -427,3 +427,126 @@ func TestNotBoolOperand(t *testing.T) {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
+
+func TestBreedForwardReference(t *testing.T) {
+	_, errs := check(t, `
+breed Score = Points
+breed Points = int
+nyan s Score = 42
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed forward reference: %v", errs)
+	}
+}
+
+func TestUnknownNamedType(t *testing.T) {
+	_, errs := check(t, `nyan x Nonexistent = 42`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for unknown named type, got none")
+	}
+}
+
+func TestBreedAliasInCondition(t *testing.T) {
+	_, errs := check(t, `
+breed Flag = bool
+nyan f Flag = yarn
+sniff (f) {
+  nya(f)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias in condition: %v", errs)
+	}
+}
+
+func TestBreedAliasInRange(t *testing.T) {
+	_, errs := check(t, `
+breed Count = int
+nyan n Count = 5
+purr i (n) {
+  nya(i)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias in range: %v", errs)
+	}
+}
+
+func TestBreedAliasUnaryMinus(t *testing.T) {
+	_, errs := check(t, `
+breed Num = int
+nyan x Num = 42
+nyan y = -x
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias unary minus: %v", errs)
+	}
+}
+
+func TestCollarForwardReferenceToAlias(t *testing.T) {
+	_, errs := check(t, `
+collar Wrapper = Points
+breed Points = int
+nyan w = Wrapper(42)
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for collar forward reference to alias: %v", errs)
+	}
+}
+
+func TestBreedAliasToCollarMemberAccess(t *testing.T) {
+	_, errs := check(t, `
+collar UserId = int
+breed MyId = UserId
+nyan id MyId = UserId(42)
+nyan v = id.value
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias to collar member access: %v", errs)
+	}
+}
+
+func TestBreedAliasToKittyMemberAccess(t *testing.T) {
+	info, errs := check(t, `
+kitty Cat {
+  name: string,
+  age: int
+}
+breed Pet = Cat
+nyan p Pet = Cat("Nyantyu", 3)
+nyan n = p.name
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias to kitty member access: %v", errs)
+	}
+	if _, ok := info.VarTypes["n"].(types.StringType); !ok {
+		t.Errorf("expected string for n, got %v", info.VarTypes["n"])
+	}
+}
+
+func TestAliasToCollarForwardChain(t *testing.T) {
+	// breed -> collar -> breed chain with forward references
+	_, errs := check(t, `
+breed Wrapped = MyCollar
+collar MyCollar = Points
+breed Points = int
+nyan w Wrapped = MyCollar(42)
+nyan v = w.value
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for alias->collar->alias forward chain: %v", errs)
+	}
+}
+
+func TestCollarToCollarForwardRef(t *testing.T) {
+	// collar whose underlying is another collar (resolved later)
+	// Outer wraps Inner, so Outer(Inner(42)) is valid but Outer(42) is not
+	_, errs := check(t, `
+collar Outer = Inner
+collar Inner = int
+nyan o = Outer(Inner(42))
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for collar->collar forward ref: %v", errs)
+	}
+}

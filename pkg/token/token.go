@@ -73,6 +73,8 @@ const (
 	YARN     // yarn (true)
 	HAIRBALL // hairball (false)
 	KITTY    // kitty (struct)
+	BREED    // breed (type alias)
+	COLLAR   // collar (newtype)
 
 	// Type keywords
 	TYPE_INT     // int
@@ -104,6 +106,8 @@ var keywords = map[string]TokenType{
 	"yarn":     YARN,
 	"hairball": HAIRBALL,
 	"kitty":    KITTY,
+	"breed":    BREED,
+	"collar":   COLLAR,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,

@@ -18,6 +18,16 @@ func (n *BasicType) Pos() token.Position { return n.Token.Pos }
 func (n *BasicType) nodeTag()            {}
 func (n *BasicType) typeExprTag()        {}
 
+// NamedType represents a user-defined type name (e.g. UserId, Nickname).
+type NamedType struct {
+	Token token.Token
+	Name  string
+}
+
+func (n *NamedType) Pos() token.Position { return n.Token.Pos }
+func (n *NamedType) nodeTag()            {}
+func (n *NamedType) typeExprTag()        {}
+
 // Param represents a function parameter with optional type annotation.
 type Param struct {
 	Name    string

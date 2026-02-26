@@ -252,6 +252,59 @@ nyan r = Rectangle(4.0, 5.0)
 describe(r)   # => 4x5 = 20
 ```
 
+## Type Alias and Newtype Patterns
+
+### Use `breed` for domain vocabulary
+
+`breed` makes code self-documenting without runtime cost. Use it to name domain concepts:
+
+```meow
+breed Meters = float
+breed Seconds = float
+breed MetersPerSecond = float
+
+meow speed(distance Meters, time Seconds) MetersPerSecond {
+  bring distance / time
+}
+```
+
+Since `breed` is transparent, you can still pass plain `float` values where `Meters` is expected.
+
+### Use `collar` to prevent mix-ups
+
+When two values share the same underlying type but must never be confused, use `collar`:
+
+```meow
+collar UserId = int
+collar ProductId = int
+
+meow fetch_user(id UserId) { ... }
+
+nyan user_id = UserId(42)
+nyan product_id = ProductId(99)
+
+fetch_user(user_id)       # correct
+# fetch_user(product_id)  # type error — ProductId is not UserId
+```
+
+### Naming conventions for type declarations
+
+- **breed/collar names**: `PascalCase` — `UserId`, `Nickname`, `Temperature` (like `kitty` types)
+- **breed** for readable aliases: `breed Meters = float`
+- **collar** for type-safe wrappers: `collar UserId = int`
+
+### Unwrapping collar values
+
+Access the inner value with `.value`:
+
+```meow
+collar Email = string
+nyan email = Email("nyantyu@meow.cat")
+
+# Use .value when you need the raw value
+nya("Contact: " + email.value)
+```
+
 ## Testing Patterns
 
 ### `test_` vs `catwalk_`

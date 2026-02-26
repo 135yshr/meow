@@ -10,37 +10,37 @@ type Type interface {
 type IntType struct{}
 
 func (IntType) String() string    { return "int" }
-func (IntType) Equals(t Type) bool { _, ok := t.(IntType); return ok }
+func (IntType) Equals(t Type) bool { _, ok := Unwrap(t).(IntType); return ok }
 
 // FloatType represents the float type.
 type FloatType struct{}
 
 func (FloatType) String() string    { return "float" }
-func (FloatType) Equals(t Type) bool { _, ok := t.(FloatType); return ok }
+func (FloatType) Equals(t Type) bool { _, ok := Unwrap(t).(FloatType); return ok }
 
 // StringType represents the string type.
 type StringType struct{}
 
 func (StringType) String() string    { return "string" }
-func (StringType) Equals(t Type) bool { _, ok := t.(StringType); return ok }
+func (StringType) Equals(t Type) bool { _, ok := Unwrap(t).(StringType); return ok }
 
 // BoolType represents the bool type.
 type BoolType struct{}
 
 func (BoolType) String() string    { return "bool" }
-func (BoolType) Equals(t Type) bool { _, ok := t.(BoolType); return ok }
+func (BoolType) Equals(t Type) bool { _, ok := Unwrap(t).(BoolType); return ok }
 
 // NilType represents the nil type.
 type NilType struct{}
 
 func (NilType) String() string    { return "nil" }
-func (NilType) Equals(t Type) bool { _, ok := t.(NilType); return ok }
+func (NilType) Equals(t Type) bool { _, ok := Unwrap(t).(NilType); return ok }
 
 // FurballType represents an error (Furball) type.
 type FurballType struct{}
 
 func (FurballType) String() string    { return "furball" }
-func (FurballType) Equals(t Type) bool { _, ok := t.(FurballType); return ok }
+func (FurballType) Equals(t Type) bool { _, ok := Unwrap(t).(FurballType); return ok }
 
 // AnyType is an internal fallback type for built-in operations whose types
 // cannot be statically determined (e.g. head, tail, gag). User code must
@@ -114,6 +114,43 @@ func (k KittyType) String() string { return k.Name }
 func (k KittyType) Equals(t Type) bool {
 	o, ok := t.(KittyType)
 	return ok && k.Name == o.Name
+}
+
+// Unwrap resolves AliasType wrappers recursively, returning the underlying type.
+// Non-alias types are returned unchanged.
+func Unwrap(t Type) Type {
+	for {
+		a, ok := t.(AliasType)
+		if !ok {
+			return t
+		}
+		t = a.Underlying
+	}
+}
+
+// AliasType represents a type alias (breed). It is transparent: an AliasType
+// equals its underlying type.
+type AliasType struct {
+	Name       string
+	Underlying Type
+}
+
+func (a AliasType) String() string { return a.Name }
+func (a AliasType) Equals(t Type) bool {
+	return Unwrap(a).Equals(Unwrap(t))
+}
+
+// CollarType represents a newtype (collar). It is nominal: two CollarTypes
+// are equal only if they share the same name.
+type CollarType struct {
+	Name       string
+	Underlying Type
+}
+
+func (c CollarType) String() string { return c.Name }
+func (c CollarType) Equals(t Type) bool {
+	o, ok := t.(CollarType)
+	return ok && c.Name == o.Name
 }
 
 // IsAny reports whether t is AnyType.

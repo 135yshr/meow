@@ -433,6 +433,34 @@ func (n *KittyStmt) Pos() token.Position { return n.Token.Pos }
 func (n *KittyStmt) nodeTag()            {}
 func (n *KittyStmt) stmtTag()            {}
 
+// BreedStmt represents a type alias declaration (breed Nickname = string).
+type BreedStmt struct {
+	// Token is the breed keyword token.
+	Token token.Token
+	// Name is the alias name.
+	Name string
+	// Original is the original type.
+	Original TypeExpr
+}
+
+func (n *BreedStmt) Pos() token.Position { return n.Token.Pos }
+func (n *BreedStmt) nodeTag()            {}
+func (n *BreedStmt) stmtTag()            {}
+
+// CollarStmt represents a newtype declaration (collar UserId = int).
+type CollarStmt struct {
+	// Token is the collar keyword token.
+	Token token.Token
+	// Name is the newtype name.
+	Name string
+	// Wrapped is the wrapped type.
+	Wrapped TypeExpr
+}
+
+func (n *CollarStmt) Pos() token.Position { return n.Token.Pos }
+func (n *CollarStmt) nodeTag()            {}
+func (n *CollarStmt) stmtTag()            {}
+
 // ExprStmt represents an expression used as a statement.
 type ExprStmt struct {
 	// Token is the first token of the expression.

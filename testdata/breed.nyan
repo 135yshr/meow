@@ -1,0 +1,9 @@
+# Breed (type alias) basic test
+
+breed Nickname = string
+breed Score = int
+
+nyan name = "Nyantyu"
+nyan score = 42
+nya(name)
+nya(score)
