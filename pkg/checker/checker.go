@@ -131,29 +131,23 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 	// Fixup: refresh stale alias/collar references from forward declarations.
 	// When breed A = B was resolved before breed B = int, A's underlying holds
 	// a stale copy of B. Replace it with the latest from the map.
+	// Both AliasType and CollarType snapshots can become stale, so we check
+	// both wrapper kinds in each entry.
 	maxIter := len(c.info.AliasTypes) + len(c.info.CollarTypes)
 	for i := 0; i < maxIter; i++ {
 		changed := false
 		for name, at := range c.info.AliasTypes {
-			if inner, ok := at.Underlying.(types.AliasType); ok {
-				if latest, found := c.info.AliasTypes[inner.Name]; found {
-					if !inner.Underlying.Equals(latest.Underlying) {
-						at.Underlying = latest
-						c.info.AliasTypes[name] = at
-						changed = true
-					}
-				}
+			if refreshed, ok := c.refreshUnderlying(at.Underlying); ok {
+				at.Underlying = refreshed
+				c.info.AliasTypes[name] = at
+				changed = true
 			}
 		}
 		for name, ct := range c.info.CollarTypes {
-			if inner, ok := ct.Underlying.(types.AliasType); ok {
-				if latest, found := c.info.AliasTypes[inner.Name]; found {
-					if !inner.Underlying.Equals(latest.Underlying) {
-						ct.Underlying = latest
-						c.info.CollarTypes[name] = ct
-						changed = true
-					}
-				}
+			if refreshed, ok := c.refreshUnderlying(ct.Underlying); ok {
+				ct.Underlying = refreshed
+				c.info.CollarTypes[name] = ct
+				changed = true
 			}
 		}
 		if !changed {
@@ -170,6 +164,27 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 		return c.info, c.errors
 	}
 	return c.info, nil
+}
+
+// refreshUnderlying checks if t is a stale AliasType or CollarType snapshot
+// and returns the latest version from the map. Returns (latest, true) if
+// refreshed, or (nil, false) if no update is needed.
+func (c *Checker) refreshUnderlying(t types.Type) (types.Type, bool) {
+	switch inner := t.(type) {
+	case types.AliasType:
+		if latest, found := c.info.AliasTypes[inner.Name]; found {
+			if !inner.Underlying.Equals(latest.Underlying) {
+				return latest, true
+			}
+		}
+	case types.CollarType:
+		if latest, found := c.info.CollarTypes[inner.Name]; found {
+			if !inner.Underlying.Equals(latest.Underlying) {
+				return latest, true
+			}
+		}
+	}
+	return nil, false
 }
 
 func (c *Checker) funcSignatureType(fn *ast.FuncStmt) types.FuncType {

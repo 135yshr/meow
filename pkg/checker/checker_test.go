@@ -523,3 +523,30 @@ nyan n = p.name
 		t.Errorf("expected string for n, got %v", info.VarTypes["n"])
 	}
 }
+
+func TestAliasToCollarForwardChain(t *testing.T) {
+	// breed -> collar -> breed chain with forward references
+	_, errs := check(t, `
+breed Wrapped = MyCollar
+collar MyCollar = Points
+breed Points = int
+nyan w Wrapped = MyCollar(42)
+nyan v = w.value
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for alias->collar->alias forward chain: %v", errs)
+	}
+}
+
+func TestCollarToCollarForwardRef(t *testing.T) {
+	// collar whose underlying is another collar (resolved later)
+	// Outer wraps Inner, so Outer(Inner(42)) is valid but Outer(42) is not
+	_, errs := check(t, `
+collar Outer = Inner
+collar Inner = int
+nyan o = Outer(Inner(42))
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for collar->collar forward ref: %v", errs)
+	}
+}
