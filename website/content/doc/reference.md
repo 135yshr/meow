@@ -25,7 +25,7 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `hiss` | Raise an error | `hiss("something went wrong")` |
 | `gag` | Catch errors (try/recover) | `gag(paw() { risky() })` |
 | `is_furball` | Check if a value is an error | `is_furball(result)` |
-| `fetch` | Import standard library package | `fetch "http"` |
+| `nab` | Import standard library package | `nab "http"` |
 | `flaunt` | Export *(reserved)* | --- |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
@@ -43,7 +43,7 @@ Meow supports gradual static typing. Type keywords can annotate variables, funct
 | `string` | UTF-8 string | `nyan name string = "Nyantyu"` |
 | `bool` | Boolean | `nyan ok bool = yarn` |
 | `furball` | Error value | `paw(err furball) { ... }` |
-| `list` | List of values | `nyan nums list = [1, 2, 3]` |
+| `litter` | List of values | `nyan nums litter = [1, 2, 3]` |
 
 ### Type Annotation Syntax
 
@@ -354,20 +354,20 @@ Patterns can be:
 - **Range** — match an inclusive range (`1..10`)
 - **Wildcard** — match anything (`_`)
 
-### Import (Fetch)
+### Import (Nab)
 
-Use `fetch` to import a standard library package:
+Use `nab` to import a standard library package:
 
 ```meow
-fetch "file"
-fetch "http"
-fetch "testing"
+nab "file"
+nab "http"
+nab "testing"
 ```
 
 After importing, call package functions with `package.function()` syntax:
 
 ```meow
-fetch "file"
+nab "file"
 nyan content = file.snoop("data.txt")
 nya(content)
 ```
@@ -384,7 +384,7 @@ nyan nyantyu = Cat("Nyantyu", 3)
 nya(nyantyu.name)   # => Nyantyu
 
 # Package function call
-fetch "http"
+nab "http"
 http.pounce("https://example.com") |=| nya
 ```
 
@@ -393,7 +393,7 @@ http.pounce("https://example.com") |=| nya
 Test functions use the `test_` prefix and `catwalk_` prefix:
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow test_addition() {
   expect(1 + 1, 2, "basic addition")

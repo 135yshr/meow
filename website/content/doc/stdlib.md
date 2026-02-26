@@ -6,7 +6,7 @@ weight: 2
 
 This document describes all built-in functions and standard library packages available in Meow.
 
-## Built-in Functions (no `fetch` required)
+## Built-in Functions (no `nab` required)
 
 These functions are available globally in every `.nyan` program.
 
@@ -166,7 +166,7 @@ nya(to_string([1, 2, 3]))   # => [1, 2, 3]
 
 ## file Package
 
-Import with `fetch "file"`. Provides file I/O operations.
+Import with `nab "file"`. Provides file I/O operations.
 
 ### `file.snoop(path)`
 
@@ -177,7 +177,7 @@ Read the entire contents of a file as a string. Trailing `\r\n` is stripped.
 - **Panics**: If the file cannot be read.
 
 ```meow
-fetch "file"
+nab "file"
 
 nyan content = file.snoop("data.txt")
 nya(content)
@@ -192,7 +192,7 @@ Read a file line by line and return a list of strings.
 - **Panics**: If the file cannot be read.
 
 ```meow
-fetch "file"
+nab "file"
 
 nyan lines = file.stalk("data.txt")
 lines |=| lick(paw(line) { "=> " + line }) |=| nya
@@ -204,7 +204,7 @@ Maximum line length: 1 MiB.
 
 ## http Package
 
-Import with `fetch "http"`. Provides HTTP client operations. All functions return the response body as a string.
+Import with `nab "http"`. Provides HTTP client operations. All functions return the response body as a string.
 
 **Default settings:**
 - Timeout: 10 seconds
@@ -239,7 +239,7 @@ HTTP GET request.
 - **Returns**: Response body as string.
 
 ```meow
-fetch "http"
+nab "http"
 
 nyan body = http.pounce("https://httpbin.org/get")
 nya(body)
@@ -263,7 +263,7 @@ HTTP POST request.
 - **Returns**: Response body as string.
 
 ```meow
-fetch "http"
+nab "http"
 
 # POST with JSON body (map → auto-JSON)
 http.toss("https://httpbin.org/post", {"name": "Nyantyu", "age": 3})
@@ -277,7 +277,7 @@ http.toss("https://httpbin.org/post", "raw data")
 HTTP PUT request. Same arguments as `toss`.
 
 ```meow
-fetch "http"
+nab "http"
 http.knead("https://httpbin.org/put", {"name": "Tyako"})
 ```
 
@@ -290,7 +290,7 @@ HTTP DELETE request.
 - **Returns**: Response body as string.
 
 ```meow
-fetch "http"
+nab "http"
 http.swat("https://httpbin.org/delete")
 ```
 
@@ -303,7 +303,7 @@ HTTP OPTIONS request.
 - **Returns**: Response body as string.
 
 ```meow
-fetch "http"
+nab "http"
 http.prowl("https://httpbin.org/get")
 ```
 
@@ -311,7 +311,7 @@ http.prowl("https://httpbin.org/get")
 
 ## testing Package
 
-Import with `fetch "testing"`. Provides test assertions and test execution.
+Import with `nab "testing"`. Provides test assertions and test execution.
 
 ### Test Function Conventions
 
@@ -371,7 +371,7 @@ Execute a named test function. Catches panics and records the result.
 - **Returns**: `yarn` if passed, `hairball` if failed.
 
 ```meow
-fetch "testing"
+nab "testing"
 testing.run("my test", paw() {
   judge(1 + 1 == 2)
 })
@@ -389,7 +389,7 @@ Execute a function, capture its stdout output, and compare with expected output.
 - **Returns**: `yarn` if passed, `hairball` if failed.
 
 ```meow
-fetch "testing"
+nab "testing"
 testing.catwalk("hello output", paw() {
   nya("Hello, World!")
 }, "Hello, World!\n")
@@ -417,7 +417,7 @@ Or on failure:
 ### Complete Test Example
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow test_arithmetic() {
   expect(1 + 1, 2, "addition")

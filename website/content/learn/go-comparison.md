@@ -25,7 +25,7 @@ A side-by-side reference for Go developers learning Meow. Meow transpiles to Go,
 | False | `false` | `hairball` |
 | Nil | `nil` | `catnap` |
 | Struct | `type Cat struct { ... }` | `kitty Cat { ... }` |
-| Import | `import "net/http"` | `fetch "http"` |
+| Import | `import "net/http"` | `nab "http"` |
 | Error | `errors.New("msg")` | `hiss("msg")` |
 | Panic | `panic("msg")` | `hiss("msg")` |
 | Recover | `defer func() { recover() }()` | `gag(paw() { ... })` |
@@ -220,7 +220,7 @@ fmt.Println(string(body))
 
 **Meow:**
 ```meow
-fetch "http"
+nab "http"
 http.pounce("https://example.com") |=| nya
 ```
 
@@ -271,7 +271,7 @@ Go requires manual loops for map/filter/reduce. Meow has built-in `lick`, `picky
 
 ### Single-file Programs
 
-Meow programs are single `.nyan` files. There's no module system — standard library packages are imported with `fetch`, but user code lives in one file.
+Meow programs are single `.nyan` files. There's no module system — standard library packages are imported with `nab`, but user code lives in one file.
 
 ## Transpiled Output
 

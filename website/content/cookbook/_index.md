@@ -8,7 +8,7 @@ Task-based recipes for common programming patterns in Meow. Each recipe is a com
 ## 1. Read a File and Process Each Line
 
 ```meow
-fetch "file"
+nab "file"
 
 nyan lines = file.stalk("input.txt")
 lines |=| lick(paw(line) {
@@ -19,7 +19,7 @@ lines |=| lick(paw(line) {
 With filtering (skip empty lines):
 
 ```meow
-fetch "file"
+nab "file"
 
 file.stalk("input.txt")
   |=| picky(paw(line) { len(line) > 0 })
@@ -30,7 +30,7 @@ file.stalk("input.txt")
 ## 2. HTTP GET Request with Error Handling
 
 ```meow
-fetch "http"
+nab "http"
 
 nyan response = http.pounce("https://httpbin.org/get") ~> paw(err) {
   nya("Request failed:", err)
@@ -42,7 +42,7 @@ nya(response)
 With custom headers:
 
 ```meow
-fetch "http"
+nab "http"
 
 nyan response = http.pounce("https://api.example.com/data", {
   "headers": {
@@ -56,7 +56,7 @@ nya(response)
 ## 3. POST JSON Data
 
 ```meow
-fetch "http"
+nab "http"
 
 nyan data = {
   "name": "Nyantyu",
@@ -208,7 +208,7 @@ meow add_one(x) { x + 1 }
 Read a file, process it, and display:
 
 ```meow
-fetch "file"
+nab "file"
 
 file.stalk("names.txt")
   |=| picky(paw(name) { len(name) > 0 })
@@ -221,7 +221,7 @@ file.stalk("names.txt")
 ### Basic test file (`math_test.nyan`)
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow add(a int, b int) int {
   bring a + b
@@ -259,7 +259,7 @@ meow catwalk_greeting() {
 ### Testing error conditions
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow safe_divide(a int, b int) int {
   sniff (b == 0) {
@@ -281,7 +281,7 @@ meow test_division_success() {
 ## 10. Find Maximum in a List (curl pattern)
 
 ```meow
-meow find_max(nums list) {
+meow find_max(nums litter) {
   bring curl(tail(nums), head(nums), paw(max, x) {
     peek(x > max) {
       yarn => x,
@@ -297,7 +297,7 @@ nya("Max:", find_max(numbers))   # => Max: 9
 Find minimum using the same pattern:
 
 ```meow
-meow find_min(nums list) {
+meow find_min(nums litter) {
   bring curl(tail(nums), head(nums), paw(min, x) {
     peek(x < min) {
       yarn => x,
@@ -315,7 +315,7 @@ nya("Min:", find_min(numbers))   # => Min: 1
 Handle different error scenarios:
 
 ```meow
-fetch "http"
+nab "http"
 
 meow fetch_data(url string) string {
   bring http.pounce(url) ~> paw(err) {
@@ -348,7 +348,7 @@ nya(result)   # => default
 Nested recovery:
 
 ```meow
-fetch "file"
+nab "file"
 
 meow get_config() string {
   bring file.snoop("config.json")

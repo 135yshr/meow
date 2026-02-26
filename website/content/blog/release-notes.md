@@ -96,7 +96,7 @@ nyan x int = 42
 ```
 
 **What's new:**
-- Type keywords: `int`, `float`, `string`, `bool`, `furball`, `list`
+- Type keywords: `int`, `float`, `string`, `bool`, `furball`, `litter`
 - Variable type annotations: `nyan x int = 42`
 - Function parameter types: `meow f(a int, b int)`
 - Return type annotations: `meow f(a int) int`
@@ -187,7 +187,7 @@ meow help build
 Full-featured testing framework with fuzz support.
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow test_basic() {
   expect(1 + 1, 2, "addition")
@@ -212,12 +212,12 @@ meow test_basic() {
 ## Standard Library: HTTP Client — PR #11
 
 ```meow
-fetch "http"
+nab "http"
 http.pounce("https://example.com") |=| nya
 ```
 
 **What's new:**
-- `http` package (`fetch "http"`)
+- `http` package (`nab "http"`)
 - `pounce(url)` — HTTP GET
 - `toss(url, body)` — HTTP POST
 - `knead(url, body)` — HTTP PUT
@@ -232,16 +232,16 @@ http.pounce("https://example.com") |=| nya
 ## Standard Library: File I/O — PR #10
 
 ```meow
-fetch "file"
+nab "file"
 nyan content = file.snoop("data.txt")
 nyan lines = file.stalk("data.txt")
 ```
 
 **What's new:**
-- `file` package (`fetch "file"`)
+- `file` package (`nab "file"`)
 - `snoop(path)` — read entire file as string
 - `stalk(path)` — read file line by line, return list
-- `fetch` statement for importing standard library packages
+- `nab` statement for importing standard library packages
 - Member access syntax: `package.function()`
 
 ---

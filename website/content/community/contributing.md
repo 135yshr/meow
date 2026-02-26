@@ -168,13 +168,13 @@ flowchart LR
 
 4. Users will write:
    ```meow
-   fetch "mypackage"
+   nab "mypackage"
    mypackage.my_func("arg")
    ```
 
 5. **Add tests**:
    - Unit tests in `runtime/<name>/<name>_test.go`
-   - Integration test with `fetch`
+   - Integration test with `nab`
 
 6. **Update documentation**:
    - `docs/stdlib.md` — add package section
