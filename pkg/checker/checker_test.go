@@ -538,6 +538,89 @@ nyan v = w.value
 	}
 }
 
+func TestLearnUnknownType(t *testing.T) {
+	_, errs := check(t, `
+learn Unknown {
+    meow show() string {
+        bring "hello"
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for learn on unknown type, got none")
+	}
+}
+
+func TestLearnDuplicateMethod(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+    meow show() string {
+        bring self.name
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for duplicate method, got none")
+	}
+}
+
+func TestTrickSatisfaction(t *testing.T) {
+	// Cat has show() string, so it structurally satisfies Showable
+	info, errs := check(t, `
+trick Showable {
+    meow show() string
+}
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	// Verify trick type was registered
+	if _, ok := info.TrickTypes["Showable"]; !ok {
+		t.Error("expected Showable trick to be registered")
+	}
+	// Verify learn method was registered
+	if methods, ok := info.LearnImpls["Cat"]; !ok {
+		t.Error("expected Cat learn impls to be registered")
+	} else if _, ok := methods["show"]; !ok {
+		t.Error("expected show method in Cat learn impls")
+	}
+}
+
+func TestLearnMemberExprType(t *testing.T) {
+	info, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.show()
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if _, ok := info.VarTypes["s"].(types.StringType); !ok {
+		t.Errorf("expected string for s, got %v", info.VarTypes["s"])
+	}
+}
+
 func TestCollarToCollarForwardRef(t *testing.T) {
 	// collar whose underlying is another collar (resolved later)
 	// Outer wraps Inner, so Outer(Inner(42)) is valid but Outer(42) is not

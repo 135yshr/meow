@@ -16,6 +16,8 @@ type TypeInfo struct {
 	KittyTypes  map[string]types.KittyType
 	AliasTypes  map[string]types.AliasType
 	CollarTypes map[string]types.CollarType
+	TrickTypes  map[string]types.TrickType
+	LearnImpls  map[string]map[string]types.FuncType // typeName → methodName → FuncType
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -27,6 +29,8 @@ func NewTypeInfo() *TypeInfo {
 		KittyTypes:  make(map[string]types.KittyType),
 		AliasTypes:  make(map[string]types.AliasType),
 		CollarTypes: make(map[string]types.CollarType),
+		TrickTypes:  make(map[string]types.TrickType),
+		LearnImpls:  make(map[string]map[string]types.FuncType),
 	}
 }
 
@@ -98,6 +102,9 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 		if ks, ok := stmt.(*ast.KittyStmt); ok {
 			c.info.KittyTypes[ks.Name] = types.KittyType{Name: ks.Name}
 		}
+		if ts, ok := stmt.(*ast.TrickStmt); ok {
+			c.info.TrickTypes[ts.Name] = types.TrickType{Name: ts.Name}
+		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			ft := c.funcSignatureType(fn)
 			c.info.FuncTypes[fn.Name] = ft
@@ -125,6 +132,23 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 			kt := c.info.KittyTypes[ks.Name]
 			kt.Fields = fields
 			c.info.KittyTypes[ks.Name] = kt
+		}
+		if ts, ok := stmt.(*ast.TrickStmt); ok {
+			methods := make([]types.TrickMethodSig, len(ts.Methods))
+			for i, m := range ts.Methods {
+				paramTypes := make([]types.Type, len(m.Params))
+				for j, p := range m.Params {
+					paramTypes[j] = c.resolveTypeExpr(p.TypeAnn)
+				}
+				methods[i] = types.TrickMethodSig{
+					Name:       m.Name,
+					ParamTypes: paramTypes,
+					ReturnType: c.resolveTypeExpr(m.ReturnType),
+				}
+			}
+			tt := c.info.TrickTypes[ts.Name]
+			tt.Methods = methods
+			c.info.TrickTypes[ts.Name] = tt
 		}
 	}
 
@@ -257,6 +281,66 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		// already registered in first pass
 	case *ast.CollarStmt:
 		// already registered in first pass
+	case *ast.TrickStmt:
+		// already registered in first/second pass
+	case *ast.LearnStmt:
+		c.checkLearnStmt(s)
+	}
+}
+
+func (c *Checker) checkLearnStmt(s *ast.LearnStmt) {
+	// Verify the target type exists
+	_, isKitty := c.info.KittyTypes[s.TypeName]
+	_, isCollar := c.info.CollarTypes[s.TypeName]
+	if !isKitty && !isCollar {
+		c.addError(s.Token.Pos, "learn target %s is not a known kitty or collar type", s.TypeName)
+		return
+	}
+
+	if c.info.LearnImpls[s.TypeName] == nil {
+		c.info.LearnImpls[s.TypeName] = make(map[string]types.FuncType)
+	}
+
+	for i := range s.Methods {
+		m := &s.Methods[i]
+
+		// Check for duplicate method names
+		if _, exists := c.info.LearnImpls[s.TypeName][m.Name]; exists {
+			c.addError(m.Token.Pos, "duplicate method %s for type %s", m.Name, s.TypeName)
+			continue
+		}
+
+		// Type check the method body with self in scope
+		prevReturnType := c.currentReturnType
+		c.currentReturnType = c.resolveTypeExpr(m.ReturnType)
+
+		c.pushScope()
+		// Register self as the target type
+		if isKitty {
+			c.define("self", c.info.KittyTypes[s.TypeName])
+		} else {
+			c.define("self", c.info.CollarTypes[s.TypeName])
+		}
+		for _, p := range m.Params {
+			pt := c.resolveTypeExpr(p.TypeAnn)
+			c.define(p.Name, pt)
+		}
+		for _, stmt := range m.Body {
+			c.checkStmt(stmt)
+		}
+		c.popScope()
+		c.currentReturnType = prevReturnType
+
+		// Register the method signature
+		paramTypes := make([]types.Type, len(m.Params))
+		for j, p := range m.Params {
+			paramTypes[j] = c.resolveTypeExpr(p.TypeAnn)
+		}
+		ft := types.FuncType{
+			Params: paramTypes,
+			Return: c.resolveTypeExpr(m.ReturnType),
+		}
+		c.info.LearnImpls[s.TypeName][m.Name] = ft
 	}
 }
 
@@ -516,7 +600,13 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 			if e.Member == "value" {
 				return ct.Underlying
 			}
-			c.addError(e.Token.Pos, "%s has no field %s", ct.Name, e.Member)
+			// Check learn methods for collar types
+			if methods, ok := c.info.LearnImpls[ct.Name]; ok {
+				if ft, ok := methods[e.Member]; ok {
+					return ft.Return
+				}
+			}
+			c.addError(e.Token.Pos, "%s has no field or method %s", ct.Name, e.Member)
 			return types.AnyType{}
 		}
 		if kt, ok := objType.(types.KittyType); ok {
@@ -525,9 +615,17 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 					return f.Type
 				}
 			}
-			c.addError(e.Token.Pos, "%s has no field %s", kt.Name, e.Member)
+			// Check learn methods for kitty types
+			if methods, ok := c.info.LearnImpls[kt.Name]; ok {
+				if ft, ok := methods[e.Member]; ok {
+					return ft.Return
+				}
+			}
+			c.addError(e.Token.Pos, "%s has no field or method %s", kt.Name, e.Member)
 		}
 		return types.AnyType{}
+	case *ast.SelfExpr:
+		return c.lookup("self")
 	default:
 		return types.AnyType{}
 	}
@@ -700,6 +798,26 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			}
 			return ft.Return
 		}
+	}
+
+	// Handle member call (e.g. c.show())
+	if member, ok := e.Fn.(*ast.MemberExpr); ok {
+		objType := types.Unwrap(c.inferExpr(member.Object))
+		typeName := ""
+		switch tt := objType.(type) {
+		case types.KittyType:
+			typeName = tt.Name
+		case types.CollarType:
+			typeName = tt.Name
+		}
+		if typeName != "" {
+			if methods, ok := c.info.LearnImpls[typeName]; ok {
+				if ft, ok := methods[member.Member]; ok {
+					return ft.Return
+				}
+			}
+		}
+		return types.AnyType{}
 	}
 
 	c.inferExpr(e.Fn)

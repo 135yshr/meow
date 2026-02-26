@@ -75,6 +75,9 @@ const (
 	KITTY    // kitty (struct)
 	BREED    // breed (type alias)
 	COLLAR   // collar (newtype)
+	TRICK    // trick (interface)
+	LEARN    // learn (method impl)
+	SELF     // self (self reference)
 
 	// Type keywords
 	TYPE_INT     // int
@@ -108,6 +111,9 @@ var keywords = map[string]TokenType{
 	"kitty":    KITTY,
 	"breed":    BREED,
 	"collar":   COLLAR,
+	"trick":    TRICK,
+	"learn":    LEARN,
+	"self":     SELF,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,

@@ -1,0 +1,49 @@
+trick Showable {
+    meow show() string
+}
+
+kitty Cat { name: string, age: int }
+kitty Dog { kind: string }
+
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+learn Dog {
+    meow show() string {
+        bring self.kind
+    }
+}
+
+collar Label = string
+
+learn Label {
+    meow display() string {
+        bring self.value
+    }
+}
+
+meow test_trick_method_dispatch() {
+    nyan c = Cat("Nyantyu", 3)
+    judge(c.show() == "Nyantyu", "cat show method")
+}
+
+meow test_trick_bool_method() {
+    nyan c = Cat("Nyantyu", 3)
+    judge(c.is_kitten() == hairball, "cat is_kitten method")
+}
+
+meow test_trick_multiple_types() {
+    nyan d = Dog("Shiba Inu")
+    judge(d.show() == "Shiba Inu", "dog show method")
+}
+
+meow test_trick_collar() {
+    nyan l = Label("Tyako")
+    judge(l.display() == "Tyako", "collar method")
+}
