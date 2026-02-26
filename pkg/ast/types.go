@@ -8,10 +8,10 @@ type TypeExpr interface {
 	typeExprTag()
 }
 
-// BasicType represents a type keyword (int, float, string, bool, furball, list).
+// BasicType represents a type keyword (int, float, string, bool, furball, litter).
 type BasicType struct {
 	Token token.Token
-	Name  string // "int", "float", "string", "bool", "furball", "list"
+	Name  string // "int", "float", "string", "bool", "furball", "litter"
 }
 
 func (n *BasicType) Pos() token.Position { return n.Token.Pos }
