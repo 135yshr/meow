@@ -432,7 +432,84 @@ nyan humid = Humidity(72)
 | `breed` | You want a readable alias with zero cost (documentation only) |
 | `collar` | You want the compiler to prevent accidental mixing of similar types |
 
-## 11. Standard Library
+## 11. Interfaces and Methods
+
+### Defining Methods with `learn`
+
+You can add methods to `kitty` and `collar` types using `learn`. Inside a method body, `self` refers to the instance the method is called on:
+
+```meow
+kitty Cat {
+  name: string,
+  age: int
+}
+
+learn Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+nyan nyantyu = Cat("Nyantyu", 3)
+nyan tyako = Cat("Tyako", 0)
+
+nya(nyantyu.show())      # => Nyantyu (age 3)
+nya(tyako.is_kitten())   # => yarn
+```
+
+Methods on `collar` types use `self.value` to access the wrapped inner value:
+
+```meow
+collar Label = string
+
+learn Label {
+    meow display() string {
+        bring "[ " + self.value + " ]"
+    }
+}
+
+nyan tag = Label("important")
+nya(tag.display())   # => [ important ]
+```
+
+### Defining Interfaces with `trick`
+
+A `trick` defines an interface — a named set of method signatures that types can implement:
+
+```meow
+trick Showable {
+    meow show() string
+}
+```
+
+Types structurally satisfy a `trick` if they have all required methods. No explicit declaration is needed — if a type has the methods, it satisfies the trick:
+
+```meow
+kitty Dog {
+  name: string
+}
+
+learn Dog {
+    meow show() string {
+        bring self.name
+    }
+}
+
+# Both Cat and Dog satisfy Showable because they both have show() string
+```
+
+### When to use `learn`
+
+| Pattern | Example |
+|---------|---------|
+| Add behavior to a struct | `learn Cat { meow speak() string { ... } }` |
+| Add behavior to a newtype | `learn Label { meow display() string { ... } }` |
+| Implement an interface | Define matching methods via `learn` |
+
+## 12. Standard Library
 
 ### File I/O
 
@@ -483,7 +560,7 @@ nya(response)
 
 See [stdlib.md](stdlib.md) for the full API reference.
 
-## 12. Testing
+## 13. Testing
 
 Create a test file with the `_test.nyan` suffix:
 
@@ -538,7 +615,7 @@ meow catwalk_hello() {
 
 See [stdlib.md](stdlib.md) for details.
 
-## 13. Build and Tools
+## 14. Build and Tools
 
 ### CLI Commands
 

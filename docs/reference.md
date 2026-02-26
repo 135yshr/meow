@@ -29,6 +29,9 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `kitty` | Struct (composite type) definition | `kitty Cat { name: string }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
+| `trick` | Interface definition | `trick Showable { meow show() string }` |
+| `learn` | Add methods to a type | `learn Cat { meow show() string { ... } }` |
+| `self` | Instance reference in methods | `self.name` |
 
 ## Type Keywords
 
@@ -411,16 +414,70 @@ Available packages: `file`, `http`, `testing`. See [stdlib.md](stdlib.md) for de
 
 ### Member Access
 
-The `.` operator accesses fields on `kitty` instances and functions on imported packages:
+The `.` operator accesses fields on `kitty` instances, calls methods defined by `learn`, and calls functions on imported packages:
 
 ```meow
 # Kitty field access
 nyan nyantyu = Cat("Nyantyu", 3)
 nya(nyantyu.name)   # => Nyantyu
 
+# Method call (defined by learn)
+nya(nyantyu.show())  # => Nyantyu (age 3)
+
 # Package function call
 fetch "http"
 http.pounce("https://example.com") |=| nya
+```
+
+### Interface (Trick)
+
+Define an interface with `trick` — a named set of method signatures:
+
+```meow
+trick Showable {
+    meow show() string
+}
+```
+
+A type structurally satisfies a `trick` if it has all required methods with matching signatures. No explicit declaration is needed (structural typing).
+
+### Methods (Learn)
+
+Add methods to a `kitty` or `collar` type with `learn`:
+
+```meow
+kitty Cat {
+  name: string,
+  age: int
+}
+
+learn Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+nyan c = Cat("Nyantyu", 3)
+nya(c.show())       # => Nyantyu (age 3)
+nya(c.is_kitten())  # => hairball
+```
+
+`self` refers to the instance the method is called on. For `kitty` types, use `self.field` to access fields. For `collar` types, use `self.value` to access the wrapped value:
+
+```meow
+collar Label = string
+
+learn Label {
+    meow display() string {
+        bring "[ " + self.value + " ]"
+    }
+}
+
+nyan tag = Label("important")
+nya(tag.display())   # => [ important ]
 ```
 
 ### Testing
