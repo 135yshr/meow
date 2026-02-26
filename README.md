@@ -247,7 +247,7 @@ nyan result = peek(score) {
 | `hiss` | Raise error | `hiss("something went wrong")` |
 | `gag` | Catch errors | `gag(paw() { risky() })` |
 | `is_furball` | Check if error | `is_furball(result)` |
-| `fetch` | Import *(planned)* | — |
+| `nab` | Import stdlib | `nab "file"` |
 | `flaunt` | Export *(planned)* | — |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
@@ -361,7 +361,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, or just a better
 
 - [ ] More cat-themed error messages
 - [ ] String interpolation (`"Hello, {name}!"`)
-- [ ] `fetch` / `flaunt` (import/export) for multi-file support
+- [ ] `nab` / `flaunt` (import/export) for multi-file support
 - [ ] REPL mode (`meow repl`)
 - [ ] Syntax highlighting for popular editors
 - [x] Homebrew formula
