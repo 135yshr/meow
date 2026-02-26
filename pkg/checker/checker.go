@@ -304,6 +304,21 @@ func (c *Checker) checkLearnStmt(s *ast.LearnStmt) {
 	for i := range s.Methods {
 		m := &s.Methods[i]
 
+		// Mirror function-level signature checks
+		for _, p := range m.Params {
+			if p.TypeAnn == nil {
+				c.addError(m.Token.Pos, "Parameter %q of method %s must have a type annotation", p.Name, m.Name)
+			}
+		}
+		if m.ReturnType == nil && hasReturnStmt(m.Body) {
+			c.addError(m.Token.Pos, "Method %s has bring statements but no return type annotation", m.Name)
+		}
+		methodReturnType := c.resolveTypeExpr(m.ReturnType)
+		if !types.IsAny(methodReturnType) && !blockAlwaysReturns(m.Body) {
+			c.addError(m.Token.Pos, "Method %s declares return type %s but does not return on all paths",
+				m.Name, methodReturnType)
+		}
+
 		// Check for duplicate method names
 		if _, exists := c.info.LearnImpls[s.TypeName][m.Name]; exists {
 			c.addError(m.Token.Pos, "duplicate method %s for type %s", m.Name, s.TypeName)
@@ -312,7 +327,7 @@ func (c *Checker) checkLearnStmt(s *ast.LearnStmt) {
 
 		// Type check the method body with self in scope
 		prevReturnType := c.currentReturnType
-		c.currentReturnType = c.resolveTypeExpr(m.ReturnType)
+		c.currentReturnType = methodReturnType
 
 		c.pushScope()
 		// Register self as the target type
@@ -338,7 +353,7 @@ func (c *Checker) checkLearnStmt(s *ast.LearnStmt) {
 		}
 		ft := types.FuncType{
 			Params: paramTypes,
-			Return: c.resolveTypeExpr(m.ReturnType),
+			Return: methodReturnType,
 		}
 		c.info.LearnImpls[s.TypeName][m.Name] = ft
 	}
@@ -625,7 +640,13 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		return types.AnyType{}
 	case *ast.SelfExpr:
-		return c.lookup("self")
+		for i := len(c.scopes) - 1; i >= 0; i-- {
+			if t, ok := c.scopes[i]["self"]; ok {
+				return t
+			}
+		}
+		c.addError(e.Token.Pos, "self can only be used inside learn methods")
+		return types.AnyType{}
 	default:
 		return types.AnyType{}
 	}
@@ -811,11 +832,25 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			typeName = tt.Name
 		}
 		if typeName != "" {
-			if methods, ok := c.info.LearnImpls[typeName]; ok {
-				if ft, ok := methods[member.Member]; ok {
-					return ft.Return
+			methods := c.info.LearnImpls[typeName]
+			ft, ok := methods[member.Member]
+			if !ok {
+				c.addError(e.Token.Pos, "%s has no method %s", typeName, member.Member)
+				return types.AnyType{}
+			}
+			if len(e.Args) != len(ft.Params) {
+				c.addError(e.Token.Pos, "Method %s.%s expects %d arguments but got %d",
+					typeName, member.Member, len(ft.Params), len(e.Args))
+				return ft.Return
+			}
+			for i, arg := range e.Args {
+				argType := c.info.ExprTypes[arg]
+				if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) && !ft.Params[i].Equals(argType) {
+					c.addError(e.Token.Pos, "Argument %d for %s.%s: expected %s but got %s",
+						i+1, typeName, member.Member, ft.Params[i], argType)
 				}
 			}
+			return ft.Return
 		}
 		return types.AnyType{}
 	}

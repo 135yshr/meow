@@ -621,6 +621,119 @@ nyan s = c.show()
 	}
 }
 
+func TestSelfOutsideLearn(t *testing.T) {
+	_, errs := check(t, `
+nyan x = self.name
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for self outside learn, got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "self can only be used inside learn methods") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'self can only be used inside learn methods' error, got: %v", errs)
+	}
+}
+
+func TestLearnMethodMissingParamType(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow greet(msg) string {
+        bring msg
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing param type in learn method, got none")
+	}
+}
+
+func TestLearnMethodMissingReturnType(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() {
+        bring self.name
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing return type in learn method with bring, got none")
+	}
+}
+
+func TestLearnMethodNotAllPathsReturn(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string,
+    age: int
+}
+learn Cat {
+    meow describe() string {
+        sniff (self.age < 1) {
+            bring "kitten"
+        }
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for not returning on all paths in learn method, got none")
+	}
+}
+
+func TestLearnMethodCallArityMismatch(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow greet(prefix string) string {
+        bring prefix + self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.greet("Hi", "extra")
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for method arity mismatch, got none")
+	}
+}
+
+func TestLearnMethodCallUnknownMethod(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.nonexistent()
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for unknown method call, got none")
+	}
+}
+
+func contains(s, sub string) bool {
+	return len(s) >= len(sub) && searchString(s, sub)
+}
+
+func searchString(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
 func TestCollarToCollarForwardRef(t *testing.T) {
 	// collar whose underlying is another collar (resolved later)
 	// Outer wraps Inner, so Outer(Inner(42)) is valid but Outer(42) is not

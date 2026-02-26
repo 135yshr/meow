@@ -665,6 +665,15 @@ func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
 }
 
 func (g *Generator) genTypedCall(e *ast.CallExpr) string {
+	// Handle method calls on learn types: unbox dispatch result if typed
+	if member, ok := e.Fn.(*ast.MemberExpr); ok {
+		call := g.genMemberCall(member, e.Args)
+		if t := g.getExprType(e); t != nil && !types.IsAny(t) && isNativeType(t) {
+			return unboxToNative(call, t)
+		}
+		return call
+	}
+
 	ident, isIdent := e.Fn.(*ast.Ident)
 	if !isIdent {
 		return g.genCall(e)
