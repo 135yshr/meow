@@ -30,6 +30,9 @@ type Generator struct {
 	currentReturnType types.Type // return type of the function currently being generated
 	kittyDefs     map[string]*ast.KittyStmt
 	collarDefs    map[string]*ast.CollarStmt
+	learnDefs     []*ast.LearnStmt
+	inLearnMethod bool // true when generating a learn method body
+
 }
 
 type coverBlock struct {
@@ -87,7 +90,14 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
 		switch stmt.(type) {
-		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
+		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt:
+			continue
+		}
+		if ls, ok := stmt.(*ast.LearnStmt); ok {
+			g.learnDefs = append(g.learnDefs, ls)
+			for i := range ls.Methods {
+				g.funcs = append(g.funcs, g.genLearnMethod(ls.TypeName, &ls.Methods[i]))
+			}
 			continue
 		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
@@ -112,7 +122,14 @@ func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
 	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
 		switch stmt.(type) {
-		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
+		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt:
+			continue
+		}
+		if ls, ok := stmt.(*ast.LearnStmt); ok {
+			g.learnDefs = append(g.learnDefs, ls)
+			for i := range ls.Methods {
+				g.funcs = append(g.funcs, g.genLearnMethod(ls.TypeName, &ls.Methods[i]))
+			}
 			continue
 		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
@@ -193,6 +210,11 @@ func (g *Generator) emitTest() string {
 			}
 		}
 		b.WriteString("}\n\n")
+	}
+
+	if initCode := g.genLearnInit(); initCode != "" {
+		b.WriteString(initCode)
+		b.WriteString("\n")
 	}
 
 	for _, fn := range g.funcs {
@@ -284,6 +306,11 @@ func (g *Generator) emit() string {
 		b.WriteString("\t\t}\n")
 		b.WriteString("\t}\n")
 		b.WriteString("}\n\n")
+	}
+
+	if initCode := g.genLearnInit(); initCode != "" {
+		b.WriteString(initCode)
+		b.WriteString("\n")
 	}
 
 	for _, fn := range g.funcs {
@@ -638,6 +665,15 @@ func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
 }
 
 func (g *Generator) genTypedCall(e *ast.CallExpr) string {
+	// Handle method calls on learn types: unbox dispatch result if typed
+	if member, ok := e.Fn.(*ast.MemberExpr); ok {
+		call := g.genMemberCall(member, e.Args)
+		if t := g.getExprType(e); t != nil && !types.IsAny(t) && isNativeType(t) {
+			return unboxToNative(call, t)
+		}
+		return call
+	}
+
 	ident, isIdent := e.Fn.(*ast.Ident)
 	if !isIdent {
 		return g.genCall(e)
@@ -897,7 +933,7 @@ func (g *Generator) collectKittyDefs(prog *ast.Program) {
 
 func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 	switch stmt.(type) {
-	case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
+	case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt, *ast.LearnStmt:
 		return "", nil
 	}
 	if s, ok := stmt.(*ast.FetchStmt); ok {
@@ -996,7 +1032,16 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		return g.genMap(e)
 	case *ast.MatchExpr:
 		return g.genMatch(e)
+	case *ast.SelfExpr:
+		return "self"
 	case *ast.MemberExpr:
+		// Check if this is a self.field access in a learn method
+		if _, isSelf := e.Object.(*ast.SelfExpr); isSelf {
+			if e.Member == "value" {
+				return "self.(*meow.Kitty).GetField(\"value\")"
+			}
+			return fmt.Sprintf("self.(*meow.Kitty).GetField(%q)", e.Member)
+		}
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
 			if _, imported := g.imports[obj.Name]; imported {
@@ -1154,16 +1199,59 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 	}
 	argStr := strings.Join(args, ", ")
 
+	// Check if this is a method call on an object that has learn impls
+	if g.typeInfo != nil {
+		objCode := g.genExpr(member.Object)
+		typeName := g.resolveTypeName(member.Object)
+		if typeName != "" {
+			if methods, ok := g.typeInfo.LearnImpls[typeName]; ok {
+				if _, hasMethod := methods[member.Member]; hasMethod {
+					if argStr != "" {
+						return fmt.Sprintf("meow.DispatchMethod(%s, %q, %s)", objCode, member.Member, argStr)
+					}
+					return fmt.Sprintf("meow.DispatchMethod(%s, %q)", objCode, member.Member)
+				}
+			}
+		}
+	}
+
 	obj, ok := member.Object.(*ast.Ident)
 	if !ok {
+		if argStr == "" {
+			return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q))",
+				g.genExpr(member.Object), member.Member)
+		}
 		return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q), %s)",
 			g.genExpr(member.Object), member.Member, argStr)
 	}
 	if _, imported := g.imports[obj.Name]; imported {
 		return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, capitalizeFirst(member.Member), argStr)
 	}
+	if argStr == "" {
+		return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q))",
+			obj.Name, member.Member)
+	}
 	return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q), %s)",
 		obj.Name, member.Member, argStr)
+}
+
+// resolveTypeName tries to determine the type name for a given expression.
+func (g *Generator) resolveTypeName(expr ast.Expr) string {
+	if g.typeInfo == nil {
+		return ""
+	}
+	t := g.typeInfo.ExprTypes[expr]
+	if t == nil {
+		return ""
+	}
+	t = types.Unwrap(t)
+	switch tt := t.(type) {
+	case types.KittyType:
+		return tt.Name
+	case types.CollarType:
+		return tt.Name
+	}
+	return ""
 }
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
@@ -1291,6 +1379,57 @@ func (g *Generator) genMutatedExpr(original ast.Expr, entries []mutation.Mutatio
 
 	// Restore this entry
 	g.mutations[original] = entries
+	return b.String()
+}
+
+func (g *Generator) genLearnMethod(typeName string, fn *ast.FuncStmt) string {
+	var b strings.Builder
+	methodFuncName := fmt.Sprintf("meow_method_%s_%s", typeName, fn.Name)
+
+	fmt.Fprintf(&b, "func %s(args ...meow.Value) meow.Value {\n", methodFuncName)
+	// Arity guard: self + params
+	fmt.Fprintf(&b, "\tif len(args) < %d {\n", 1+len(fn.Params))
+	b.WriteString("\t\treturn meow.NewNil()\n")
+	b.WriteString("\t}\n")
+	// Extract self from first argument
+	b.WriteString("\tself := args[0]\n")
+	b.WriteString("\t_ = self\n")
+	// Extract additional params
+	for i, p := range fn.Params {
+		fmt.Fprintf(&b, "\t%s := args[%d]\n", p.Name, i+1)
+		fmt.Fprintf(&b, "\t_ = %s\n", p.Name)
+	}
+
+	prevInLearn := g.inLearnMethod
+	g.inLearnMethod = true
+	for _, stmt := range fn.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genStmt(stmt))
+		b.WriteString("\n")
+	}
+	g.inLearnMethod = prevInLearn
+
+	if !g.blockAlwaysReturns(fn.Body) {
+		b.WriteString("\treturn meow.NewNil()\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func (g *Generator) genLearnInit() string {
+	if len(g.learnDefs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("func init() {\n")
+	for _, ls := range g.learnDefs {
+		for i := range ls.Methods {
+			m := &ls.Methods[i]
+			fmt.Fprintf(&b, "\tmeow.RegisterMethod(%q, %q, meow_method_%s_%s)\n",
+				ls.TypeName, m.Name, ls.TypeName, m.Name)
+		}
+	}
+	b.WriteString("}\n")
 	return b.String()
 }
 

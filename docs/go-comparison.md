@@ -23,6 +23,8 @@ A side-by-side reference for Go developers learning Meow. Meow transpiles to Go,
 | Struct | `type Cat struct { ... }` | `kitty Cat { ... }` |
 | Type alias | `type Name = string` | `breed Name = string` |
 | Newtype | `type UserId int` | `collar UserId = int` |
+| Interface | `type Showable interface { ... }` | `trick Showable { ... }` |
+| Method | `func (c Cat) Show() string` | `learn Cat { meow show() string { ... } }` |
 | Import | `import "net/http"` | `fetch "http"` |
 | Error | `errors.New("msg")` | `hiss("msg")` |
 | Panic | `panic("msg")` | `hiss("msg")` |
@@ -121,6 +123,56 @@ nya(id.value)   # use .value to access underlying value
 ```
 
 Go's defined types (`type X int`) and Meow's `collar` both create distinct types. The key difference: Go uses explicit casts (`int(id)`) while Meow uses `.value` (`id.value`). Both prevent accidental mixing of semantically different values.
+
+### Interfaces and Methods
+
+Both Go and Meow use structural typing for interfaces — a type satisfies an interface if it has all required methods.
+
+**Go:**
+```go
+type Showable interface {
+    Show() string
+}
+
+type Cat struct {
+    Name string
+    Age  int
+}
+
+func (c Cat) Show() string {
+    return c.Name
+}
+
+func (c Cat) IsKitten() bool {
+    return c.Age < 1
+}
+```
+
+**Meow:**
+```meow
+trick Showable {
+    meow show() string
+}
+
+kitty Cat {
+  name: string,
+  age: int
+}
+
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+```
+
+Key differences:
+- Go declares methods with a receiver (`func (c Cat) Show()`); Meow groups methods in a `learn` block and uses `self`
+- Go interface satisfaction is implicit; Meow's `trick` satisfaction is also structural (no explicit declaration needed)
+- Go receivers can be pointer or value; Meow always passes by reference via `self`
 
 ### Error Handling
 

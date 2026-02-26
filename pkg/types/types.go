@@ -153,6 +153,25 @@ func (c CollarType) Equals(t Type) bool {
 	return ok && c.Name == o.Name
 }
 
+// TrickMethodSig represents a method signature in a trick.
+type TrickMethodSig struct {
+	Name       string
+	ParamTypes []Type
+	ReturnType Type
+}
+
+// TrickType represents a trick (interface) definition.
+type TrickType struct {
+	Name    string
+	Methods []TrickMethodSig
+}
+
+func (t TrickType) String() string { return t.Name }
+func (t TrickType) Equals(other Type) bool {
+	o, ok := other.(TrickType)
+	return ok && t.Name == o.Name
+}
+
 // IsAny reports whether t is AnyType.
 func IsAny(t Type) bool {
 	_, ok := t.(AnyType)

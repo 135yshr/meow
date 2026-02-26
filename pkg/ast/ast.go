@@ -461,6 +461,51 @@ func (n *CollarStmt) Pos() token.Position { return n.Token.Pos }
 func (n *CollarStmt) nodeTag()            {}
 func (n *CollarStmt) stmtTag()            {}
 
+// TrickMethod represents a single method signature in a trick definition.
+type TrickMethod struct {
+	Name       string
+	Params     []Param
+	ReturnType TypeExpr
+}
+
+// TrickStmt represents a trick (interface) definition.
+type TrickStmt struct {
+	// Token is the trick keyword token.
+	Token token.Token
+	// Name is the trick name.
+	Name string
+	// Methods is the list of method signatures.
+	Methods []TrickMethod
+}
+
+func (n *TrickStmt) Pos() token.Position { return n.Token.Pos }
+func (n *TrickStmt) nodeTag()            {}
+func (n *TrickStmt) stmtTag()            {}
+
+// LearnStmt represents a method implementation block for a type.
+type LearnStmt struct {
+	// Token is the learn keyword token.
+	Token token.Token
+	// TypeName is the target type name (kitty/collar).
+	TypeName string
+	// Methods is the list of method definitions.
+	Methods []FuncStmt
+}
+
+func (n *LearnStmt) Pos() token.Position { return n.Token.Pos }
+func (n *LearnStmt) nodeTag()            {}
+func (n *LearnStmt) stmtTag()            {}
+
+// SelfExpr represents a self reference expression.
+type SelfExpr struct {
+	// Token is the self keyword token.
+	Token token.Token
+}
+
+func (n *SelfExpr) Pos() token.Position { return n.Token.Pos }
+func (n *SelfExpr) nodeTag()            {}
+func (n *SelfExpr) exprTag()            {}
+
 // ExprStmt represents an expression used as a statement.
 type ExprStmt struct {
 	// Token is the first token of the expression.

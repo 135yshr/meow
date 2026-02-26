@@ -38,14 +38,14 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 21 identifiers are reserved as keywords:
+The following 24 identifiers are reserved as keywords:
 
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
 curl      peek      hiss      fetch     flaunt
 catnap    yarn      hairball  kitty     breed
-collar
+collar    trick     learn     self
 ```
 
 ### Type Keywords
@@ -133,6 +133,7 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
+| `trick` | Interface (method signatures) | `trick Showable { meow show() string }` |
 
 ### Type Alias (breed)
 
@@ -277,7 +278,7 @@ Accesses a list element by zero-based index.
 MemberExpr = Expr "." identifier .
 ```
 
-Accesses a field on a `kitty` instance, or calls a function in an imported package.
+Accesses a field on a `kitty` instance, calls a method defined by `learn`, or calls a function in an imported package.
 
 ### Pipe Expression
 
@@ -453,6 +454,57 @@ CollarStmt = "collar" identifier "=" TypeExpr newline .
 ```
 
 Declares a newtype wrapper. See [Newtype (collar)](#newtype-collar) above.
+
+### Trick Statement
+
+```ebnf
+TrickStmt   = "trick" identifier "{" { TrickMethod } "}" .
+TrickMethod = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] newline .
+```
+
+Defines an interface — a named set of method signatures. Types structurally satisfy a trick if they have all required methods with matching signatures.
+
+```meow
+trick Showable {
+    meow show() string
+}
+```
+
+A `trick` is a compile-time construct used for structural type checking. It does not generate runtime code.
+
+### Learn Statement
+
+```ebnf
+LearnStmt = "learn" identifier "{" { FuncStmt } "}" .
+```
+
+Adds methods to an existing `kitty` or `collar` type. Each method is a `meow` function that receives the instance as `self` implicitly.
+
+```meow
+kitty Cat { name: string, age: int }
+
+learn Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+nyan c = Cat("Nyantyu", 3)
+nya(c.show())       # => Nyantyu (age 3)
+```
+
+The `self` keyword refers to the instance the method is called on. For `kitty` types, `self.field` accesses fields. For `collar` types, `self.value` accesses the wrapped value.
+
+### Self Expression
+
+```ebnf
+SelfExpr = "self" .
+```
+
+Refers to the current instance within a `learn` block. Only valid inside method bodies defined by `learn`.
 
 ### Expression Statement
 

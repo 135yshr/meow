@@ -103,6 +103,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseBreedStmt()
 	case token.COLLAR:
 		return p.parseCollarStmt()
+	case token.TRICK:
+		return p.parseTrickStmt()
+	case token.LEARN:
+		return p.parseLearnStmt()
 	default:
 		return p.parseExprStmtOrAssign()
 	}
@@ -317,6 +321,59 @@ func (p *Parser) parseCollarStmt() *ast.CollarStmt {
 	return &ast.CollarStmt{Token: tok, Name: name.Literal, Wrapped: wrapped}
 }
 
+func (p *Parser) parseTrickStmt() *ast.TrickStmt {
+	tok := p.advance() // consume trick
+	name := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var methods []ast.TrickMethod
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		p.expect(token.MEOW)
+		methodName := p.expect(token.IDENT)
+		p.expect(token.LPAREN)
+		params := p.parseTypedParamList()
+		p.expect(token.RPAREN)
+		var returnType ast.TypeExpr
+		if p.isTypeToken() {
+			returnType = p.parseTypeExpr()
+		}
+		methods = append(methods, ast.TrickMethod{
+			Name:       methodName.Literal,
+			Params:     params,
+			ReturnType: returnType,
+		})
+		p.skipNewlines()
+	}
+	p.expect(token.RBRACE)
+	return &ast.TrickStmt{Token: tok, Name: name.Literal, Methods: methods}
+}
+
+func (p *Parser) parseLearnStmt() *ast.LearnStmt {
+	tok := p.advance() // consume learn
+	typeName := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var methods []ast.FuncStmt
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		fn := p.parseFuncStmt()
+		methods = append(methods, *fn)
+		p.skipNewlines()
+	}
+	p.expect(token.RBRACE)
+	return &ast.LearnStmt{Token: tok, TypeName: typeName.Literal, Methods: methods}
+}
+
+func (p *Parser) parseSelfExpr() ast.Expr {
+	tok := p.advance() // consume self
+	selfExpr := &ast.SelfExpr{Token: tok}
+	if p.cur.Type == token.DOT {
+		return p.parseMemberAccess(selfExpr)
+	}
+	return selfExpr
+}
+
 func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
 	dot := p.advance() // consume .
 	member := p.expect(token.IDENT)
@@ -427,6 +484,8 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return &ast.NilLit{Token: tok}
 	case token.IDENT:
 		return p.parseIdentOrCall()
+	case token.SELF:
+		return p.parseSelfExpr()
 	case token.NYA:
 		return p.parseNyaCall()
 	case token.HISS:

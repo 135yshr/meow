@@ -142,6 +142,16 @@ func walk(node Node, yield func(Node) bool) bool {
 		// leaf node, no children
 	case *KittyStmt:
 		// leaf node, no children
+	case *TrickStmt:
+		// leaf node, no children (signatures only)
+	case *LearnStmt:
+		for i := range n.Methods {
+			if !walk(&n.Methods[i], yield) {
+				return false
+			}
+		}
+	case *SelfExpr:
+		// leaf node
 	case *MemberExpr:
 		if !walk(n.Object, yield) {
 			return false

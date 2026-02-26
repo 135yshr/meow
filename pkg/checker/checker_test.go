@@ -538,6 +538,229 @@ nyan v = w.value
 	}
 }
 
+func TestLearnUnknownType(t *testing.T) {
+	_, errs := check(t, `
+learn Unknown {
+    meow show() string {
+        bring "hello"
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for learn on unknown type, got none")
+	}
+}
+
+func TestLearnDuplicateMethod(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+    meow show() string {
+        bring self.name
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for duplicate method, got none")
+	}
+}
+
+func TestTrickSatisfaction(t *testing.T) {
+	// Cat has show() string, so it structurally satisfies Showable
+	info, errs := check(t, `
+trick Showable {
+    meow show() string
+}
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	// Verify trick type was registered
+	if _, ok := info.TrickTypes["Showable"]; !ok {
+		t.Error("expected Showable trick to be registered")
+	}
+	// Verify learn method was registered
+	if methods, ok := info.LearnImpls["Cat"]; !ok {
+		t.Error("expected Cat learn impls to be registered")
+	} else if _, ok := methods["show"]; !ok {
+		t.Error("expected show method in Cat learn impls")
+	}
+}
+
+func TestLearnMemberExprType(t *testing.T) {
+	info, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.show()
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if _, ok := info.VarTypes["s"].(types.StringType); !ok {
+		t.Errorf("expected string for s, got %v", info.VarTypes["s"])
+	}
+}
+
+func TestSelfOutsideLearn(t *testing.T) {
+	_, errs := check(t, `
+nyan x = self.name
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for self outside learn, got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "self can only be used inside learn methods") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'self can only be used inside learn methods' error, got: %v", errs)
+	}
+}
+
+func TestBareMethodAccessError(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan f = c.show
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for bare method access without (), got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "must be called with ()") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'must be called with ()' error, got: %v", errs)
+	}
+}
+
+func TestLearnMethodMissingParamType(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow greet(msg) string {
+        bring msg
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing param type in learn method, got none")
+	}
+}
+
+func TestLearnMethodMissingReturnType(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() {
+        bring self.name
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing return type in learn method with bring, got none")
+	}
+}
+
+func TestLearnMethodNotAllPathsReturn(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string,
+    age: int
+}
+learn Cat {
+    meow describe() string {
+        sniff (self.age < 1) {
+            bring "kitten"
+        }
+    }
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for not returning on all paths in learn method, got none")
+	}
+}
+
+func TestLearnMethodCallArityMismatch(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow greet(prefix string) string {
+        bring prefix + self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.greet("Hi", "extra")
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for method arity mismatch, got none")
+	}
+}
+
+func TestLearnMethodCallUnknownMethod(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+nyan c = Cat("Nyantyu")
+nyan s = c.nonexistent()
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for unknown method call, got none")
+	}
+}
+
+func contains(s, sub string) bool {
+	return len(s) >= len(sub) && searchString(s, sub)
+}
+
+func searchString(s, sub string) bool {
+	for i := 0; i <= len(s)-len(sub); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
+}
+
 func TestCollarToCollarForwardRef(t *testing.T) {
 	// collar whose underlying is another collar (resolved later)
 	// Outer wraps Inner, so Outer(Inner(42)) is valid but Outer(42) is not

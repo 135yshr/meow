@@ -1,0 +1,66 @@
+# Trick & Learn example
+# trick defines an interface (method signatures).
+# learn adds methods to kitty/collar types.
+# Types structurally satisfy a trick if they have all required methods.
+
+# Define an interface
+trick Showable {
+    meow show() string
+}
+
+# Kitty definitions
+kitty Cat {
+    name: string,
+    age: int
+}
+
+kitty Dog {
+    name: string,
+    good_boy: bool
+}
+
+# Learn: add methods to Cat
+learn Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+# Learn: add methods to Dog
+learn Dog {
+    meow show() string {
+        sniff (self.good_boy) {
+            bring self.name + " (good boy!)"
+        }
+        bring self.name
+    }
+}
+
+# Use methods on kitty instances
+nyan nyantyu = Cat("Nyantyu", 3)
+nyan tyako = Cat("Tyako", 0)
+nyan tyomusuke = Dog("Tyomusuke", yarn)
+
+nya(nyantyu.show())
+nya(tyako.show())
+nya(tyomusuke.show())
+
+# Boolean method
+sniff (tyako.is_kitten()) {
+    nya(tyako.name + " is a kitten!")
+}
+
+# Collar with methods
+collar Label = string
+
+learn Label {
+    meow display() string {
+        bring "[ " + self.value + " ]"
+    }
+}
+
+nyan tag = Label("important")
+nya(tag.display())

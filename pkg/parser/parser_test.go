@@ -473,6 +473,91 @@ func TestGroupedNoType(t *testing.T) {
 	}
 }
 
+func TestParseTrickStmt(t *testing.T) {
+	prog := parse(t, `trick Showable {
+    meow show() string
+    meow greet(name string) string
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	trick, ok := prog.Stmts[0].(*ast.TrickStmt)
+	if !ok {
+		t.Fatalf("expected TrickStmt, got %T", prog.Stmts[0])
+	}
+	if trick.Name != "Showable" {
+		t.Errorf("expected name 'Showable', got %q", trick.Name)
+	}
+	if len(trick.Methods) != 2 {
+		t.Fatalf("expected 2 methods, got %d", len(trick.Methods))
+	}
+	if trick.Methods[0].Name != "show" {
+		t.Errorf("expected method 'show', got %q", trick.Methods[0].Name)
+	}
+	if len(trick.Methods[0].Params) != 0 {
+		t.Errorf("expected 0 params for show, got %d", len(trick.Methods[0].Params))
+	}
+	if trick.Methods[0].ReturnType == nil {
+		t.Fatal("expected return type for show")
+	}
+	if trick.Methods[1].Name != "greet" {
+		t.Errorf("expected method 'greet', got %q", trick.Methods[1].Name)
+	}
+	if len(trick.Methods[1].Params) != 1 {
+		t.Errorf("expected 1 param for greet, got %d", len(trick.Methods[1].Params))
+	}
+}
+
+func TestParseLearnStmt(t *testing.T) {
+	prog := parse(t, `learn Cat {
+    meow show() string {
+        bring "hello"
+    }
+    meow greet(name string) string {
+        bring name
+    }
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	learn, ok := prog.Stmts[0].(*ast.LearnStmt)
+	if !ok {
+		t.Fatalf("expected LearnStmt, got %T", prog.Stmts[0])
+	}
+	if learn.TypeName != "Cat" {
+		t.Errorf("expected type 'Cat', got %q", learn.TypeName)
+	}
+	if len(learn.Methods) != 2 {
+		t.Fatalf("expected 2 methods, got %d", len(learn.Methods))
+	}
+	if learn.Methods[0].Name != "show" {
+		t.Errorf("expected method 'show', got %q", learn.Methods[0].Name)
+	}
+	if learn.Methods[1].Name != "greet" {
+		t.Errorf("expected method 'greet', got %q", learn.Methods[1].Name)
+	}
+}
+
+func TestParseSelfExpr(t *testing.T) {
+	prog := parse(t, `learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}`)
+	learn := prog.Stmts[0].(*ast.LearnStmt)
+	ret := learn.Methods[0].Body[0].(*ast.ReturnStmt)
+	member, ok := ret.Value.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("expected MemberExpr, got %T", ret.Value)
+	}
+	if _, ok := member.Object.(*ast.SelfExpr); !ok {
+		t.Fatalf("expected SelfExpr as object, got %T", member.Object)
+	}
+	if member.Member != "name" {
+		t.Errorf("expected member 'name', got %q", member.Member)
+	}
+}
+
 func TestMatchExpr(t *testing.T) {
 	prog := parse(t, `nyan result = peek(x) {
   0 => "zero",
