@@ -38,12 +38,12 @@ meow test_nested_list_append() {
 
 meow test_map_over_nested_list() {
   nyan lists = [[1], [1, 2], [1, 2, 3]]
-  nyan lengths = lick(lists, paw(lst list) { len(lst) })
+  nyan lengths = lick(lists, paw(lst litter) { len(lst) })
   expect(lengths, [1, 2, 3])
 }
 
 meow test_filter_nested_list() {
   nyan lists = [[1], [1, 2], [1, 2, 3], []]
-  nyan nonempty = picky(lists, paw(lst list) { len(lst) > 0 })
+  nyan nonempty = picky(lists, paw(lst litter) { len(lst) > 0 })
   expect(len(nonempty), 3)
 }

@@ -43,9 +43,9 @@ The following 24 identifiers are reserved as keywords:
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
-curl      peek      hiss      fetch     flaunt
+curl      peek      hiss      nab       flaunt
 catnap    yarn      hairball  kitty     breed
-collar    trick     learn     self
+collar    pose      groom     self
 ```
 
 ### Type Keywords
@@ -53,7 +53,7 @@ collar    trick     learn     self
 The following 6 identifiers are reserved as type keywords:
 
 ```text
-int    float    string    bool    furball    list
+int    float    string    bool    furball    litter
 ```
 
 ### Identifiers
@@ -128,12 +128,12 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 
 | Type | Description | Syntax |
 |------|-------------|--------|
-| `list` | Ordered collection of values | `[1, 2, 3]` |
+| `litter` | Ordered collection of values | `[1, 2, 3]` |
 | Map | String-keyed dictionary | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
-| `trick` | Interface (method signatures) | `trick Showable { meow show() string }` |
+| `pose` | Interface (method signatures) | `pose Showable { meow show() string }` |
 
 ### Type Alias (breed)
 
@@ -181,7 +181,7 @@ nyan humid = Humidity(72)
 Type annotations are optional but recommended. They appear after identifiers:
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "list" | identifier .
+TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
 ```
 
 Variable declaration with type:
@@ -278,7 +278,7 @@ Accesses a list element by zero-based index.
 MemberExpr = Expr "." identifier .
 ```
 
-Accesses a field on a `kitty` instance, calls a method defined by `learn`, or calls a function in an imported package.
+Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
 
 ### Pipe Expression
 
@@ -408,16 +408,16 @@ purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
 purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
 ```
 
-### Fetch Statement
+### Nab Statement
 
 ```ebnf
-FetchStmt = "fetch" string_lit newline .
+NabStmt = "nab" string_lit newline .
 ```
 
 Imports a standard library package. Available packages: `"file"`, `"http"`, `"testing"`.
 
 ```meow
-fetch "http"
+nab "http"
 ```
 
 ### Kitty Statement
@@ -455,27 +455,27 @@ CollarStmt = "collar" identifier "=" TypeExpr newline .
 
 Declares a newtype wrapper. See [Newtype (collar)](#newtype-collar) above.
 
-### Trick Statement
+### Pose Statement
 
 ```ebnf
-TrickStmt   = "trick" identifier "{" { TrickMethod } "}" .
-TrickMethod = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] newline .
+PoseStmt   = "pose" identifier "{" { PoseMethod } "}" .
+PoseMethod = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] newline .
 ```
 
-Defines an interface — a named set of method signatures. Types structurally satisfy a trick if they have all required methods with matching signatures.
+Defines an interface — a named set of method signatures. Types structurally satisfy a pose if they have all required methods with matching signatures.
 
 ```meow
-trick Showable {
+pose Showable {
     meow show() string
 }
 ```
 
-A `trick` is a compile-time construct used for structural type checking. It does not generate runtime code.
+A `pose` is a compile-time construct used for structural type checking. It does not generate runtime code.
 
-### Learn Statement
+### Groom Statement
 
 ```ebnf
-LearnStmt = "learn" identifier "{" { FuncStmt } "}" .
+GroomStmt = "groom" identifier "{" { FuncStmt } "}" .
 ```
 
 Adds methods to an existing `kitty` or `collar` type. Each method is a `meow` function that receives the instance as `self` implicitly.
@@ -483,7 +483,7 @@ Adds methods to an existing `kitty` or `collar` type. Each method is a `meow` fu
 ```meow
 kitty Cat { name: string, age: int }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name + " (age " + to_string(self.age) + ")"
     }
@@ -504,7 +504,7 @@ The `self` keyword refers to the instance the method is called on. For `kitty` t
 SelfExpr = "self" .
 ```
 
-Refers to the current instance within a `learn` block. Only valid inside method bodies defined by `learn`.
+Refers to the current instance within a `groom` block. Only valid inside method bodies defined by `groom`.
 
 ### Expression Statement
 
@@ -578,9 +578,9 @@ A Meow program is a single `.nyan` file containing a sequence of top-level state
 package main
 
 import meow "github.com/135yshr/meow/runtime/meowrt"
-import meow_file "github.com/135yshr/meow/runtime/file"    // from fetch "file"
-import meow_http "github.com/135yshr/meow/runtime/http"    // from fetch "http"
-import meow_testing "github.com/135yshr/meow/runtime/testing" // from fetch "testing"
+import meow_file "github.com/135yshr/meow/runtime/file"    // from nab "file"
+import meow_http "github.com/135yshr/meow/runtime/http"    // from nab "http"
+import meow_testing "github.com/135yshr/meow/runtime/testing" // from nab "testing"
 
 // user-defined functions
 

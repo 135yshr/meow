@@ -1,11 +1,11 @@
-trick Showable {
+pose Showable {
     meow show() string
 }
 
 kitty Cat { name: string, age: int }
 kitty Dog { kind: string }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -14,7 +14,7 @@ learn Cat {
     }
 }
 
-learn Dog {
+groom Dog {
     meow show() string {
         bring self.kind
     }
@@ -22,7 +22,7 @@ learn Dog {
 
 collar Label = string
 
-learn Label {
+groom Label {
     meow display() string {
         bring self.value
     }

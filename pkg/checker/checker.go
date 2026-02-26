@@ -237,7 +237,7 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 			return types.BoolType{}
 		case "furball":
 			return types.FurballType{}
-		case "list":
+		case "litter":
 			return types.ListType{Elem: types.AnyType{}}
 		default:
 			return types.AnyType{}
@@ -293,7 +293,7 @@ func (c *Checker) checkLearnStmt(s *ast.LearnStmt) {
 	_, isKitty := c.info.KittyTypes[s.TypeName]
 	_, isCollar := c.info.CollarTypes[s.TypeName]
 	if !isKitty && !isCollar {
-		c.addError(s.Token.Pos, "learn target %s is not a known kitty or collar type", s.TypeName)
+		c.addError(s.Token.Pos, "groom target %s is not a known kitty or collar type", s.TypeName)
 		return
 	}
 
@@ -647,7 +647,7 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 				return t
 			}
 		}
-		c.addError(e.Token.Pos, "self can only be used inside learn methods")
+		c.addError(e.Token.Pos, "self can only be used inside groom methods")
 		return types.AnyType{}
 	default:
 		return types.AnyType{}

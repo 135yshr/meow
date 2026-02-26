@@ -67,7 +67,7 @@ const (
 	CURL     // curl (reduce)
 	PEEK     // peek (match)
 	HISS     // hiss (error/throw)
-	FETCH    // fetch (import)
+	NAB      // nab (import)
 	FLAUNT   // flaunt (export)
 	CATNAP   // catnap (nil)
 	YARN     // yarn (true)
@@ -75,8 +75,8 @@ const (
 	KITTY    // kitty (struct)
 	BREED    // breed (type alias)
 	COLLAR   // collar (newtype)
-	TRICK    // trick (interface)
-	LEARN    // learn (method impl)
+	POSE     // pose (interface)
+	GROOM    // groom (method impl)
 	SELF     // self (self reference)
 
 	// Type keywords
@@ -85,7 +85,7 @@ const (
 	TYPE_STRING  // string
 	TYPE_BOOL    // bool
 	TYPE_FURBALL // furball
-	TYPE_LIST    // list
+	TYPE_LITTER  // litter
 	keywordsEnd
 )
 
@@ -103,7 +103,7 @@ var keywords = map[string]TokenType{
 	"curl":     CURL,
 	"peek":     PEEK,
 	"hiss":     HISS,
-	"fetch":    FETCH,
+	"nab":      NAB,
 	"flaunt":   FLAUNT,
 	"catnap":   CATNAP,
 	"yarn":     YARN,
@@ -111,15 +111,15 @@ var keywords = map[string]TokenType{
 	"kitty":    KITTY,
 	"breed":    BREED,
 	"collar":   COLLAR,
-	"trick":    TRICK,
-	"learn":    LEARN,
+	"pose":     POSE,
+	"groom":    GROOM,
 	"self":     SELF,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,
 	"bool":     TYPE_BOOL,
 	"furball":  TYPE_FURBALL,
-	"list":     TYPE_LIST,
+	"litter":   TYPE_LITTER,
 }
 
 // LookupIdent returns the token type for a given identifier.

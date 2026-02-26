@@ -1,8 +1,8 @@
 # List helper functions
 
-meow find_max(nums list) int {
+meow find_max(nums litter) int {
   sniff (len(nums) == 0) {
-    hiss("find_max: empty list")
+    hiss("find_max: empty litter")
   }
   sniff (len(nums) == 1) {
     bring head(nums)

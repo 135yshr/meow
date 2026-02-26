@@ -58,8 +58,11 @@ Hello, Tama!
 - **Cat-themed syntax** — Every keyword is a cat word (`nyan`, `meow`, `sniff`, `purr`, ...)
 - **Transpiles to Go** — Generates clean, readable Go code
 - **Native binaries** — Compiled output runs at full Go speed
-- **Dynamic typing** — All values are boxed via `meow.Value` interface
+- **Gradual typing** — Optional type annotations with `meow.Value` boxing
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
+- **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
+- **Interfaces & methods** — `pose` (interface), `groom` (method impl)
+- **Standard library** — `nab "file"`, `nab "http"` for file I/O and HTTP
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
 - **Pipe operator** — Chain operations with `|=|`
@@ -247,7 +250,13 @@ nyan result = peek(score) {
 | `hiss` | Raise error | `hiss("something went wrong")` |
 | `gag` | Catch errors | `gag(paw() { risky() })` |
 | `is_furball` | Check if error | `is_furball(result)` |
-| `fetch` | Import *(planned)* | — |
+| `kitty` | Struct definition | `kitty Cat { name: string }` |
+| `breed` | Type alias | `breed Name = string` |
+| `collar` | Newtype wrapper | `collar UserId = int` |
+| `pose` | Interface definition | `pose Showable { meow show() string }` |
+| `groom` | Method implementation | `groom Cat { meow show() string { ... } }` |
+| `self` | Self reference in methods | `bring self.name` |
+| `nab` | Import stdlib package | `nab "file"` |
 | `flaunt` | Export *(planned)* | — |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
@@ -327,6 +336,9 @@ Check the [`examples/`](examples/) directory:
 | [`fizzbuzz.nyan`](examples/fizzbuzz.nyan) | Classic FizzBuzz with `sniff`/`scratch` chains |
 | [`list_ops.nyan`](examples/list_ops.nyan) | `lick`, `picky`, `curl` demo |
 | [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `is_furball`, `~>` demo |
+| [`trick_example.nyan`](examples/trick_example.nyan) | `pose`, `groom`, `self` demo |
+| [`file_io.nyan`](examples/file_io.nyan) | File I/O with `nab "file"` |
+| [`http_example.nyan`](examples/http_example.nyan) | HTTP client with `nab "http"` |
 
 ## Project Structure
 
@@ -340,8 +352,13 @@ meow/
 │   ├── lexer/               # iter.Seq-based tokenizer
 │   ├── ast/                 # AST node definitions + tree walker
 │   ├── parser/              # Pratt parser (iter.Pull)
+│   ├── checker/             # Type checker (gradual typing)
 │   └── codegen/             # AST → Go source generation
-├── runtime/meowrt/          # Runtime: Value, operators, builtins
+├── runtime/
+│   ├── meowrt/              # Core: Value, operators, builtins
+│   ├── file/                # File I/O (nab "file")
+│   ├── http/                # HTTP client (nab "http")
+│   └── testing/             # Test framework (nab "testing")
 ├── examples/                # Sample .nyan programs
 └── testdata/                # Golden file tests
 ```
@@ -361,7 +378,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, or just a better
 
 - [ ] More cat-themed error messages
 - [ ] String interpolation (`"Hello, {name}!"`)
-- [ ] `fetch` / `flaunt` (import/export) for multi-file support
+- [ ] `flaunt` (export) for multi-file support
 - [ ] REPL mode (`meow repl`)
 - [ ] Syntax highlighting for popular editors
 - [x] Homebrew formula

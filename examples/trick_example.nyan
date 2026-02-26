@@ -1,10 +1,10 @@
-# Trick & Learn example
-# trick defines an interface (method signatures).
-# learn adds methods to kitty/collar types.
-# Types structurally satisfy a trick if they have all required methods.
+# Pose & Groom example
+# pose defines an interface (method signatures).
+# groom adds methods to kitty/collar types.
+# Types structurally satisfy a pose if they have all required methods.
 
 # Define an interface
-trick Showable {
+pose Showable {
     meow show() string
 }
 
@@ -19,8 +19,8 @@ kitty Dog {
     good_boy: bool
 }
 
-# Learn: add methods to Cat
-learn Cat {
+# Groom: add methods to Cat
+groom Cat {
     meow show() string {
         bring self.name + " (age " + to_string(self.age) + ")"
     }
@@ -29,8 +29,8 @@ learn Cat {
     }
 }
 
-# Learn: add methods to Dog
-learn Dog {
+# Groom: add methods to Dog
+groom Dog {
     meow show() string {
         sniff (self.good_boy) {
             bring self.name + " (good boy!)"
@@ -56,7 +56,7 @@ sniff (tyako.is_kitten()) {
 # Collar with methods
 collar Label = string
 
-learn Label {
+groom Label {
     meow display() string {
         bring "[ " + self.value + " ]"
     }
