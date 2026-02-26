@@ -486,6 +486,9 @@ pre code {
 }
 
 .btn-playground {
+  background: none;
+  border: none;
+  padding: 0;
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
   font-family: var(--font-sans);
@@ -513,7 +516,8 @@ pre code {
   color: #50fa7b;
   background: none;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .code-run-output.error pre {
