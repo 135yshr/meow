@@ -131,7 +131,8 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 	// Fixup: refresh stale alias/collar references from forward declarations.
 	// When breed A = B was resolved before breed B = int, A's underlying holds
 	// a stale copy of B. Replace it with the latest from the map.
-	for i := 0; i < len(c.info.AliasTypes); i++ {
+	maxIter := len(c.info.AliasTypes) + len(c.info.CollarTypes)
+	for i := 0; i < maxIter; i++ {
 		changed := false
 		for name, at := range c.info.AliasTypes {
 			if inner, ok := at.Underlying.(types.AliasType); ok {
@@ -139,6 +140,17 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 					if !inner.Underlying.Equals(latest.Underlying) {
 						at.Underlying = latest
 						c.info.AliasTypes[name] = at
+						changed = true
+					}
+				}
+			}
+		}
+		for name, ct := range c.info.CollarTypes {
+			if inner, ok := ct.Underlying.(types.AliasType); ok {
+				if latest, found := c.info.AliasTypes[inner.Name]; found {
+					if !inner.Underlying.Equals(latest.Underlying) {
+						ct.Underlying = latest
+						c.info.CollarTypes[name] = ct
 						changed = true
 					}
 				}
@@ -484,7 +496,7 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		return types.AnyType{}
 	case *ast.MemberExpr:
-		objType := c.inferExpr(e.Object)
+		objType := types.Unwrap(c.inferExpr(e.Object))
 		if ct, ok := objType.(types.CollarType); ok {
 			if e.Member == "value" {
 				return ct.Underlying
