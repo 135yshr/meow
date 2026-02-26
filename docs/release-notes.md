@@ -4,6 +4,40 @@ A summary of features and changes by release, organized from newest to oldest.
 
 ---
 
+## WASM Playground & AST Interpreter
+
+Browser-based Playground for writing and running `.nyan` code without installing Go.
+
+```meow
+nya("Hello from the Playground!")
+
+meow fib(n int) int {
+    sniff (n <= 1) { bring n }
+    bring fib(n - 1) + fib(n - 2)
+}
+nya(fib(10))
+```
+
+**What's new:**
+
+- **AST Interpreter** (`pkg/interpreter/`) — tree-walking interpreter that executes the AST directly
+  - Reuses existing Lexer, Parser, Checker, and `runtime/meowrt` packages
+  - `Environment` scope chain for variable bindings
+  - `returnSignal` panic/recover for `bring` (return) handling
+  - Output captured to `io.Writer` (not stdout)
+  - Step limit for infinite loop protection (default 10M steps)
+  - `RunSafe()` converts panics to errors
+- **WASM entry point** (`cmd/playground/main_wasm.go`) — exports `runMeow(source)` to JavaScript
+- **Frontend** (`playground/`) — editor, Run button (Ctrl+Enter), output panel, example selector
+- **`ClearMethods()`** added to `runtime/meowrt/tricks.go` for method registry cleanup between runs
+- 8 built-in example programs: Hello World, Fibonacci, FizzBuzz, List Ops, Kitty & Groom, Pattern Matching, Error Handling, Collar
+
+**Supported features:** All core language features including variables, functions, recursion, lambdas, closures, lists, maps, pipes (`|=|`), catch (`~>`), pattern matching (`peek`), kitty, collar, groom, and all builtins.
+
+**Limitation:** `nab` (stdlib imports like `file`, `http`) is not available in the Playground.
+
+---
+
 ## Kitty (Struct) Types — PR #26
 
 User-defined composite types with typed fields.

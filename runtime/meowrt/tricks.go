@@ -22,6 +22,11 @@ func LookupMethod(typeName, methodName string) (func(...Value) Value, bool) {
 	return nil, false
 }
 
+// ClearMethods removes all registered methods from the registry.
+func ClearMethods() {
+	methodRegistry = map[string]map[string]func(...Value) Value{}
+}
+
 // DispatchMethod calls a method on a value by looking up the method registry.
 func DispatchMethod(obj Value, methodName string, args ...Value) Value {
 	typeName := ""

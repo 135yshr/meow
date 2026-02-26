@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meow Playground</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Meow Playground</h1>
+        <p class="subtitle">A cat-themed language that transpiles to Go</p>
+    </header>
+
+    <main>
+        <div class="toolbar">
+            <select id="examples">
+                <option value="">-- Select Example --</option>
+            </select>
+            <button id="run-btn" disabled>Run (Ctrl+Enter)</button>
+            <span id="status">Loading WASM...</span>
+        </div>
+
+        <div class="editor-panel">
+            <div class="panel">
+                <div class="panel-header">Code</div>
+                <textarea id="editor" spellcheck="false" placeholder="Write your .nyan code here..."></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">Output</div>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <a href="https://github.com/135yshr/meow" target="_blank">GitHub</a>
+        <span>Meow Language Playground</span>
+    </footer>
+
+    <script src="wasm_exec.js"></script>
+    <script src="examples.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
