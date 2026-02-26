@@ -44,6 +44,10 @@ enableGitInfo = true
     name = "Community"
     url = "/community/"
     weight = 5
+  [[menu.main]]
+    name = "Playground"
+    url = "/playground/"
+    weight = 6
 
 [outputs]
   home = ["HTML"]

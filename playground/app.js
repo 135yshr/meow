@@ -106,9 +106,28 @@ examplesSelect.addEventListener("change", () => {
     }
 });
 
-// Set default example
-if (typeof MEOW_EXAMPLES !== "undefined" && MEOW_EXAMPLES.length > 0) {
-    editor.value = MEOW_EXAMPLES[0].code;
+// Load code from URL hash or set default example
+function loadFromHash() {
+    var hash = location.hash;
+    if (hash && hash.indexOf('#code=') === 0) {
+        try {
+            var encoded = hash.substring(6);
+            var code = decodeURIComponent(escape(atob(encoded)));
+            editor.value = code;
+            return true;
+        } catch (e) {
+            // Fall through to default
+        }
+    }
+    return false;
 }
+
+if (!loadFromHash()) {
+    if (typeof MEOW_EXAMPLES !== "undefined" && MEOW_EXAMPLES.length > 0) {
+        editor.value = MEOW_EXAMPLES[0].code;
+    }
+}
+
+window.addEventListener("hashchange", loadFromHash);
 
 loadWasm();

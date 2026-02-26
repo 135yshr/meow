@@ -445,6 +445,94 @@ pre code {
   display: block;
 }
 
+/* ── Code Actions & Run Output ── */
+.code-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(40, 42, 54, 0.95);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  margin-top: -1px;
+}
+
+.example-panel .code-window {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.btn-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 1rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-run:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+.btn-run:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-playground {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: color 0.15s;
+  margin-left: auto;
+}
+.btn-playground:hover {
+  color: #fff;
+}
+
+.code-run-output {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.code-run-output pre {
+  padding: 0.75rem 1.25rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #50fa7b;
+  background: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.code-run-output.error pre {
+  color: #e94560;
+}
+
+.code-run-output.loading pre {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* When code-actions present, adjust border-radius */
+.code-actions + .code-run-output {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.code-actions ~ .code-run-output:not([style*="display:none"]) + .code-actions {
+  border-radius: 0;
+}
+
 /* ── Quickstart ── */
 .quickstart {
   padding: 5rem 0;

@@ -122,6 +122,13 @@
   <span class="fn">nya</span>(<span class="fn">fizzbuzz</span>(i))
 }</code></pre>
         </div>
+        <div class="code-actions">
+          <button class="btn-run" onclick="runExample(this)">&#9654; Run</button>
+          <a class="btn-playground" onclick="openInPlayground(this)">Open in Playground</a>
+        </div>
+        <div class="code-run-output" style="display:none">
+          <pre></pre>
+        </div>
       </div>
       <div class="example-panel" id="tab-fibonacci">
         <div class="code-window">
@@ -141,6 +148,13 @@
 <span class="kw">purr</span> i (<span class="num">10</span>) {
   <span class="fn">nya</span>(<span class="fn">fib</span>(i))
 }</code></pre>
+        </div>
+        <div class="code-actions">
+          <button class="btn-run" onclick="runExample(this)">&#9654; Run</button>
+          <a class="btn-playground" onclick="openInPlayground(this)">Open in Playground</a>
+        </div>
+        <div class="code-run-output" style="display:none">
+          <pre></pre>
         </div>
       </div>
       <div class="example-panel" id="tab-struct">
@@ -162,6 +176,13 @@
 
 <span class="fn">nya</span>(nyanchu.name + <span class="str">" is "</span> + <span class="fn">to_string</span>(nyanchu.age) + <span class="str">" years old"</span>)</code></pre>
         </div>
+        <div class="code-actions">
+          <button class="btn-run" onclick="runExample(this)">&#9654; Run</button>
+          <a class="btn-playground" onclick="openInPlayground(this)">Open in Playground</a>
+        </div>
+        <div class="code-run-output" style="display:none">
+          <pre></pre>
+        </div>
       </div>
       <div class="example-panel" id="tab-functional">
         <div class="code-window">
@@ -180,6 +201,13 @@
   |=| <span class="fn">curl</span>(<span class="kw">paw</span>(acc, x) { acc + x }, <span class="num">0</span>)
 
 <span class="fn">nya</span>(result)  <span class="cm"># 60</span></code></pre>
+        </div>
+        <div class="code-actions">
+          <button class="btn-run" onclick="runExample(this)">&#9654; Run</button>
+          <a class="btn-playground" onclick="openInPlayground(this)">Open in Playground</a>
+        </div>
+        <div class="code-run-output" style="display:none">
+          <pre></pre>
         </div>
       </div>
     </div>
@@ -223,4 +251,5 @@
     </div>
   </div>
 </section>
+<script src="{{ "playground/wasm_exec.js" | relURL }}"></script>
 {{ end }}
