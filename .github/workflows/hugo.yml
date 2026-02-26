@@ -1,4 +1,4 @@
-name: Deploy Hugo Site
+name: Deploy Hugo Site + Playground
 
 on:
   push:
@@ -6,6 +6,14 @@ on:
     paths:
       - "website/**"
       - "docs/**"
+      - "playground/**"
+      - "cmd/playground/**"
+      - "pkg/interpreter/**"
+      - "runtime/meowrt/**"
+      - "pkg/lexer/**"
+      - "pkg/parser/**"
+      - "pkg/ast/**"
+      - "pkg/checker/**"
       - ".github/workflows/hugo.yml"
   workflow_dispatch:
 
@@ -74,6 +82,32 @@ jobs:
             --gc \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Install stringer
+        run: go install golang.org/x/tools/cmd/stringer@latest
+
+      - name: Generate
+        run: go generate ./...
+
+      - name: Build Playground WASM
+        run: |
+          GOOS=js GOARCH=wasm go build -o playground/meow.wasm ./cmd/playground/
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" playground/wasm_exec.js
+
+      - name: Copy Playground into Hugo output
+        run: |
+          mkdir -p website/public/playground
+          cp playground/index.html website/public/playground/
+          cp playground/style.css website/public/playground/
+          cp playground/app.js website/public/playground/
+          cp playground/examples.js website/public/playground/
+          cp playground/wasm_exec.js website/public/playground/
+          cp playground/meow.wasm website/public/playground/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
