@@ -87,22 +87,16 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
-	// First pass: register all type definitions and function declarations
+	// First pass: register type/function names as placeholders
 	for _, stmt := range prog.Stmts {
 		if bs, ok := stmt.(*ast.BreedStmt); ok {
-			underlying := c.resolveTypeExpr(bs.Original)
-			c.info.AliasTypes[bs.Name] = types.AliasType{Name: bs.Name, Underlying: underlying}
+			c.info.AliasTypes[bs.Name] = types.AliasType{Name: bs.Name, Underlying: types.AnyType{}}
 		}
 		if cs, ok := stmt.(*ast.CollarStmt); ok {
-			underlying := c.resolveTypeExpr(cs.Wrapped)
-			c.info.CollarTypes[cs.Name] = types.CollarType{Name: cs.Name, Underlying: underlying}
+			c.info.CollarTypes[cs.Name] = types.CollarType{Name: cs.Name, Underlying: types.AnyType{}}
 		}
 		if ks, ok := stmt.(*ast.KittyStmt); ok {
-			fields := make([]types.KittyFieldType, len(ks.Fields))
-			for i, f := range ks.Fields {
-				fields[i] = types.KittyFieldType{Name: f.Name, Type: c.resolveTypeExpr(f.TypeAnn)}
-			}
-			c.info.KittyTypes[ks.Name] = types.KittyType{Name: ks.Name, Fields: fields}
+			c.info.KittyTypes[ks.Name] = types.KittyType{Name: ks.Name}
 		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
 			ft := c.funcSignatureType(fn)
@@ -111,7 +105,51 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 		}
 	}
 
-	// Second pass: check all statements
+	// Second pass: resolve underlying types (forward references now work)
+	for _, stmt := range prog.Stmts {
+		if bs, ok := stmt.(*ast.BreedStmt); ok {
+			at := c.info.AliasTypes[bs.Name]
+			at.Underlying = c.resolveTypeExpr(bs.Original)
+			c.info.AliasTypes[bs.Name] = at
+		}
+		if cs, ok := stmt.(*ast.CollarStmt); ok {
+			ct := c.info.CollarTypes[cs.Name]
+			ct.Underlying = c.resolveTypeExpr(cs.Wrapped)
+			c.info.CollarTypes[cs.Name] = ct
+		}
+		if ks, ok := stmt.(*ast.KittyStmt); ok {
+			fields := make([]types.KittyFieldType, len(ks.Fields))
+			for i, f := range ks.Fields {
+				fields[i] = types.KittyFieldType{Name: f.Name, Type: c.resolveTypeExpr(f.TypeAnn)}
+			}
+			kt := c.info.KittyTypes[ks.Name]
+			kt.Fields = fields
+			c.info.KittyTypes[ks.Name] = kt
+		}
+	}
+
+	// Fixup: refresh stale alias/collar references from forward declarations.
+	// When breed A = B was resolved before breed B = int, A's underlying holds
+	// a stale copy of B. Replace it with the latest from the map.
+	for i := 0; i < len(c.info.AliasTypes); i++ {
+		changed := false
+		for name, at := range c.info.AliasTypes {
+			if inner, ok := at.Underlying.(types.AliasType); ok {
+				if latest, found := c.info.AliasTypes[inner.Name]; found {
+					if !inner.Underlying.Equals(latest.Underlying) {
+						at.Underlying = latest
+						c.info.AliasTypes[name] = at
+						changed = true
+					}
+				}
+			}
+		}
+		if !changed {
+			break
+		}
+	}
+
+	// Third pass: check all statements
 	for _, stmt := range prog.Stmts {
 		c.checkStmt(stmt)
 	}
@@ -163,6 +201,7 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 		if kt, ok := c.info.KittyTypes[t.Name]; ok {
 			return kt
 		}
+		c.addError(t.Token.Pos, "Unknown type %s", t.Name)
 		return types.AnyType{}
 	default:
 		return types.AnyType{}
@@ -320,7 +359,7 @@ func (c *Checker) checkReturnStmt(s *ast.ReturnStmt) {
 }
 
 func (c *Checker) checkIfStmt(s *ast.IfStmt) {
-	condType := c.inferExpr(s.Condition)
+	condType := types.Unwrap(c.inferExpr(s.Condition))
 	if !types.IsAny(condType) {
 		if _, ok := condType.(types.BoolType); !ok {
 			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
@@ -342,14 +381,14 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 
 func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 	if s.Start != nil {
-		startType := c.inferExpr(s.Start)
+		startType := types.Unwrap(c.inferExpr(s.Start))
 		if !types.IsAny(startType) {
 			if _, ok := startType.(types.IntType); !ok {
 				c.addError(s.Token.Pos, "Range start must be int, got %s", startType)
 			}
 		}
 	}
-	endType := c.inferExpr(s.End)
+	endType := types.Unwrap(c.inferExpr(s.End))
 	if !types.IsAny(endType) {
 		if _, ok := endType.(types.IntType); !ok {
 			c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
@@ -474,7 +513,7 @@ func (c *Checker) inferUnary(e *ast.UnaryExpr) types.Type {
 		if types.IsAny(operand) {
 			return types.AnyType{}
 		}
-		if types.IsNumeric(operand) {
+		if types.IsNumeric(types.Unwrap(operand)) {
 			return operand
 		}
 		c.addError(e.Token.Pos, "Cannot negate %s", operand)

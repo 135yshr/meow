@@ -427,3 +427,58 @@ func TestNotBoolOperand(t *testing.T) {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
+
+func TestBreedForwardReference(t *testing.T) {
+	_, errs := check(t, `
+breed Score = Points
+breed Points = int
+nyan s Score = 42
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed forward reference: %v", errs)
+	}
+}
+
+func TestUnknownNamedType(t *testing.T) {
+	_, errs := check(t, `nyan x Nonexistent = 42`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for unknown named type, got none")
+	}
+}
+
+func TestBreedAliasInCondition(t *testing.T) {
+	_, errs := check(t, `
+breed Flag = bool
+nyan f Flag = yarn
+sniff (f) {
+  nya(f)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias in condition: %v", errs)
+	}
+}
+
+func TestBreedAliasInRange(t *testing.T) {
+	_, errs := check(t, `
+breed Count = int
+nyan n Count = 5
+purr i (n) {
+  nya(i)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias in range: %v", errs)
+	}
+}
+
+func TestBreedAliasUnaryMinus(t *testing.T) {
+	_, errs := check(t, `
+breed Num = int
+nyan x Num = 42
+nyan y = -x
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for breed alias unary minus: %v", errs)
+	}
+}

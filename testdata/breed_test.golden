@@ -1,5 +1,7 @@
 Nyantyu
 42
   PASS: test_breed_alias
+  PASS: test_breed_in_condition
+  PASS: test_breed_unary
 
-All 1 tests passed, nya~!
+All 3 tests passed, nya~!

@@ -542,7 +542,7 @@ func (g *Generator) genExprBoxed(expr ast.Expr) string {
 
 // boxNative wraps a native Go value in its meow.Value constructor.
 func (g *Generator) boxNative(name string, t types.Type) string {
-	switch t.(type) {
+	switch types.Unwrap(t).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", name)
 	case types.FloatType:
@@ -701,6 +701,16 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return call
 	}
 
+	// Collar constructors
+	if _, ok := g.collarDefs[ident.Name]; ok {
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		return fmt.Sprintf("meow.NewKitty(%q, []string{\"value\"}, %s)",
+			ident.Name, strings.Join(args, ", "))
+	}
+
 	// Typed user-defined functions (only for fully native signatures)
 	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
 		if isFullyTypedFuncType(ft) {
@@ -721,7 +731,7 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 		return g.genExpr(expr)
 	}
 	typed := g.genTypedExpr(expr)
-	switch t.(type) {
+	switch types.Unwrap(t).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", typed)
 	case types.FloatType:
@@ -771,7 +781,7 @@ func isLiteralExpr(expr ast.Expr) bool {
 }
 
 func unboxToNative(boxedExpr string, targetType types.Type) string {
-	switch targetType.(type) {
+	switch types.Unwrap(targetType).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
 	case types.FloatType:
@@ -786,7 +796,7 @@ func unboxToNative(boxedExpr string, targetType types.Type) string {
 }
 
 func boxNativeCall(call string, retType types.Type) string {
-	switch retType.(type) {
+	switch types.Unwrap(retType).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", call)
 	case types.FloatType:

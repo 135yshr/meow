@@ -199,7 +199,7 @@ func (p *Parser) isTypeToken() bool {
 		// indicates it's a type annotation (= for assignment, , for param list,
 		// ) for closing params, { for function body).
 		switch p.peek.Type {
-		case token.ASSIGN, token.COMMA, token.RPAREN, token.LBRACE:
+		case token.ASSIGN, token.COMMA, token.RPAREN, token.LBRACE, token.NEWLINE:
 			return true
 		}
 	}
