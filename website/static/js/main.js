@@ -26,3 +26,108 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+// ── WASM lazy loading & example execution ──
+
+var wasmReady = false;
+var wasmLoading = false;
+
+function getBaseURL() {
+  var base = document.querySelector('base');
+  if (base) return base.getAttribute('href');
+  var link = document.querySelector('link[rel="canonical"]');
+  if (link) {
+    var url = new URL(link.getAttribute('href'));
+    return url.pathname;
+  }
+  return '/meow/';
+}
+
+function ensureWasm() {
+  if (wasmReady) return Promise.resolve();
+  if (wasmLoading) return wasmLoading;
+
+  wasmLoading = new Promise(function (resolve, reject) {
+    if (typeof Go === 'undefined') {
+      reject(new Error('wasm_exec.js not loaded'));
+      return;
+    }
+    var go = new Go();
+    var wasmURL = getBaseURL() + 'playground/meow.wasm';
+    WebAssembly.instantiateStreaming(fetch(wasmURL), go.importObject)
+      .then(function (result) {
+        go.run(result.instance);
+        wasmReady = true;
+        resolve();
+      })
+      .catch(function (err) {
+        wasmLoading = false;
+        reject(err);
+      });
+  });
+
+  return wasmLoading;
+}
+
+function getCodeFromPanel(el) {
+  var panel = el.closest('.example-panel');
+  if (!panel) return '';
+  var codeEl = panel.querySelector('.code-body code');
+  return codeEl ? codeEl.textContent : '';
+}
+
+function runExample(btn) {
+  var panel = btn.closest('.example-panel');
+  var outputDiv = panel.querySelector('.code-run-output');
+  var outputPre = outputDiv.querySelector('pre');
+
+  outputDiv.style.display = 'block';
+  outputDiv.className = 'code-run-output loading';
+  outputPre.textContent = 'Loading WASM...';
+
+  var originalText = btn.textContent;
+  btn.textContent = 'Loading...';
+  btn.disabled = true;
+
+  ensureWasm()
+    .then(function () {
+      btn.textContent = 'Running...';
+      var code = getCodeFromPanel(btn);
+
+      setTimeout(function () {
+        try {
+          var jsonResult = runMeow(code);
+          var result = JSON.parse(jsonResult);
+          outputDiv.className = 'code-run-output';
+
+          if (result.error) {
+            outputPre.textContent = result.output
+              ? result.output + '\n--- Error ---\n' + result.error
+              : result.error;
+            if (!result.output) outputDiv.className = 'code-run-output error';
+          } else {
+            outputPre.textContent = result.output || '(no output)';
+          }
+        } catch (err) {
+          outputDiv.className = 'code-run-output error';
+          outputPre.textContent = 'Error: ' + err.message;
+        }
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 10);
+    })
+    .catch(function (err) {
+      outputDiv.className = 'code-run-output error';
+      outputPre.textContent = 'Failed to load WASM: ' + err.message;
+      btn.textContent = originalText;
+      btn.disabled = false;
+    });
+}
+
+function openInPlayground(link) {
+  var code = getCodeFromPanel(link);
+  var encoded = btoa(unescape(encodeURIComponent(code)));
+  var url = getBaseURL() + 'playground/#code=' + encoded;
+  window.open(url, '_blank');
+}

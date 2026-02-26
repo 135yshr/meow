@@ -134,7 +134,7 @@ Infix parsers handle: binary operators, pipe `|=|`, and catch `~>`.
 | `BRING` | `parseReturnStmt` |
 | `SNIFF` | `parseIfStmt` |
 | `PURR` | `parsePurrStmt` |
-| `FETCH` | `parseFetchStmt` |
+| `NAB` | `parseFetchStmt` |
 | `KITTY` | `parseKittyStmt` |
 | other | `parseExprStmtOrAssign` |
 
@@ -297,7 +297,7 @@ var stdPackages = map[string]string{
 }
 ```
 
-`fetch "file"` registers the import, and member calls like `file.snoop(x)` are generated as `meow_file.Snoop(x)` — the function name is capitalized by `capitalizeFirst`.
+`nab "file"` registers the import, and member calls like `file.snoop(x)` are generated as `meow_file.Snoop(x)` — the function name is capitalized by `capitalizeFirst`.
 
 ### Pipe Desugaring
 

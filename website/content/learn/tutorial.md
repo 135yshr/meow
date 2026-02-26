@@ -68,7 +68,7 @@ nyan weight float = 4.2
 nyan is_cute bool = yarn
 ```
 
-Type annotations help catch errors at compile time and generate faster code. Available types: `int`, `float`, `string`, `bool`, `furball`, `list`.
+Type annotations help catch errors at compile time and generate faster code. Available types: `int`, `float`, `string`, `bool`, `furball`, `litter`.
 
 Print multiple values:
 
@@ -370,7 +370,7 @@ introduce(tyako)     # => Tyako is 5 years old
 ### File I/O
 
 ```meow
-fetch "file"
+nab "file"
 
 # Read entire file
 nyan content = file.snoop("data.txt")
@@ -384,7 +384,7 @@ lines |=| lick(paw(line) { "=> " + line }) |=| nya
 ### HTTP Client
 
 ```meow
-fetch "http"
+nab "http"
 
 # GET request
 http.pounce("https://httpbin.org/get") |=| nya
@@ -405,7 +405,7 @@ http.swat("https://httpbin.org/delete") |=| nya
 With custom headers:
 
 ```meow
-fetch "http"
+nab "http"
 nyan response = http.pounce("https://api.example.com/data", {
   "headers": {
     "Authorization": "Bearer my_token"
@@ -422,7 +422,7 @@ Create a test file with the `_test.nyan` suffix:
 
 ```meow
 # math_test.nyan
-fetch "testing"
+nab "testing"
 
 meow test_addition() {
   expect(1 + 1, 2, "basic addition")

@@ -47,7 +47,7 @@ The following 19 identifiers are reserved as keywords:
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
-curl      peek      hiss      fetch     flaunt
+curl      peek      hiss      nab       flaunt
 catnap    yarn      hairball  kitty
 ```
 
@@ -56,7 +56,7 @@ catnap    yarn      hairball  kitty
 The following 6 identifiers are reserved as type keywords:
 
 ```text
-int    float    string    bool    furball    list
+int    float    string    bool    furball    litter
 ```
 
 ### Identifiers
@@ -131,7 +131,7 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 
 | Type | Description | Syntax |
 |------|-------------|--------|
-| `list` | Ordered collection of values | `[1, 2, 3]` |
+| `litter` | Ordered collection of values | `[1, 2, 3]` |
 | Map | String-keyed dictionary | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 
@@ -140,7 +140,7 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 Type annotations are optional but recommended. They appear after identifiers:
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "list" .
+TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" .
 ```
 
 Variable declaration with type:
@@ -367,16 +367,16 @@ purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
 purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
 ```
 
-### Fetch Statement
+### Nab Statement
 
 ```ebnf
-FetchStmt = "fetch" string_lit newline .
+NabStmt = "nab" string_lit newline .
 ```
 
 Imports a standard library package. Available packages: `"file"`, `"http"`, `"testing"`.
 
 ```meow
-fetch "http"
+nab "http"
 ```
 
 ### Kitty Statement
@@ -470,9 +470,9 @@ A Meow program is a single `.nyan` file containing a sequence of top-level state
 package main
 
 import meow "github.com/135yshr/meow/runtime/meowrt"
-import meow_file "github.com/135yshr/meow/runtime/file"    // from fetch "file"
-import meow_http "github.com/135yshr/meow/runtime/http"    // from fetch "http"
-import meow_testing "github.com/135yshr/meow/runtime/testing" // from fetch "testing"
+import meow_file "github.com/135yshr/meow/runtime/file"    // from nab "file"
+import meow_http "github.com/135yshr/meow/runtime/http"    // from nab "http"
+import meow_testing "github.com/135yshr/meow/runtime/testing" // from nab "testing"
 
 // user-defined functions
 

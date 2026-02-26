@@ -4,6 +4,10 @@ title = "Meow Programming Language"
 enableRobotsTXT = true
 enableGitInfo = true
 
+[services]
+  [services.googleAnalytics]
+    ID = "G-ER6J1C357P"
+
 [params]
   description = "The purrfect cat-themed programming language that transpiles to Go"
   tagline = "The purrfect functional programming language"
@@ -40,6 +44,10 @@ enableGitInfo = true
     name = "Community"
     url = "/community/"
     weight = 5
+  [[menu.main]]
+    name = "Playground"
+    url = "/playground/"
+    weight = 6
 
 [outputs]
   home = ["HTML"]
