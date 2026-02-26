@@ -1387,6 +1387,10 @@ func (g *Generator) genLearnMethod(typeName string, fn *ast.FuncStmt) string {
 	methodFuncName := fmt.Sprintf("meow_method_%s_%s", typeName, fn.Name)
 
 	fmt.Fprintf(&b, "func %s(args ...meow.Value) meow.Value {\n", methodFuncName)
+	// Arity guard: self + params
+	fmt.Fprintf(&b, "\tif len(args) < %d {\n", 1+len(fn.Params))
+	b.WriteString("\t\treturn meow.NewNil()\n")
+	b.WriteString("\t}\n")
 	// Extract self from first argument
 	b.WriteString("\tself := args[0]\n")
 	b.WriteString("\t_ = self\n")

@@ -617,8 +617,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 			}
 			// Check learn methods for collar types
 			if methods, ok := c.info.LearnImpls[ct.Name]; ok {
-				if ft, ok := methods[e.Member]; ok {
-					return ft.Return
+				if _, ok := methods[e.Member]; ok {
+					c.addError(e.Token.Pos, "Method %s.%s must be called with ()", ct.Name, e.Member)
+					return types.AnyType{}
 				}
 			}
 			c.addError(e.Token.Pos, "%s has no field or method %s", ct.Name, e.Member)
@@ -632,8 +633,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 			}
 			// Check learn methods for kitty types
 			if methods, ok := c.info.LearnImpls[kt.Name]; ok {
-				if ft, ok := methods[e.Member]; ok {
-					return ft.Return
+				if _, ok := methods[e.Member]; ok {
+					c.addError(e.Token.Pos, "Method %s.%s must be called with ()", kt.Name, e.Member)
+					return types.AnyType{}
 				}
 			}
 			c.addError(e.Token.Pos, "%s has no field or method %s", kt.Name, e.Member)

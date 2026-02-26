@@ -639,6 +639,33 @@ nyan x = self.name
 	}
 }
 
+func TestBareMethodAccessError(t *testing.T) {
+	_, errs := check(t, `
+kitty Cat {
+    name: string
+}
+learn Cat {
+    meow show() string {
+        bring self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan f = c.show
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for bare method access without (), got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "must be called with ()") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'must be called with ()' error, got: %v", errs)
+	}
+}
+
 func TestLearnMethodMissingParamType(t *testing.T) {
 	_, errs := check(t, `
 kitty Cat {
