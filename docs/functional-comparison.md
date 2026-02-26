@@ -8,7 +8,7 @@ Meow の関数型プログラミング機能を Haskell / Elm と比較し、現
 |------|-------------|-------------|
 | 型推論 (Hindley-Milner) | 完全な型推論。型注釈なしでもコンパイル可 | 部分的。段階的型付け (Gradual Typing)。型注釈付き関数はネイティブ Go コードを生成 |
 | ジェネリクス（多相型） | `map :: (a -> b) -> [a] -> [b]` | なし。全て `meowrt.Value` でボクシング |
-| 型クラス / トレイト | `class Eq a where (==) :: a -> a -> Bool` | `trick`（インターフェース定義）+ `learn`（メソッド実装）。構造的型付け。デフォルト実装・ジェネリクスは未対応 |
+| 型クラス / トレイト | `class Eq a where (==) :: a -> a -> Bool` | `pose`（インターフェース定義）+ `groom`（メソッド実装）。構造的型付け。デフォルト実装・ジェネリクスは未対応 |
 | 代数的データ型 (ADT) | `data Maybe a = Nothing \| Just a` | `kitty`（Product 型）のみ。Sum 型なし |
 | 型エイリアス | `type Name = String` | `breed Name = string`（透過的エイリアス。前方参照・チェーン可） |
 | Newtype | `newtype Age = Age Int` | `collar Age = int`（名前的型付け。コンストラクタ `Age(42)` と `.value` アクセサ） |
@@ -38,22 +38,22 @@ nyan b = UserId(1)
 judge(a == b, "same collar, same value")
 ```
 
-### trick / learn の詳細
+### pose / groom の詳細
 
-**trick（インターフェース）** は Haskell の `class` / Go の `interface` に対応する。メソッドシグネチャの集合を定義する。型が trick を満たすかは構造的に判定される（明示的な宣言は不要）。
+**pose（インターフェース）** は Haskell の `class` / Go の `interface` に対応する。メソッドシグネチャの集合を定義する。型が pose を満たすかは構造的に判定される（明示的な宣言は不要）。
 
 ```meow
-trick Showable {
+pose Showable {
     meow show() string
 }
 ```
 
-**learn（メソッド実装）** は Haskell の `instance` / Go のメソッドレシーバに対応する。`kitty` や `collar` 型にメソッドを追加する。メソッド本体では `self` で自身のインスタンスを参照する。
+**groom（メソッド実装）** は Haskell の `instance` / Go のメソッドレシーバに対応する。`kitty` や `collar` 型にメソッドを追加する。メソッド本体では `self` で自身のインスタンスを参照する。
 
 ```meow
 kitty Cat { name: string, age: int }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name + " (age " + to_string(self.age) + ")"
     }
@@ -72,7 +72,7 @@ nya(c.is_kitten())  # => hairball
 ```meow
 collar Label = string
 
-learn Label {
+groom Label {
     meow display() string {
         bring "[ " + self.value + " ]"
     }
@@ -83,9 +83,9 @@ nya(tag.display())   # => [ important ]
 ```
 
 Haskell の型クラスとの主な違い：
-- **構造的型付け**: Haskell は `instance Eq Cat where ...` と明示的に宣言するが、Meow は必要なメソッドを `learn` で定義すれば自動的に trick を満たす
-- **デフォルト実装なし**: Haskell の `class` ではデフォルト実装を定義できるが、Meow の `trick` はシグネチャのみ
-- **ジェネリクスなし**: `trick Functor f where fmap :: (a -> b) -> f a -> f b` のような型パラメータ付き trick は未対応
+- **構造的型付け**: Haskell は `instance Eq Cat where ...` と明示的に宣言するが、Meow は必要なメソッドを `groom` で定義すれば自動的に pose を満たす
+- **デフォルト実装なし**: Haskell の `class` ではデフォルト実装を定義できるが、Meow の `pose` はシグネチャのみ
+- **ジェネリクスなし**: `pose Functor f where fmap :: (a -> b) -> f a -> f b` のような型パラメータ付き pose は未対応
 
 ### 型付き関数とネイティブコード生成
 
@@ -134,7 +134,7 @@ Meow の `peek` はリテラル、範囲 (`1..10`)、ワイルドカード (`_`)
 
 | 機能 | Haskell/Elm | Meow の現状 |
 |------|-------------|-------------|
-| ユーザー定義モジュール | `module Foo exposing (..)` | なし。`fetch` で組み込みのみ |
+| ユーザー定義モジュール | `module Foo exposing (..)` | なし。`nab` で組み込みのみ |
 | 選択的インポート | `import List exposing (map, filter)` | なし。パッケージ全体をインポート |
 | qualified import | `import qualified Map as M` | なし |
 
@@ -173,19 +173,19 @@ Meow の `peek` はリテラル、範囲 (`1..10`)、ワイルドカード (`_`)
         │                  Meow 型システム                        │
         ├──────────────┬──────────────┬────────────┬────────────┤
         │ プリミティブ  │ ユーザー定義  │ 型修飾子    │ 型クラス    │
-        │ int          │ kitty(構造体)│ breed(透過) │ trick(IF)  │
-        │ float        │              │ collar(名前)│ learn(実装) │
+        │ int          │ kitty(構造体)│ breed(透過) │ pose(IF)   │
+        │ float        │              │ collar(名前)│ groom(実装) │
         │ string       │              │            │ self(参照)  │
         │ bool         │              │            │            │
-        │ list         │              │            │            │
+        │ litter       │              │            │            │
         │ furball      │              │            │            │
         └──────────────┴──────────────┴────────────┴────────────┘
                 │               │               │
                 ▼               ▼               ▼
         ┌───────────────┐ ┌──────────────┐ ┌──────────────────┐
         │ 型注釈あり     │ │ 前方参照      │ │ 構造的型付け      │
-        │ → ネイティブ   │ │ チェーン解決   │ │ trick のメソッドを │
-        │   Go コード生成│ │ breed A = B   │ │ learn で全て定義  │
+        │ → ネイティブ   │ │ チェーン解決   │ │ pose のメソッドを  │
+        │   Go コード生成│ │ breed A = B   │ │ groom で全て定義  │
         │ 型注釈なし     │ │ breed B = int │ │ すれば自動的に満足 │
         │ → meow.Value  │ │ → A は int    │ │                  │
         │   ボクシング   │ │   と互換      │ │                  │
@@ -210,14 +210,14 @@ kitty Option {
 
 ### 2. ジェネリクス（パラメトリック多相）
 
-型安全な汎用関数が書けず、全て `Value` 型に頼っている。ジェネリクスを導入すると `lick` / `picky` / `curl` などの高階関数や `trick` のメソッドシグネチャを型安全に記述できる。
+型安全な汎用関数が書けず、全て `Value` 型に頼っている。ジェネリクスを導入すると `lick` / `picky` / `curl` などの高階関数や `pose` のメソッドシグネチャを型安全に記述できる。
 
 ```meow
 # 構想例
 meow identity(x T) T { bring x }
 
-# ジェネリクス付き trick
-trick Functor F {
+# ジェネリクス付き pose
+pose Functor F {
     meow fmap(f paw(a) { b }, fa F) F
 }
 ```
@@ -234,10 +234,10 @@ peek (option) {
 }
 ```
 
-### 4. trick の拡張
+### 4. pose の拡張
 
-現在の `trick` / `learn` は基本的な構造的型付けのみ。以下の拡張で Haskell の型クラスに近づく。
+現在の `pose` / `groom` は基本的な構造的型付けのみ。以下の拡張で Haskell の型クラスに近づく。
 
-- **デフォルト実装**: trick 内でメソッドのデフォルト本体を定義可能にする
-- **trick 継承**: `trick Ord extends Eq { ... }` のような trick 間の継承
-- **プリミティブ型への learn**: `learn int { ... }` で組み込み型にもメソッドを追加
+- **デフォルト実装**: pose 内でメソッドのデフォルト本体を定義可能にする
+- **pose 継承**: `pose Ord extends Eq { ... }` のような pose 間の継承
+- **プリミティブ型への groom**: `groom int { ... }` で組み込み型にもメソッドを追加

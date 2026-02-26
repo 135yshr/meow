@@ -23,9 +23,9 @@ A side-by-side reference for Go developers learning Meow. Meow transpiles to Go,
 | Struct | `type Cat struct { ... }` | `kitty Cat { ... }` |
 | Type alias | `type Name = string` | `breed Name = string` |
 | Newtype | `type UserId int` | `collar UserId = int` |
-| Interface | `type Showable interface { ... }` | `trick Showable { ... }` |
-| Method | `func (c Cat) Show() string` | `learn Cat { meow show() string { ... } }` |
-| Import | `import "net/http"` | `fetch "http"` |
+| Interface | `type Showable interface { ... }` | `pose Showable { ... }` |
+| Method | `func (c Cat) Show() string` | `groom Cat { meow show() string { ... } }` |
+| Import | `import "net/http"` | `nab "http"` |
 | Error | `errors.New("msg")` | `hiss("msg")` |
 | Panic | `panic("msg")` | `hiss("msg")` |
 | Recover | `defer func() { recover() }()` | `gag(paw() { ... })` |
@@ -150,7 +150,7 @@ func (c Cat) IsKitten() bool {
 
 **Meow:**
 ```meow
-trick Showable {
+pose Showable {
     meow show() string
 }
 
@@ -159,7 +159,7 @@ kitty Cat {
   age: int
 }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -170,8 +170,8 @@ learn Cat {
 ```
 
 Key differences:
-- Go declares methods with a receiver (`func (c Cat) Show()`); Meow groups methods in a `learn` block and uses `self`
-- Go interface satisfaction is implicit; Meow's `trick` satisfaction is also structural (no explicit declaration needed)
+- Go declares methods with a receiver (`func (c Cat) Show()`); Meow groups methods in a `groom` block and uses `self`
+- Go interface satisfaction is implicit; Meow's `pose` satisfaction is also structural (no explicit declaration needed)
 - Go receivers can be pointer or value; Meow always passes by reference via `self`
 
 ### Error Handling
@@ -302,7 +302,7 @@ fmt.Println(string(body))
 
 **Meow:**
 ```meow
-fetch "http"
+nab "http"
 http.pounce("https://example.com") |=| nya
 ```
 
@@ -353,7 +353,7 @@ Go requires manual loops for map/filter/reduce. Meow has built-in `lick`, `picky
 
 ### Single-file Programs
 
-Meow programs are single `.nyan` files. There's no module system — standard library packages are imported with `fetch`, but user code lives in one file.
+Meow programs are single `.nyan` files. There's no module system — standard library packages are imported with `nab`, but user code lives in one file.
 
 ## Transpiled Output
 

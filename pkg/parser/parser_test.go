@@ -208,7 +208,7 @@ func TestNyaCall(t *testing.T) {
 }
 
 func TestFetchStmt(t *testing.T) {
-	prog := parse(t, `fetch "file"`)
+	prog := parse(t, `nab "file"`)
 	if len(prog.Stmts) != 1 {
 		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
 	}
@@ -474,7 +474,7 @@ func TestGroupedNoType(t *testing.T) {
 }
 
 func TestParseTrickStmt(t *testing.T) {
-	prog := parse(t, `trick Showable {
+	prog := parse(t, `pose Showable {
     meow show() string
     meow greet(name string) string
 }`)
@@ -509,7 +509,7 @@ func TestParseTrickStmt(t *testing.T) {
 }
 
 func TestParseLearnStmt(t *testing.T) {
-	prog := parse(t, `learn Cat {
+	prog := parse(t, `groom Cat {
     meow show() string {
         bring "hello"
     }
@@ -539,7 +539,7 @@ func TestParseLearnStmt(t *testing.T) {
 }
 
 func TestParseSelfExpr(t *testing.T) {
-	prog := parse(t, `learn Cat {
+	prog := parse(t, `groom Cat {
     meow show() string {
         bring self.name
     }

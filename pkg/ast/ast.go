@@ -312,9 +312,9 @@ func (n *MemberExpr) exprTag()            {}
 
 // --- Statements ---
 
-// FetchStmt represents a package import (fetch "file").
+// FetchStmt represents a package import (nab "file").
 type FetchStmt struct {
-	// Token is the fetch keyword token.
+	// Token is the nab keyword token.
 	Token token.Token
 	// Path is the package name.
 	Path string
@@ -461,18 +461,18 @@ func (n *CollarStmt) Pos() token.Position { return n.Token.Pos }
 func (n *CollarStmt) nodeTag()            {}
 func (n *CollarStmt) stmtTag()            {}
 
-// TrickMethod represents a single method signature in a trick definition.
+// TrickMethod represents a single method signature in a pose definition.
 type TrickMethod struct {
 	Name       string
 	Params     []Param
 	ReturnType TypeExpr
 }
 
-// TrickStmt represents a trick (interface) definition.
+// TrickStmt represents a pose (interface) definition.
 type TrickStmt struct {
-	// Token is the trick keyword token.
+	// Token is the pose keyword token.
 	Token token.Token
-	// Name is the trick name.
+	// Name is the pose name.
 	Name string
 	// Methods is the list of method signatures.
 	Methods []TrickMethod
@@ -484,7 +484,7 @@ func (n *TrickStmt) stmtTag()            {}
 
 // LearnStmt represents a method implementation block for a type.
 type LearnStmt struct {
-	// Token is the learn keyword token.
+	// Token is the groom keyword token.
 	Token token.Token
 	// TypeName is the target type name (kitty/collar).
 	TypeName string

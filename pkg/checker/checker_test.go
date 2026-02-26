@@ -540,14 +540,14 @@ nyan v = w.value
 
 func TestLearnUnknownType(t *testing.T) {
 	_, errs := check(t, `
-learn Unknown {
+groom Unknown {
     meow show() string {
         bring "hello"
     }
 }
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for learn on unknown type, got none")
+		t.Fatal("expected error for groom on unknown type, got none")
 	}
 }
 
@@ -556,7 +556,7 @@ func TestLearnDuplicateMethod(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -573,13 +573,13 @@ learn Cat {
 func TestTrickSatisfaction(t *testing.T) {
 	// Cat has show() string, so it structurally satisfies Showable
 	info, errs := check(t, `
-trick Showable {
+pose Showable {
     meow show() string
 }
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -588,15 +588,15 @@ learn Cat {
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
-	// Verify trick type was registered
+	// Verify pose type was registered
 	if _, ok := info.TrickTypes["Showable"]; !ok {
-		t.Error("expected Showable trick to be registered")
+		t.Error("expected Showable pose to be registered")
 	}
-	// Verify learn method was registered
+	// Verify groom method was registered
 	if methods, ok := info.LearnImpls["Cat"]; !ok {
-		t.Error("expected Cat learn impls to be registered")
+		t.Error("expected Cat groom impls to be registered")
 	} else if _, ok := methods["show"]; !ok {
-		t.Error("expected show method in Cat learn impls")
+		t.Error("expected show method in Cat groom impls")
 	}
 }
 
@@ -605,7 +605,7 @@ func TestLearnMemberExprType(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -626,16 +626,16 @@ func TestSelfOutsideLearn(t *testing.T) {
 nyan x = self.name
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for self outside learn, got none")
+		t.Fatal("expected error for self outside groom, got none")
 	}
 	found := false
 	for _, e := range errs {
-		if contains(e.Message, "self can only be used inside learn methods") {
+		if contains(e.Message, "self can only be used inside groom methods") {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected 'self can only be used inside learn methods' error, got: %v", errs)
+		t.Errorf("expected 'self can only be used inside groom methods' error, got: %v", errs)
 	}
 }
 
@@ -644,7 +644,7 @@ func TestBareMethodAccessError(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name
     }
@@ -671,14 +671,14 @@ func TestLearnMethodMissingParamType(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow greet(msg) string {
         bring msg
     }
 }
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for missing param type in learn method, got none")
+		t.Fatal("expected error for missing param type in groom method, got none")
 	}
 }
 
@@ -687,14 +687,14 @@ func TestLearnMethodMissingReturnType(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow show() {
         bring self.name
     }
 }
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for missing return type in learn method with bring, got none")
+		t.Fatal("expected error for missing return type in groom method with bring, got none")
 	}
 }
 
@@ -704,7 +704,7 @@ kitty Cat {
     name: string,
     age: int
 }
-learn Cat {
+groom Cat {
     meow describe() string {
         sniff (self.age < 1) {
             bring "kitten"
@@ -713,7 +713,7 @@ learn Cat {
 }
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for not returning on all paths in learn method, got none")
+		t.Fatal("expected error for not returning on all paths in groom method, got none")
 	}
 }
 
@@ -722,7 +722,7 @@ func TestLearnMethodCallArityMismatch(t *testing.T) {
 kitty Cat {
     name: string
 }
-learn Cat {
+groom Cat {
     meow greet(prefix string) string {
         bring prefix + self.name
     }

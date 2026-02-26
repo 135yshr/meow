@@ -39,12 +39,12 @@ All user-facing identifiers in Meow use **snake_case**. This is enforced by `meo
 ```meow
 # Good
 nyan max_value int = 100
-meow find_max(nums list) int { ... }
+meow find_max(nums litter) int { ... }
 meow test_basic_pipe() { ... }
 
 # Bad — will trigger lint warning
 nyan maxValue int = 100
-meow findMax(nums list) int { ... }
+meow findMax(nums litter) int { ... }
 ```
 
 - **Variables**: `snake_case` — `my_cat`, `total_count`, `is_valid`
@@ -156,7 +156,7 @@ nya(result)   # => 220 (sum of squares of even numbers)
 ### File processing with pipe
 
 ```meow
-fetch "file"
+nab "file"
 
 file.stalk("input.txt")
   |=| picky(paw(line) { len(line) > 0 })
@@ -377,13 +377,13 @@ flowchart LR
     end
 ```
 
-### Use `fetch` for standard library
+### Use `nab` for standard library
 
 Declare imports at the top of the file:
 
 ```meow
-fetch "file"
-fetch "http"
+nab "file"
+nab "http"
 
 # ... rest of code
 ```

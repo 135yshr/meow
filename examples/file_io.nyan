@@ -1,4 +1,4 @@
-fetch "file"
+nab "file"
 
 # Read entire file as a single string
 file.snoop("examples/data.txt") |=| nya

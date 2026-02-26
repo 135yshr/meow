@@ -19,13 +19,13 @@ func collect(l *lexer.Lexer) []token.Token {
 }
 
 func TestKeywords(t *testing.T) {
-	input := `nyan meow bring sniff scratch purr paw nya lick picky curl peek hiss fetch flaunt catnap yarn hairball`
+	input := `nyan meow bring sniff scratch purr paw nya lick picky curl peek hiss nab flaunt catnap yarn hairball`
 	l := lexer.New(input, "test.nyan")
 	tokens := collect(l)
 	expected := []token.TokenType{
 		token.NYAN, token.MEOW, token.BRING, token.SNIFF, token.SCRATCH,
 		token.PURR, token.PAW, token.NYA, token.LICK, token.PICKY,
-		token.CURL, token.PEEK, token.HISS, token.FETCH, token.FLAUNT,
+		token.CURL, token.PEEK, token.HISS, token.NAB, token.FLAUNT,
 		token.CATNAP, token.YARN, token.HAIRBALL, token.EOF,
 	}
 	if len(tokens) != len(expected) {

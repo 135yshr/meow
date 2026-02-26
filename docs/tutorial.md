@@ -64,7 +64,7 @@ nyan weight float = 4.2
 nyan is_cute bool = yarn
 ```
 
-Type annotations help catch errors at compile time and generate faster code. Available types: `int`, `float`, `string`, `bool`, `furball`, `list`.
+Type annotations help catch errors at compile time and generate faster code. Available types: `int`, `float`, `string`, `bool`, `furball`, `litter`.
 
 Print multiple values:
 
@@ -434,9 +434,9 @@ nyan humid = Humidity(72)
 
 ## 11. Interfaces and Methods
 
-### Defining Methods with `learn`
+### Defining Methods with `groom`
 
-You can add methods to `kitty` and `collar` types using `learn`. Inside a method body, `self` refers to the instance the method is called on:
+You can add methods to `kitty` and `collar` types using `groom`. Inside a method body, `self` refers to the instance the method is called on:
 
 ```meow
 kitty Cat {
@@ -444,7 +444,7 @@ kitty Cat {
   age: int
 }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name + " (age " + to_string(self.age) + ")"
     }
@@ -465,7 +465,7 @@ Methods on `collar` types use `self.value` to access the wrapped inner value:
 ```meow
 collar Label = string
 
-learn Label {
+groom Label {
     meow display() string {
         bring "[ " + self.value + " ]"
     }
@@ -475,24 +475,24 @@ nyan tag = Label("important")
 nya(tag.display())   # => [ important ]
 ```
 
-### Defining Interfaces with `trick`
+### Defining Interfaces with `pose`
 
-A `trick` defines an interface — a named set of method signatures that types can implement:
+A `pose` defines an interface — a named set of method signatures that types can implement:
 
 ```meow
-trick Showable {
+pose Showable {
     meow show() string
 }
 ```
 
-Types structurally satisfy a `trick` if they have all required methods. No explicit declaration is needed — if a type has the methods, it satisfies the trick:
+Types structurally satisfy a `pose` if they have all required methods. No explicit declaration is needed — if a type has the methods, it satisfies the pose:
 
 ```meow
 kitty Dog {
   name: string
 }
 
-learn Dog {
+groom Dog {
     meow show() string {
         bring self.name
     }
@@ -501,20 +501,20 @@ learn Dog {
 # Both Cat and Dog satisfy Showable because they both have show() string
 ```
 
-### When to use `learn`
+### When to use `groom`
 
 | Pattern | Example |
 |---------|---------|
-| Add behavior to a struct | `learn Cat { meow speak() string { ... } }` |
-| Add behavior to a newtype | `learn Label { meow display() string { ... } }` |
-| Implement an interface | Define matching methods via `learn` |
+| Add behavior to a struct | `groom Cat { meow speak() string { ... } }` |
+| Add behavior to a newtype | `groom Label { meow display() string { ... } }` |
+| Implement an interface | Define matching methods via `groom` |
 
 ## 12. Standard Library
 
 ### File I/O
 
 ```meow
-fetch "file"
+nab "file"
 
 # Read entire file
 nyan content = file.snoop("data.txt")
@@ -528,7 +528,7 @@ lines |=| lick(paw(line) { "=> " + line }) |=| nya
 ### HTTP Client
 
 ```meow
-fetch "http"
+nab "http"
 
 # GET request
 http.pounce("https://httpbin.org/get") |=| nya
@@ -549,7 +549,7 @@ http.swat("https://httpbin.org/delete") |=| nya
 With custom headers:
 
 ```meow
-fetch "http"
+nab "http"
 nyan response = http.pounce("https://api.example.com/data", {
   "headers": {
     "Authorization": "Bearer my_token"
@@ -566,7 +566,7 @@ Create a test file with the `_test.nyan` suffix:
 
 ```meow
 # math_test.nyan
-fetch "testing"
+nab "testing"
 
 meow test_addition() {
   expect(1 + 1, 2, "basic addition")

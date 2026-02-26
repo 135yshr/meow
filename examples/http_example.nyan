@@ -1,4 +1,4 @@
-fetch "http"
+nab "http"
 
 # GET request — pounce on a URL
 http.pounce("https://httpbin.org/get") |=| nya

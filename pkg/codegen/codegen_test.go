@@ -64,7 +64,7 @@ func TestArithmetic(t *testing.T) {
 }
 
 func TestFetchAndMemberCall(t *testing.T) {
-	code := generate(t, `fetch "file"
+	code := generate(t, `nab "file"
 nyan content = file.snoop("data.txt")
 nya(content)`)
 	if !strings.Contains(code, `import meow_file "github.com/135yshr/meow/runtime/file"`) {
@@ -79,7 +79,7 @@ nya(content)`)
 }
 
 func TestPipeToNya(t *testing.T) {
-	code := generate(t, `fetch "file"
+	code := generate(t, `nab "file"
 nyan lines = file.stalk("data.txt")
 lines |=| lick(paw(line) { "=> " + line }) |=| nya()`)
 	if !strings.Contains(code, "meow.Nya(meow.Lick(") {
@@ -88,7 +88,7 @@ lines |=| lick(paw(line) { "=> " + line }) |=| nya()`)
 }
 
 func TestPipeToBareNya(t *testing.T) {
-	code := generate(t, `fetch "file"
+	code := generate(t, `nab "file"
 nyan lines = file.stalk("data.txt")
 lines |=| lick(paw(line) { "=> " + line }) |=| nya`)
 	if !strings.Contains(code, "meow.Nya(meow.Lick(") {
@@ -97,7 +97,7 @@ lines |=| lick(paw(line) { "=> " + line }) |=| nya`)
 }
 
 func TestFetchHTTPAndPounce(t *testing.T) {
-	code := generate(t, `fetch "http"
+	code := generate(t, `nab "http"
 nyan res = http.pounce("https://example.com")
 nya(res)`)
 	if !strings.Contains(code, `import meow_http "github.com/135yshr/meow/runtime/http"`) {
@@ -109,7 +109,7 @@ nya(res)`)
 }
 
 func TestFetchHTTPAndToss(t *testing.T) {
-	code := generate(t, `fetch "http"
+	code := generate(t, `nab "http"
 nyan res = http.toss("https://example.com/api", "{}", "application/json")
 nya(res)`)
 	if !strings.Contains(code, `meow_http.Toss(meow.NewString("https://example.com/api"), meow.NewString("{}"), meow.NewString("application/json"))`) {
@@ -132,7 +132,7 @@ func TestEmptyMapLitGen(t *testing.T) {
 }
 
 func TestMapAsArgGen(t *testing.T) {
-	code := generate(t, `fetch "http"
+	code := generate(t, `nab "http"
 nyan res = http.pounce("https://example.com", {"maxBodyBytes": 2097152})`)
 	if !strings.Contains(code, `meow_http.Pounce(meow.NewString("https://example.com"), meow.NewMap(map[string]meow.Value{"maxBodyBytes": meow.NewInt(2097152)}))`) {
 		t.Errorf("expected Map arg codegen, got:\n%s", code)

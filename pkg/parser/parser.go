@@ -95,7 +95,7 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseIfStmt()
 	case token.PURR:
 		return p.parsePurrStmt()
-	case token.FETCH:
+	case token.NAB:
 		return p.parseFetchStmt()
 	case token.KITTY:
 		return p.parseKittyStmt()
@@ -103,9 +103,9 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseBreedStmt()
 	case token.COLLAR:
 		return p.parseCollarStmt()
-	case token.TRICK:
+	case token.POSE:
 		return p.parseTrickStmt()
-	case token.LEARN:
+	case token.GROOM:
 		return p.parseLearnStmt()
 	default:
 		return p.parseExprStmtOrAssign()
@@ -184,8 +184,8 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 		return &ast.BasicType{Token: tok, Name: "bool"}
 	case token.TYPE_FURBALL:
 		return &ast.BasicType{Token: tok, Name: "furball"}
-	case token.TYPE_LIST:
-		return &ast.BasicType{Token: tok, Name: "list"}
+	case token.TYPE_LITTER:
+		return &ast.BasicType{Token: tok, Name: "litter"}
 	case token.IDENT:
 		return &ast.NamedType{Token: tok, Name: tok.Literal}
 	default:
@@ -196,7 +196,7 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 
 func (p *Parser) isTypeToken() bool {
 	switch p.cur.Type {
-	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LIST:
+	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LITTER:
 		return true
 	case token.IDENT:
 		// An IDENT is a type name only when it's followed by something that
@@ -275,7 +275,7 @@ func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 }
 
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {
-	tok := p.advance() // consume fetch
+	tok := p.advance() // consume nab
 	path := p.expect(token.STRING)
 	p.consumeTerminator()
 	return &ast.FetchStmt{Token: tok, Path: path.Literal}
@@ -322,7 +322,7 @@ func (p *Parser) parseCollarStmt() *ast.CollarStmt {
 }
 
 func (p *Parser) parseTrickStmt() *ast.TrickStmt {
-	tok := p.advance() // consume trick
+	tok := p.advance() // consume pose
 	name := p.expect(token.IDENT)
 	p.skipNewlines()
 	p.expect(token.LBRACE)
@@ -350,7 +350,7 @@ func (p *Parser) parseTrickStmt() *ast.TrickStmt {
 }
 
 func (p *Parser) parseLearnStmt() *ast.LearnStmt {
-	tok := p.advance() // consume learn
+	tok := p.advance() // consume groom
 	typeName := p.expect(token.IDENT)
 	p.skipNewlines()
 	p.expect(token.LBRACE)

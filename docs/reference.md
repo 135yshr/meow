@@ -21,7 +21,7 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `hiss` | Raise an error | `hiss("something went wrong")` |
 | `gag` | Catch errors (try/recover) | `gag(paw() { risky() })` |
 | `is_furball` | Check if a value is an error | `is_furball(result)` |
-| `fetch` | Import standard library package | `fetch "http"` |
+| `nab` | Import standard library package | `nab "http"` |
 | `flaunt` | Export *(reserved)* | --- |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
@@ -29,8 +29,8 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `kitty` | Struct (composite type) definition | `kitty Cat { name: string }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
-| `trick` | Interface definition | `trick Showable { meow show() string }` |
-| `learn` | Add methods to a type | `learn Cat { meow show() string { ... } }` |
+| `pose` | Interface definition | `pose Showable { meow show() string }` |
+| `groom` | Add methods to a type | `groom Cat { meow show() string { ... } }` |
 | `self` | Instance reference in methods | `self.name` |
 
 ## Type Keywords
@@ -44,7 +44,7 @@ Meow supports gradual static typing. Type keywords can annotate variables, funct
 | `string` | UTF-8 string | `nyan name string = "Nyantyu"` |
 | `bool` | Boolean | `nyan ok bool = yarn` |
 | `furball` | Error value | `paw(err furball) { ... }` |
-| `list` | List of values | `nyan nums list = [1, 2, 3]` |
+| `litter` | List of values | `nyan nums litter = [1, 2, 3]` |
 
 ### Type Annotation Syntax
 
@@ -392,20 +392,20 @@ Patterns can be:
 - **Range** — match an inclusive range (`1..10`)
 - **Wildcard** — match anything (`_`)
 
-### Import (Fetch)
+### Import (Nab)
 
-Use `fetch` to import a standard library package:
+Use `nab` to import a standard library package:
 
 ```meow
-fetch "file"
-fetch "http"
-fetch "testing"
+nab "file"
+nab "http"
+nab "testing"
 ```
 
 After importing, call package functions with `package.function()` syntax:
 
 ```meow
-fetch "file"
+nab "file"
 nyan content = file.snoop("data.txt")
 nya(content)
 ```
@@ -414,36 +414,36 @@ Available packages: `file`, `http`, `testing`. See [stdlib.md](stdlib.md) for de
 
 ### Member Access
 
-The `.` operator accesses fields on `kitty` instances, calls methods defined by `learn`, and calls functions on imported packages:
+The `.` operator accesses fields on `kitty` instances, calls methods defined by `groom`, and calls functions on imported packages:
 
 ```meow
 # Kitty field access
 nyan nyantyu = Cat("Nyantyu", 3)
 nya(nyantyu.name)   # => Nyantyu
 
-# Method call (defined by learn)
+# Method call (defined by groom)
 nya(nyantyu.show())  # => Nyantyu (age 3)
 
 # Package function call
-fetch "http"
+nab "http"
 http.pounce("https://example.com") |=| nya
 ```
 
-### Interface (Trick)
+### Interface (Pose)
 
-Define an interface with `trick` — a named set of method signatures:
+Define an interface with `pose` — a named set of method signatures:
 
 ```meow
-trick Showable {
+pose Showable {
     meow show() string
 }
 ```
 
-A type structurally satisfies a `trick` if it has all required methods with matching signatures. No explicit declaration is needed (structural typing).
+A type structurally satisfies a `pose` if it has all required methods with matching signatures. No explicit declaration is needed (structural typing).
 
-### Methods (Learn)
+### Methods (Groom)
 
-Add methods to a `kitty` or `collar` type with `learn`:
+Add methods to a `kitty` or `collar` type with `groom`:
 
 ```meow
 kitty Cat {
@@ -451,7 +451,7 @@ kitty Cat {
   age: int
 }
 
-learn Cat {
+groom Cat {
     meow show() string {
         bring self.name + " (age " + to_string(self.age) + ")"
     }
@@ -470,7 +470,7 @@ nya(c.is_kitten())  # => hairball
 ```meow
 collar Label = string
 
-learn Label {
+groom Label {
     meow display() string {
         bring "[ " + self.value + " ]"
     }
@@ -485,7 +485,7 @@ nya(tag.display())   # => [ important ]
 Test functions use the `test_` prefix and `catwalk_` prefix:
 
 ```meow
-fetch "testing"
+nab "testing"
 
 meow test_addition() {
   expect(1 + 1, 2, "basic addition")
