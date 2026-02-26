@@ -1,11 +1,19 @@
 package meowrt
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
-var methodRegistry = map[string]map[string]func(...Value) Value{}
+var (
+	methodRegistry   = map[string]map[string]func(...Value) Value{}
+	methodRegistryMu sync.RWMutex
+)
 
 // RegisterMethod registers a method for a named type.
 func RegisterMethod(typeName, methodName string, fn func(...Value) Value) {
+	methodRegistryMu.Lock()
+	defer methodRegistryMu.Unlock()
 	if methodRegistry[typeName] == nil {
 		methodRegistry[typeName] = map[string]func(...Value) Value{}
 	}
@@ -14,6 +22,8 @@ func RegisterMethod(typeName, methodName string, fn func(...Value) Value) {
 
 // LookupMethod returns the method function for a type, if registered.
 func LookupMethod(typeName, methodName string) (func(...Value) Value, bool) {
+	methodRegistryMu.RLock()
+	defer methodRegistryMu.RUnlock()
 	if methods, ok := methodRegistry[typeName]; ok {
 		if fn, ok := methods[methodName]; ok {
 			return fn, true
@@ -24,6 +34,8 @@ func LookupMethod(typeName, methodName string) (func(...Value) Value, bool) {
 
 // ClearMethods removes all registered methods from the registry.
 func ClearMethods() {
+	methodRegistryMu.Lock()
+	defer methodRegistryMu.Unlock()
 	methodRegistry = map[string]map[string]func(...Value) Value{}
 }
 

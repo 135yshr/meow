@@ -120,6 +120,11 @@ main {
     outline: none;
 }
 
+#editor:focus {
+    outline: 2px solid #e94560;
+    outline-offset: -2px;
+}
+
 #editor::placeholder {
     color: #555;
 }
@@ -134,7 +139,7 @@ main {
     line-height: 1.5;
     overflow: auto;
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 #output.error {

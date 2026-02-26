@@ -60,7 +60,11 @@ func (interp *Interpreter) RunSafe(prog *ast.Program) (err error) {
 			case stepLimitExceeded:
 				err = fmt.Errorf("Hiss! step limit exceeded (%d steps), nya~", interp.stepLimit)
 			default:
-				err = fmt.Errorf("%v", r)
+				if msg, ok := r.(string); ok {
+					err = fmt.Errorf("%s", msg)
+				} else {
+					err = fmt.Errorf("internal error: %v", r)
+				}
 			}
 		}
 	}()
@@ -377,6 +381,61 @@ func (interp *Interpreter) evalBinary(e *ast.BinaryExpr, env *Environment) meowr
 	}
 }
 
+// --- Builtin Helpers ---
+
+func requireArgs(name string, args []meowrt.Value, count int) {
+	if len(args) < count {
+		panic(fmt.Sprintf("Hiss! %s requires %d argument(s), got %d, nya~", name, count, len(args)))
+	}
+}
+
+func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (meowrt.Value, bool) {
+	switch name {
+	case "nya":
+		return interp.builtinNya(args), true
+	case "hiss":
+		return meowrt.Hiss(args...), true
+	case "len":
+		requireArgs("len", args, 1)
+		return meowrt.Len(args[0]), true
+	case "to_int":
+		requireArgs("to_int", args, 1)
+		return meowrt.ToInt(args[0]), true
+	case "to_float":
+		requireArgs("to_float", args, 1)
+		return meowrt.ToFloat(args[0]), true
+	case "to_string":
+		requireArgs("to_string", args, 1)
+		return meowrt.ToString(args[0]), true
+	case "gag":
+		requireArgs("gag", args, 1)
+		return meowrt.Gag(args[0]), true
+	case "is_furball":
+		requireArgs("is_furball", args, 1)
+		return meowrt.IsFurball(args[0]), true
+	case "head":
+		requireArgs("head", args, 1)
+		return meowrt.Head(args[0]), true
+	case "tail":
+		requireArgs("tail", args, 1)
+		return meowrt.Tail(args[0]), true
+	case "append":
+		requireArgs("append", args, 2)
+		return meowrt.Append(args[0], args[1]), true
+	case "lick":
+		requireArgs("lick", args, 2)
+		return meowrt.Lick(args[0], args[1]), true
+	case "picky":
+		requireArgs("picky", args, 2)
+		return meowrt.Picky(args[0], args[1]), true
+	case "curl":
+		requireArgs("curl", args, 3)
+		return meowrt.Curl(args[0], args[1], args[2]), true
+	default:
+		return nil, false
+	}
+}
+
 // --- Call Expression ---
 
 func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Value {
@@ -394,35 +453,8 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 	// Identifier-based calls
 	if ident, ok := e.Fn.(*ast.Ident); ok {
 		// Builtins
-		switch ident.Name {
-		case "nya":
-			return interp.builtinNya(args)
-		case "hiss":
-			return meowrt.Hiss(args...)
-		case "len":
-			return meowrt.Len(args[0])
-		case "to_int":
-			return meowrt.ToInt(args[0])
-		case "to_float":
-			return meowrt.ToFloat(args[0])
-		case "to_string":
-			return meowrt.ToString(args[0])
-		case "gag":
-			return meowrt.Gag(args[0])
-		case "is_furball":
-			return meowrt.IsFurball(args[0])
-		case "head":
-			return meowrt.Head(args[0])
-		case "tail":
-			return meowrt.Tail(args[0])
-		case "append":
-			return meowrt.Append(args[0], args[1])
-		case "lick":
-			return meowrt.Lick(args[0], args[1])
-		case "picky":
-			return meowrt.Picky(args[0], args[1])
-		case "curl":
-			return meowrt.Curl(args[0], args[1], args[2])
+		if val, ok := interp.dispatchBuiltin(ident.Name, args); ok {
+			return val
 		}
 
 		// Kitty constructor
@@ -592,35 +624,8 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 }
 
 func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env *Environment) meowrt.Value {
-	switch name {
-	case "nya":
-		return interp.builtinNya(args)
-	case "hiss":
-		return meowrt.Hiss(args...)
-	case "len":
-		return meowrt.Len(args[0])
-	case "to_int":
-		return meowrt.ToInt(args[0])
-	case "to_float":
-		return meowrt.ToFloat(args[0])
-	case "to_string":
-		return meowrt.ToString(args[0])
-	case "gag":
-		return meowrt.Gag(args[0])
-	case "is_furball":
-		return meowrt.IsFurball(args[0])
-	case "head":
-		return meowrt.Head(args[0])
-	case "tail":
-		return meowrt.Tail(args[0])
-	case "append":
-		return meowrt.Append(args[0], args[1])
-	case "lick":
-		return meowrt.Lick(args[0], args[1])
-	case "picky":
-		return meowrt.Picky(args[0], args[1])
-	case "curl":
-		return meowrt.Curl(args[0], args[1], args[2])
+	if val, ok := interp.dispatchBuiltin(name, args); ok {
+		return val
 	}
 
 	if env.Has(name) {
@@ -678,9 +683,12 @@ func (interp *Interpreter) matchPattern(subject meowrt.Value, pattern ast.Patter
 		patternVal := interp.evalExpr(p.Value, env)
 		return meowrt.MatchValue(subject, patternVal)
 	case *ast.RangePattern:
-		low := p.Low.(*ast.IntLit).Value
-		high := p.High.(*ast.IntLit).Value
-		return meowrt.MatchRange(subject, low, high)
+		lowLit, lowOk := p.Low.(*ast.IntLit)
+		highLit, highOk := p.High.(*ast.IntLit)
+		if !lowOk || !highOk {
+			return false
+		}
+		return meowrt.MatchRange(subject, lowLit.Value, highLit.Value)
 	default:
 		return false
 	}

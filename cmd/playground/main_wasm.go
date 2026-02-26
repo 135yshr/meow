@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"syscall/js"
 
 	"github.com/135yshr/meow/pkg/checker"
@@ -34,7 +35,7 @@ func runMeow(_ js.Value, args []js.Value) interface{} {
 		for i, e := range parseErrs {
 			msgs[i] = e.Error()
 		}
-		b, _ := json.Marshal(result{Error: fmt.Sprintf("Parse error:\n%s", join(msgs))})
+		b, _ := json.Marshal(result{Error: fmt.Sprintf("Parse error:\n%s", strings.Join(msgs, "\n"))})
 		return string(b)
 	}
 
@@ -45,13 +46,14 @@ func runMeow(_ js.Value, args []js.Value) interface{} {
 		for i, e := range checkErrs {
 			msgs[i] = e.Error()
 		}
-		b, _ := json.Marshal(result{Error: fmt.Sprintf("Type error:\n%s", join(msgs))})
+		b, _ := json.Marshal(result{Error: fmt.Sprintf("Type error:\n%s", strings.Join(msgs, "\n"))})
 		return string(b)
 	}
 
 	var buf bytes.Buffer
 	interp := interpreter.New(&buf)
 	interp.SetTypeInfo(ti)
+	// Explicit playground step limit — adjust here if playground limit should differ from default
 	interp.SetStepLimit(10_000_000)
 	if err := interp.RunSafe(prog); err != nil {
 		b, _ := json.Marshal(result{Output: buf.String(), Error: err.Error()})
@@ -60,17 +62,6 @@ func runMeow(_ js.Value, args []js.Value) interface{} {
 
 	b, _ := json.Marshal(result{Output: buf.String()})
 	return string(b)
-}
-
-func join(strs []string) string {
-	result := ""
-	for i, s := range strs {
-		if i > 0 {
-			result += "\n"
-		}
-		result += s
-	}
-	return result
 }
 
 func main() {

@@ -14,7 +14,7 @@
 
     <main>
         <div class="toolbar">
-            <select id="examples">
+            <select id="examples" aria-label="Example program">
                 <option value="">-- Select Example --</option>
             </select>
             <button id="run-btn" disabled>Run (Ctrl+Enter)</button>
@@ -24,7 +24,7 @@
         <div class="editor-panel">
             <div class="panel">
                 <div class="panel-header">Code</div>
-                <textarea id="editor" spellcheck="false" placeholder="Write your .nyan code here..."></textarea>
+                <textarea id="editor" aria-label="Meow source code editor" spellcheck="false" placeholder="Write your .nyan code here..."></textarea>
             </div>
             <div class="panel">
                 <div class="panel-header">Output</div>
@@ -34,7 +34,7 @@
     </main>
 
     <footer>
-        <a href="https://github.com/135yshr/meow" target="_blank">GitHub</a>
+        <a href="https://github.com/135yshr/meow" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span>Meow Language Playground</span>
     </footer>
 

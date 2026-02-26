@@ -28,6 +28,11 @@ async function loadWasm() {
 
 function run() {
     if (!wasmReady) return;
+    if (typeof runMeow !== "function") {
+        output.textContent = "WASM not properly initialized";
+        output.className = "error";
+        return;
+    }
 
     const source = editor.value;
     if (!source.trim()) {
@@ -76,13 +81,7 @@ document.addEventListener("keydown", (e) => {
 editor.addEventListener("keydown", (e) => {
     if (e.key === "Tab") {
         e.preventDefault();
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        editor.value =
-            editor.value.substring(0, start) +
-            "    " +
-            editor.value.substring(end);
-        editor.selectionStart = editor.selectionEnd = start + 4;
+        document.execCommand("insertText", false, "    ");
     }
 });
 
@@ -98,7 +97,7 @@ if (typeof MEOW_EXAMPLES !== "undefined") {
 
 examplesSelect.addEventListener("change", () => {
     const name = examplesSelect.value;
-    if (!name) return;
+    if (!name || typeof MEOW_EXAMPLES === "undefined") return;
     const ex = MEOW_EXAMPLES.find((e) => e.name === name);
     if (ex) {
         editor.value = ex.code;

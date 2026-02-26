@@ -44,6 +44,7 @@ func runMeowError(t *testing.T, source string) string {
 	}
 
 	c := checker.New()
+	// Checker errors intentionally ignored — some error tests may have type issues
 	ti, _ := c.Check(prog)
 
 	var buf bytes.Buffer
@@ -533,8 +534,12 @@ loop()
 	p := parser.New(l.Tokens())
 	prog, _ := p.Parse()
 
+	c := checker.New()
+	ti, _ := c.Check(prog)
+
 	var buf bytes.Buffer
 	interp := New(&buf)
+	interp.SetTypeInfo(ti)
 	interp.SetStepLimit(1000)
 	err := interp.RunSafe(prog)
 	if err == nil {
