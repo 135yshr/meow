@@ -99,6 +99,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseFetchStmt()
 	case token.KITTY:
 		return p.parseKittyStmt()
+	case token.BREED:
+		return p.parseBreedStmt()
+	case token.COLLAR:
+		return p.parseCollarStmt()
 	default:
 		return p.parseExprStmtOrAssign()
 	}
@@ -178,6 +182,8 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 		return &ast.BasicType{Token: tok, Name: "furball"}
 	case token.TYPE_LIST:
 		return &ast.BasicType{Token: tok, Name: "list"}
+	case token.IDENT:
+		return &ast.NamedType{Token: tok, Name: tok.Literal}
 	default:
 		p.errs = append(p.errs, newError(tok.Pos, "expected type, got %v (%q)", tok.Type, tok.Literal))
 		return &ast.BasicType{Token: tok, Name: tok.Literal}
@@ -188,6 +194,14 @@ func (p *Parser) isTypeToken() bool {
 	switch p.cur.Type {
 	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LIST:
 		return true
+	case token.IDENT:
+		// An IDENT is a type name only when it's followed by something that
+		// indicates it's a type annotation (= for assignment, , for param list,
+		// ) for closing params, { for function body).
+		switch p.peek.Type {
+		case token.ASSIGN, token.COMMA, token.RPAREN, token.LBRACE:
+			return true
+		}
 	}
 	return false
 }
@@ -283,6 +297,24 @@ func (p *Parser) parseKittyStmt() *ast.KittyStmt {
 	}
 	p.expect(token.RBRACE)
 	return &ast.KittyStmt{Token: tok, Name: name.Literal, Fields: fields}
+}
+
+func (p *Parser) parseBreedStmt() *ast.BreedStmt {
+	tok := p.advance() // consume breed
+	name := p.expect(token.IDENT)
+	p.expect(token.ASSIGN)
+	original := p.parseTypeExpr()
+	p.consumeTerminator()
+	return &ast.BreedStmt{Token: tok, Name: name.Literal, Original: original}
+}
+
+func (p *Parser) parseCollarStmt() *ast.CollarStmt {
+	tok := p.advance() // consume collar
+	name := p.expect(token.IDENT)
+	p.expect(token.ASSIGN)
+	wrapped := p.parseTypeExpr()
+	p.consumeTerminator()
+	return &ast.CollarStmt{Token: tok, Name: name.Literal, Wrapped: wrapped}
 }
 
 func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {

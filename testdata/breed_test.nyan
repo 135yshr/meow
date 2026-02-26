@@ -1,0 +1,9 @@
+# Breed (type alias) unit tests
+
+breed Nickname = string
+
+meow test_breed_alias() {
+    nyan name Nickname = "Nyantyu"
+    judge(name == "Nyantyu", "breed alias works as underlying type")
+    judge(name + " chan" == "Nyantyu chan", "breed alias supports operations")
+}

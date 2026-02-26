@@ -29,6 +29,7 @@ type Generator struct {
 	typeInfo      *checker.TypeInfo
 	currentReturnType types.Type // return type of the function currently being generated
 	kittyDefs     map[string]*ast.KittyStmt
+	collarDefs    map[string]*ast.CollarStmt
 }
 
 type coverBlock struct {
@@ -85,7 +86,8 @@ func (g *Generator) EnableCoverage(filename string) {
 func (g *Generator) Generate(prog *ast.Program) (string, error) {
 	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
-		if _, ok := stmt.(*ast.KittyStmt); ok {
+		switch stmt.(type) {
+		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
 			continue
 		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
@@ -109,7 +111,8 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 func (g *Generator) GenerateTest(prog *ast.Program) (string, error) {
 	g.collectKittyDefs(prog)
 	for _, stmt := range prog.Stmts {
-		if _, ok := stmt.(*ast.KittyStmt); ok {
+		switch stmt.(type) {
+		case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
 			continue
 		}
 		if fn, ok := stmt.(*ast.FuncStmt); ok {
@@ -352,7 +355,7 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 }
 
 func goTypeString(t types.Type) string {
-	switch t.(type) {
+	switch t := t.(type) {
 	case types.IntType:
 		return "int64"
 	case types.FloatType:
@@ -361,6 +364,8 @@ func goTypeString(t types.Type) string {
 		return "string"
 	case types.BoolType:
 		return "bool"
+	case types.AliasType:
+		return goTypeString(t.Underlying)
 	default:
 		return "meow.Value"
 	}
@@ -736,6 +741,8 @@ func isNativeType(t types.Type) bool {
 	switch t.(type) {
 	case types.IntType, types.FloatType, types.StringType, types.BoolType:
 		return true
+	case types.AliasType:
+		return isNativeType(types.Unwrap(t))
 	}
 	return false
 }
@@ -867,15 +874,20 @@ func (g *Generator) estimateEndPos(stmt ast.Stmt) (int, int) {
 
 func (g *Generator) collectKittyDefs(prog *ast.Program) {
 	g.kittyDefs = make(map[string]*ast.KittyStmt)
+	g.collarDefs = make(map[string]*ast.CollarStmt)
 	for _, stmt := range prog.Stmts {
 		if ks, ok := stmt.(*ast.KittyStmt); ok {
 			g.kittyDefs[ks.Name] = ks
+		}
+		if cs, ok := stmt.(*ast.CollarStmt); ok {
+			g.collarDefs[cs.Name] = cs
 		}
 	}
 }
 
 func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
-	if _, ok := stmt.(*ast.KittyStmt); ok {
+	switch stmt.(type) {
+	case *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt:
 		return "", nil
 	}
 	if s, ok := stmt.(*ast.FetchStmt); ok {
@@ -1098,6 +1110,10 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 				}
 				return fmt.Sprintf("meow.NewKitty(%q, []string{%s}, %s)",
 					ident.Name, strings.Join(fieldNames, ", "), argStr)
+			}
+			if _, ok := g.collarDefs[ident.Name]; ok {
+				return fmt.Sprintf("meow.NewKitty(%q, []string{\"value\"}, %s)",
+					ident.Name, argStr)
 			}
 			if g.typeInfo != nil {
 				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {

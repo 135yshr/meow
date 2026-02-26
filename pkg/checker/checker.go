@@ -10,19 +10,23 @@ import (
 
 // TypeInfo stores resolved type information for AST nodes.
 type TypeInfo struct {
-	ExprTypes  map[ast.Expr]types.Type
-	VarTypes   map[string]types.Type
-	FuncTypes  map[string]types.FuncType
-	KittyTypes map[string]types.KittyType
+	ExprTypes   map[ast.Expr]types.Type
+	VarTypes    map[string]types.Type
+	FuncTypes   map[string]types.FuncType
+	KittyTypes  map[string]types.KittyType
+	AliasTypes  map[string]types.AliasType
+	CollarTypes map[string]types.CollarType
 }
 
 // NewTypeInfo creates an empty TypeInfo.
 func NewTypeInfo() *TypeInfo {
 	return &TypeInfo{
-		ExprTypes:  make(map[ast.Expr]types.Type),
-		VarTypes:   make(map[string]types.Type),
-		FuncTypes:  make(map[string]types.FuncType),
-		KittyTypes: make(map[string]types.KittyType),
+		ExprTypes:   make(map[ast.Expr]types.Type),
+		VarTypes:    make(map[string]types.Type),
+		FuncTypes:   make(map[string]types.FuncType),
+		KittyTypes:  make(map[string]types.KittyType),
+		AliasTypes:  make(map[string]types.AliasType),
+		CollarTypes: make(map[string]types.CollarType),
 	}
 }
 
@@ -83,8 +87,16 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
-	// First pass: register all kitty and function declarations
+	// First pass: register all type definitions and function declarations
 	for _, stmt := range prog.Stmts {
+		if bs, ok := stmt.(*ast.BreedStmt); ok {
+			underlying := c.resolveTypeExpr(bs.Original)
+			c.info.AliasTypes[bs.Name] = types.AliasType{Name: bs.Name, Underlying: underlying}
+		}
+		if cs, ok := stmt.(*ast.CollarStmt); ok {
+			underlying := c.resolveTypeExpr(cs.Wrapped)
+			c.info.CollarTypes[cs.Name] = types.CollarType{Name: cs.Name, Underlying: underlying}
+		}
 		if ks, ok := stmt.(*ast.KittyStmt); ok {
 			fields := make([]types.KittyFieldType, len(ks.Fields))
 			for i, f := range ks.Fields {
@@ -123,23 +135,35 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 	if te == nil {
 		return types.AnyType{}
 	}
-	bt, ok := te.(*ast.BasicType)
-	if !ok {
+	switch t := te.(type) {
+	case *ast.BasicType:
+		switch t.Name {
+		case "int":
+			return types.IntType{}
+		case "float":
+			return types.FloatType{}
+		case "string":
+			return types.StringType{}
+		case "bool":
+			return types.BoolType{}
+		case "furball":
+			return types.FurballType{}
+		case "list":
+			return types.ListType{Elem: types.AnyType{}}
+		default:
+			return types.AnyType{}
+		}
+	case *ast.NamedType:
+		if at, ok := c.info.AliasTypes[t.Name]; ok {
+			return at
+		}
+		if ct, ok := c.info.CollarTypes[t.Name]; ok {
+			return ct
+		}
+		if kt, ok := c.info.KittyTypes[t.Name]; ok {
+			return kt
+		}
 		return types.AnyType{}
-	}
-	switch bt.Name {
-	case "int":
-		return types.IntType{}
-	case "float":
-		return types.FloatType{}
-	case "string":
-		return types.StringType{}
-	case "bool":
-		return types.BoolType{}
-	case "furball":
-		return types.FurballType{}
-	case "list":
-		return types.ListType{Elem: types.AnyType{}}
 	default:
 		return types.AnyType{}
 	}
@@ -162,6 +186,10 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 	case *ast.FetchStmt:
 		// nothing to check
 	case *ast.KittyStmt:
+		// already registered in first pass
+	case *ast.BreedStmt:
+		// already registered in first pass
+	case *ast.CollarStmt:
 		// already registered in first pass
 	}
 }
@@ -418,6 +446,13 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		return types.AnyType{}
 	case *ast.MemberExpr:
 		objType := c.inferExpr(e.Object)
+		if ct, ok := objType.(types.CollarType); ok {
+			if e.Member == "value" {
+				return ct.Underlying
+			}
+			c.addError(e.Token.Pos, "%s has no field %s", ct.Name, e.Member)
+			return types.AnyType{}
+		}
 		if kt, ok := objType.(types.KittyType); ok {
 			for _, f := range kt.Fields {
 				if f.Name == e.Member {
@@ -455,8 +490,12 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 	left := c.inferExpr(e.Left)
 	right := c.inferExpr(e.Right)
 
+	// Unwrap aliases for transparent type checking
+	uleft := types.Unwrap(left)
+	uright := types.Unwrap(right)
+
 	// If either side is AnyType, skip checking
-	if types.IsAny(left) || types.IsAny(right) {
+	if types.IsAny(uleft) || types.IsAny(uright) {
 		switch e.Op {
 		case token.EQ, token.NEQ, token.LT, token.GT, token.LTE, token.GTE, token.AND, token.OR:
 			return types.BoolType{}
@@ -467,8 +506,8 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 
 	switch e.Op {
 	case token.PLUS:
-		if left.Equals(right) {
-			switch left.(type) {
+		if uleft.Equals(uright) {
+			switch uleft.(type) {
 			case types.IntType, types.FloatType, types.StringType:
 				return left
 			}
@@ -477,7 +516,7 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 		return types.AnyType{}
 
 	case token.MINUS, token.STAR, token.SLASH:
-		if left.Equals(right) && types.IsNumeric(left) {
+		if uleft.Equals(uright) && types.IsNumeric(uleft) {
 			return left
 		}
 		op := map[token.TokenType]string{token.MINUS: "subtract", token.STAR: "multiply", token.SLASH: "divide"}
@@ -485,8 +524,8 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 		return types.AnyType{}
 
 	case token.PERCENT:
-		if left.Equals(right) {
-			if _, ok := left.(types.IntType); ok {
+		if uleft.Equals(uright) {
+			if _, ok := uleft.(types.IntType); ok {
 				return types.IntType{}
 			}
 		}
@@ -494,21 +533,24 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 		return types.AnyType{}
 
 	case token.EQ, token.NEQ:
-		if !left.Equals(right) {
+		// Allow comparison between different collar types (runtime handles it)
+		_, leftIsCollar := uleft.(types.CollarType)
+		_, rightIsCollar := uright.(types.CollarType)
+		if !(leftIsCollar && rightIsCollar) && !uleft.Equals(uright) {
 			c.addError(e.Token.Pos, "Cannot compare %s and %s", left, right)
 		}
 		return types.BoolType{}
 
 	case token.LT, token.GT, token.LTE, token.GTE:
-		if left.Equals(right) && types.IsNumeric(left) {
+		if uleft.Equals(uright) && types.IsNumeric(uleft) {
 			return types.BoolType{}
 		}
 		c.addError(e.Token.Pos, "Cannot compare %s and %s", left, right)
 		return types.BoolType{}
 
 	case token.AND, token.OR:
-		_, lok := left.(types.BoolType)
-		_, rok := right.(types.BoolType)
+		_, lok := uleft.(types.BoolType)
+		_, rok := uright.(types.BoolType)
 		if !lok || !rok {
 			c.addError(e.Token.Pos, "Logical operator requires bool operands, got %s and %s", left, right)
 		}
@@ -546,6 +588,23 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.AnyType{}
 		case "judge", "expect", "refuse":
 			return types.AnyType{}
+		}
+
+		// Check collar constructors
+		if ct, ok := c.info.CollarTypes[ident.Name]; ok {
+			if len(e.Args) != 1 {
+				c.addError(e.Token.Pos, "%s expects 1 argument but got %d",
+					ident.Name, len(e.Args))
+			} else {
+				argType := c.info.ExprTypes[e.Args[0]]
+				if argType != nil && !types.IsAny(argType) && !types.IsAny(ct.Underlying) {
+					if !ct.Underlying.Equals(argType) {
+						c.addError(e.Token.Pos, "%s expects %s but got %s",
+							ident.Name, ct.Underlying, argType)
+					}
+				}
+			}
+			return ct
 		}
 
 		// Check kitty constructors
