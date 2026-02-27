@@ -1191,7 +1191,11 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 						return boxNativeCall(call, ft.Return)
 					}
 				} else {
-					// Variable holding a function value — use meow.Call
+					// Not in FuncTypes → must be a variable holding a function
+					// value (e.g. partial application result or lambda).
+					// The checker populates FuncTypes for all `meow` function
+					// declarations, so any identifier absent from FuncTypes is
+					// a runtime value that requires meow.Call for dispatch.
 					if argStr != "" {
 						return fmt.Sprintf("meow.Call(%s, %s)", ident.Name, argStr)
 					}

@@ -539,23 +539,7 @@ func (interp *Interpreter) evalMemberCall(member *ast.MemberExpr, rawArgs []ast.
 func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowrt.Value {
 	captured := env
 	arity := len(e.Params)
-	return meowrt.NewFuncWithArity("lambda", arity, func(args ...meowrt.Value) meowrt.Value {
-		if len(args) < arity {
-			return meowrt.PartialApply(
-				meowrt.NewFuncWithArity("lambda", arity, func(allArgs ...meowrt.Value) meowrt.Value {
-					child := captured.Child()
-					for i, p := range e.Params {
-						if i < len(allArgs) {
-							child.Define(p.Name, allArgs[i])
-						} else {
-							child.Define(p.Name, meowrt.NewNil())
-						}
-					}
-					return interp.evalExpr(e.Body, child)
-				}),
-				args...,
-			)
-		}
+	evalWithArgs := func(args []meowrt.Value) meowrt.Value {
 		child := captured.Child()
 		for i, p := range e.Params {
 			if i < len(args) {
@@ -565,6 +549,17 @@ func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowr
 			}
 		}
 		return interp.evalExpr(e.Body, child)
+	}
+	return meowrt.NewFuncWithArity("lambda", arity, func(args ...meowrt.Value) meowrt.Value {
+		if len(args) < arity {
+			return meowrt.PartialApply(
+				meowrt.NewFuncWithArity("lambda", arity, func(allArgs ...meowrt.Value) meowrt.Value {
+					return evalWithArgs(allArgs)
+				}),
+				args...,
+			)
+		}
+		return evalWithArgs(args)
 	})
 }
 

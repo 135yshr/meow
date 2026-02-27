@@ -374,6 +374,7 @@ meow add(a int, b int) int {
   bring a + b
 }
 nyan x = add(1)
+nyan y = x(2)
 `)
 	if len(errs) != 0 {
 		t.Fatalf("unexpected errors for partial application: %v", errs)
@@ -389,6 +390,10 @@ nyan x = add(1)
 	}
 	if len(ft.Params) != 1 {
 		t.Fatalf("partial add(1) should have 1 remaining param, got %d", len(ft.Params))
+	}
+	// y should be IntType (result of calling x(2))
+	if _, ok := info.VarTypes["y"].(types.IntType); !ok {
+		t.Fatalf("y should be int, got %T", info.VarTypes["y"])
 	}
 }
 

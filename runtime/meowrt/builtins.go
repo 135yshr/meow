@@ -41,8 +41,13 @@ func Call(fn Value, args ...Value) Value {
 	if !ok {
 		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fn.Type()))
 	}
-	if f.Arity > 0 && len(args) < f.Arity {
-		return PartialApply(f, args...)
+	if f.Arity > 0 {
+		if len(args) < f.Arity {
+			return PartialApply(f, args...)
+		}
+		if len(args) > f.Arity {
+			panic(fmt.Sprintf("Hiss! %s expects %d arguments but got %d, nya~", f.Name, f.Arity, len(args)))
+		}
 	}
 	return f.Call(args...)
 }
