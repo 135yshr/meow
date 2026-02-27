@@ -101,6 +101,11 @@ jobs:
           GOOS=js GOARCH=wasm go build -o playground/meow.wasm ./cmd/playground/
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" playground/wasm_exec.js
 
+      - name: Copy consent files to Playground
+        run: |
+          cp website/static/js/consent.js playground/consent.js
+          cp website/static/css/consent.css playground/consent.css
+
       - name: Copy Playground into Hugo output
         run: |
           mkdir -p website/public/playground
@@ -110,6 +115,8 @@ jobs:
           cp playground/examples.js website/public/playground/
           cp playground/wasm_exec.js website/public/playground/
           cp playground/meow.wasm website/public/playground/
+          cp playground/consent.js website/public/playground/
+          cp playground/consent.css website/public/playground/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

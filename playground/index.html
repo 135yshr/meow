@@ -5,15 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meow Playground</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="consent.css">
+    <script src="consent.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-ER6J1C357P"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-ER6J1C357P');
+      gtag('config', 'G-ER6J1C357P', { send_page_view: false });
     </script>
 </head>
 <body>
+    <div id="meow-consent-banner" role="dialog" aria-live="polite" aria-label="Cookie consent" hidden>
+      <p>This site uses cookies and Google Analytics to improve your experience. You can accept or reject non-essential cookies.</p>
+      <div class="meow-consent-actions">
+        <button id="meow-consent-accept" type="button">Accept</button>
+        <button id="meow-consent-reject" type="button">Reject</button>
+      </div>
+    </div>
+
     <header>
         <h1>Meow Playground</h1>
         <p class="subtitle">A cat-themed language that transpiles to Go</p>
