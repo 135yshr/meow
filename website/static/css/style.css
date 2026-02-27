@@ -216,6 +216,23 @@ pre code {
 .nav-actions {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-share {
+  color: var(--color-text-secondary);
+  display: flex;
+  transition: color 0.15s;
+}
+.nav-share:hover {
+  color: var(--color-text);
+}
+
+.nav-share-separator {
+  display: block;
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
 }
 
 /* ── Hero ── */
