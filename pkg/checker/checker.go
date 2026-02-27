@@ -805,12 +805,12 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 
 		// Check user-defined functions
 		if ft, ok := c.info.FuncTypes[ident.Name]; ok {
-			if len(e.Args) != len(ft.Params) {
-				c.addError(e.Token.Pos, "Function %s expects %d arguments but got %d",
+			if len(e.Args) > len(ft.Params) {
+				c.addError(e.Token.Pos, "Function %s expects at most %d arguments but got %d",
 					ident.Name, len(ft.Params), len(e.Args))
 				return ft.Return
 			}
-			// Validate argument types
+			// Validate supplied argument types
 			for i, arg := range e.Args {
 				argType := c.info.ExprTypes[arg]
 				if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) {
@@ -818,6 +818,12 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 						c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
 					}
 				}
+			}
+			if len(e.Args) < len(ft.Params) {
+				// Partial application: return a FuncType with remaining params
+				remainingParams := make([]types.Type, len(ft.Params)-len(e.Args))
+				copy(remainingParams, ft.Params[len(e.Args):])
+				return types.FuncType{Params: remainingParams, Return: ft.Return}
 			}
 			return ft.Return
 		}

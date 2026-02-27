@@ -34,10 +34,15 @@ func Hiss(args ...Value) Value {
 }
 
 // Call invokes a function value with the given arguments.
+// If the function has a fixed arity and fewer arguments are supplied,
+// it returns a partially applied function.
 func Call(fn Value, args ...Value) Value {
 	f, ok := fn.(*Func)
 	if !ok {
 		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fn.Type()))
+	}
+	if f.Arity > 0 && len(args) < f.Arity {
+		return PartialApply(f, args...)
 	}
 	return f.Call(args...)
 }

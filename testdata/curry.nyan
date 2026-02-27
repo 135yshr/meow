@@ -1,0 +1,13 @@
+# Curry (partial application) helpers
+
+meow add(a int, b int) int {
+  bring a + b
+}
+
+meow add3(a int, b int, c int) int {
+  bring a + b + c
+}
+
+meow mul(a int, b int) int {
+  bring a * b
+}

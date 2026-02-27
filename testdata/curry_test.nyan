@@ -1,0 +1,40 @@
+# Curry (partial application) tests
+
+meow test_basic_partial() {
+  nyan add5 = add(5)
+  expect(add5(3), 8)
+}
+
+meow test_multi_step_curry() {
+  nyan f = add3(1)
+  nyan g = f(2)
+  expect(g(3), 6)
+}
+
+meow test_partial_two_at_once() {
+  nyan f = add3(1, 2)
+  expect(f(3), 6)
+}
+
+meow test_full_call_unchanged() {
+  expect(add(2, 3), 5)
+  expect(add3(1, 2, 3), 6)
+}
+
+meow test_partial_with_lick() {
+  nyan nums = [1, 2, 3]
+  nyan incremented = lick(nums, add(1))
+  expect(incremented, [2, 3, 4])
+}
+
+meow test_partial_with_pipe() {
+  nyan nums = [1, 2, 3]
+  nyan doubled = nums |=| lick(mul(2))
+  expect(doubled, [2, 4, 6])
+}
+
+meow test_lambda_partial() {
+  nyan f = paw(x int, y int) { x * y }
+  nyan double = f(2)
+  expect(double(5), 10)
+}

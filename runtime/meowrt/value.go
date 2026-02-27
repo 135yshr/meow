@@ -65,15 +65,45 @@ type Func struct {
 	Name string
 	// Fn is the underlying Go function implementation.
 	Fn func(args ...Value) Value
+	// Arity is the number of expected arguments. -1 means variadic (no currying).
+	Arity int
 }
 
 // NewFunc creates a new Func value with the given name and implementation.
+// The function is variadic (Arity -1) and will not be auto-curried.
 // fn must not be nil; passing nil will panic.
 func NewFunc(name string, fn func(args ...Value) Value) *Func {
 	if fn == nil {
 		panic("Hiss! fn must not be nil, nya~")
 	}
-	return &Func{Name: name, Fn: fn}
+	return &Func{Name: name, Fn: fn, Arity: -1}
+}
+
+// NewFuncWithArity creates a new Func value with a fixed arity.
+// When called with fewer arguments than arity, the function is automatically
+// partially applied (curried).
+func NewFuncWithArity(name string, arity int, fn func(args ...Value) Value) *Func {
+	if fn == nil {
+		panic("Hiss! fn must not be nil, nya~")
+	}
+	return &Func{Name: name, Fn: fn, Arity: arity}
+}
+
+// PartialApply creates a new function that captures the given arguments and
+// waits for the remaining ones. The returned function's arity is reduced
+// by the number of supplied arguments.
+func PartialApply(fn *Func, args ...Value) *Func {
+	remaining := fn.Arity - len(args)
+	name := fmt.Sprintf("<partial %s %d/%d>", fn.Name, len(args), fn.Arity)
+	return NewFuncWithArity(name, remaining, func(moreArgs ...Value) Value {
+		allArgs := make([]Value, 0, len(args)+len(moreArgs))
+		allArgs = append(allArgs, args...)
+		allArgs = append(allArgs, moreArgs...)
+		if fn.Arity > 0 && len(allArgs) < fn.Arity {
+			return PartialApply(fn, allArgs...)
+		}
+		return fn.Fn(allArgs...)
+	})
 }
 
 func (f *Func) Type() string   { return "Func" }

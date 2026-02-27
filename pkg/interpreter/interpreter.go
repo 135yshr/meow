@@ -199,13 +199,26 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 func (interp *Interpreter) registerFunc(fn *ast.FuncStmt, env *Environment) {
 	interp.funcDefs[fn.Name] = fn
 	captured := env
-	fnVal := meowrt.NewFunc(fn.Name, func(args ...meowrt.Value) meowrt.Value {
+	fnVal := meowrt.NewFuncWithArity(fn.Name, len(fn.Params), func(args ...meowrt.Value) meowrt.Value {
 		return interp.callUserFunc(fn, args, captured)
 	})
 	env.Define(fn.Name, fnVal)
 }
 
 func (interp *Interpreter) callUserFunc(fn *ast.FuncStmt, args []meowrt.Value, closure *Environment) meowrt.Value {
+	if len(args) < len(fn.Params) {
+		// Partial application: capture supplied args and return a new function
+		captured := make([]meowrt.Value, len(args))
+		copy(captured, args)
+		remaining := len(fn.Params) - len(args)
+		return meowrt.NewFuncWithArity(fn.Name, remaining, func(moreArgs ...meowrt.Value) meowrt.Value {
+			allArgs := make([]meowrt.Value, 0, len(captured)+len(moreArgs))
+			allArgs = append(allArgs, captured...)
+			allArgs = append(allArgs, moreArgs...)
+			return interp.callUserFunc(fn, allArgs, closure)
+		})
+	}
+
 	child := closure.Child()
 	for i, p := range fn.Params {
 		if i < len(args) {
@@ -475,6 +488,9 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 		if env.Has(ident.Name) {
 			fnVal := env.Get(ident.Name)
 			if fn, ok := fnVal.(*meowrt.Func); ok {
+				if fn.Arity > 0 && len(args) < fn.Arity {
+					return meowrt.PartialApply(fn, args...)
+				}
 				return fn.Call(args...)
 			}
 			panic(fmt.Sprintf("Hiss! %s is not callable, nya~", ident.Name))
@@ -486,6 +502,9 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 	// First-class function call (e.g. variable holding a Func)
 	fnVal := interp.evalExpr(e.Fn, env)
 	if fn, ok := fnVal.(*meowrt.Func); ok {
+		if fn.Arity > 0 && len(args) < fn.Arity {
+			return meowrt.PartialApply(fn, args...)
+		}
 		return fn.Call(args...)
 	}
 	panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
@@ -519,7 +538,24 @@ func (interp *Interpreter) evalMemberCall(member *ast.MemberExpr, rawArgs []ast.
 
 func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowrt.Value {
 	captured := env
-	return meowrt.NewFunc("lambda", func(args ...meowrt.Value) meowrt.Value {
+	arity := len(e.Params)
+	return meowrt.NewFuncWithArity("lambda", arity, func(args ...meowrt.Value) meowrt.Value {
+		if len(args) < arity {
+			return meowrt.PartialApply(
+				meowrt.NewFuncWithArity("lambda", arity, func(allArgs ...meowrt.Value) meowrt.Value {
+					child := captured.Child()
+					for i, p := range e.Params {
+						if i < len(allArgs) {
+							child.Define(p.Name, allArgs[i])
+						} else {
+							child.Define(p.Name, meowrt.NewNil())
+						}
+					}
+					return interp.evalExpr(e.Body, child)
+				}),
+				args...,
+			)
+		}
 		child := captured.Child()
 		for i, p := range e.Params {
 			if i < len(args) {
@@ -631,6 +667,9 @@ func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env 
 	if env.Has(name) {
 		fnVal := env.Get(name)
 		if fn, ok := fnVal.(*meowrt.Func); ok {
+			if fn.Arity > 0 && len(args) < fn.Arity {
+				return meowrt.PartialApply(fn, args...)
+			}
 			return fn.Call(args...)
 		}
 	}
