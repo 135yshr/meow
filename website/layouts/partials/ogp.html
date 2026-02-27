@@ -9,7 +9,7 @@
 {{- end -}}
 
 {{- $ogType := "website" -}}
-{{- if and (not .IsHome) (not .IsSection) -}}
+{{- if .IsPage -}}
   {{- $ogType = "article" -}}
 {{- end -}}
 
