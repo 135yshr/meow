@@ -749,6 +749,9 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 
 	// Typed user-defined functions (only for fully native signatures)
 	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
+		if len(e.Args) < len(ft.Params) {
+			return g.genPartialCall(ident.Name, ft, e.Args)
+		}
 		if isFullyTypedFuncType(ft) {
 			args := make([]string, len(e.Args))
 			for i, a := range e.Args {
@@ -1172,6 +1175,9 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			}
 			if g.typeInfo != nil {
 				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
+					if len(e.Args) < len(ft.Params) {
+						return g.genPartialCall(ident.Name, ft, e.Args)
+					}
 					if len(e.Args) == len(ft.Params) && isFullyTypedFuncType(ft) {
 						nativeArgs := make([]string, len(e.Args))
 						for i, a := range e.Args {
@@ -1184,6 +1190,16 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 						call := fmt.Sprintf("%s(%s)", ident.Name, strings.Join(nativeArgs, ", "))
 						return boxNativeCall(call, ft.Return)
 					}
+				} else {
+					// Not in FuncTypes → must be a variable holding a function
+					// value (e.g. partial application result or lambda).
+					// The checker populates FuncTypes for all `meow` function
+					// declarations, so any identifier absent from FuncTypes is
+					// a runtime value that requires meow.Call for dispatch.
+					if argStr != "" {
+						return fmt.Sprintf("meow.Call(%s, %s)", ident.Name, argStr)
+					}
+					return fmt.Sprintf("meow.Call(%s)", ident.Name)
 				}
 			}
 			return fmt.Sprintf("%s(%s)", ident.Name, argStr)
@@ -1254,12 +1270,70 @@ func (g *Generator) resolveTypeName(expr ast.Expr) string {
 	return ""
 }
 
+func (g *Generator) genPartialCall(fnName string, ft types.FuncType, suppliedArgs []ast.Expr) string {
+	remaining := len(ft.Params) - len(suppliedArgs)
+
+	if isFullyTypedFuncType(ft) {
+		// Typed function: generate native-typed partial application
+		var captureLines []string
+		for i, a := range suppliedArgs {
+			captureLines = append(captureLines,
+				fmt.Sprintf("__c%d := %s", i, g.genTypedExpr(a)))
+		}
+		var callArgs []string
+		for i := range suppliedArgs {
+			callArgs = append(callArgs, fmt.Sprintf("__c%d", i))
+		}
+		for i := range remaining {
+			callArgs = append(callArgs,
+				fmt.Sprintf("%s", unboxToNative(fmt.Sprintf("args[%d]", i), ft.Params[len(suppliedArgs)+i])))
+		}
+		call := fmt.Sprintf("%s(%s)", fnName, strings.Join(callArgs, ", "))
+		boxed := boxNativeCall(call, ft.Return)
+
+		capture := strings.Join(captureLines, "\n\t")
+		if capture != "" {
+			capture += "\n\t"
+		}
+		return fmt.Sprintf("func() meow.Value {\n"+
+			"\t%sreturn meow.NewFuncWithArity(%q, %d, func(args ...meow.Value) meow.Value {\n"+
+			"\t\treturn %s\n"+
+			"\t})\n"+
+			"}()", capture, fnName, remaining, boxed)
+	}
+
+	// Untyped function: box arguments to ensure meow.Value
+	var captureLines []string
+	for i, a := range suppliedArgs {
+		captureLines = append(captureLines,
+			fmt.Sprintf("__c%d := %s", i, g.boxValue(a)))
+	}
+	var callArgs []string
+	for i := range suppliedArgs {
+		callArgs = append(callArgs, fmt.Sprintf("__c%d", i))
+	}
+	for i := range remaining {
+		callArgs = append(callArgs, fmt.Sprintf("args[%d]", i))
+	}
+	call := fmt.Sprintf("%s(%s)", fnName, strings.Join(callArgs, ", "))
+
+	capture := strings.Join(captureLines, "\n\t")
+	if capture != "" {
+		capture += "\n\t"
+	}
+	return fmt.Sprintf("func() meow.Value {\n"+
+		"\t%sreturn meow.NewFuncWithArity(%q, %d, func(args ...meow.Value) meow.Value {\n"+
+		"\t\treturn %s\n"+
+		"\t})\n"+
+		"}()", capture, fnName, remaining, call)
+}
+
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 	body := g.genExpr(e.Body)
-	return fmt.Sprintf("meow.NewFunc(\"lambda\", func(args ...meow.Value) meow.Value {\n"+
+	return fmt.Sprintf("meow.NewFuncWithArity(\"lambda\", %d, func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+
 		"\treturn %s\n"+
-		"})", g.genLambdaParamBindings(e.Params), body)
+		"})", len(e.Params), g.genLambdaParamBindings(e.Params), body)
 }
 
 func (g *Generator) genLambdaParamBindings(params []ast.Param) string {

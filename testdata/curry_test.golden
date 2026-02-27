@@ -1,0 +1,9 @@
+  PASS: test_basic_partial
+  PASS: test_multi_step_curry
+  PASS: test_partial_two_at_once
+  PASS: test_full_call_unchanged
+  PASS: test_partial_with_lick
+  PASS: test_partial_with_pipe
+  PASS: test_lambda_partial
+
+All 7 tests passed, nya~!

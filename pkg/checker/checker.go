@@ -805,21 +805,12 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 
 		// Check user-defined functions
 		if ft, ok := c.info.FuncTypes[ident.Name]; ok {
-			if len(e.Args) != len(ft.Params) {
-				c.addError(e.Token.Pos, "Function %s expects %d arguments but got %d",
-					ident.Name, len(ft.Params), len(e.Args))
-				return ft.Return
-			}
-			// Validate argument types
-			for i, arg := range e.Args {
-				argType := c.info.ExprTypes[arg]
-				if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) {
-					if !ft.Params[i].Equals(argType) {
-						c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
-					}
-				}
-			}
-			return ft.Return
+			return c.checkFuncCall(e, ft, ident.Name)
+		}
+
+		// Check function-typed variables (partials/lambdas in scope).
+		if ft, ok := types.Unwrap(c.lookup(ident.Name)).(types.FuncType); ok {
+			return c.checkFuncCall(e, ft, ident.Name)
 		}
 	}
 
@@ -857,8 +848,39 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 		return types.AnyType{}
 	}
 
-	c.inferExpr(e.Fn)
+	// Handle chained calls (e.g. add(1)(2)) — check if callee returns a FuncType.
+	fnType := c.inferExpr(e.Fn)
+	if ft, ok := types.Unwrap(fnType).(types.FuncType); ok {
+		return c.checkFuncCall(e, ft, "")
+	}
 	return types.AnyType{}
+}
+
+// checkFuncCall validates arguments against a FuncType and returns the result type.
+// For partial application (fewer args), it returns a FuncType with the remaining params.
+func (c *Checker) checkFuncCall(e *ast.CallExpr, ft types.FuncType, calleeName string) types.Type {
+	if len(e.Args) > len(ft.Params) {
+		if calleeName != "" {
+			c.addError(e.Token.Pos, "Function %s expects at most %d arguments but got %d",
+				calleeName, len(ft.Params), len(e.Args))
+		} else {
+			c.addError(e.Token.Pos, "Function expects at most %d arguments but got %d",
+				len(ft.Params), len(e.Args))
+		}
+		return ft.Return
+	}
+	for i, arg := range e.Args {
+		argType := c.info.ExprTypes[arg]
+		if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) && !ft.Params[i].Equals(argType) {
+			c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
+		}
+	}
+	if len(e.Args) < len(ft.Params) {
+		remainingParams := make([]types.Type, len(ft.Params)-len(e.Args))
+		copy(remainingParams, ft.Params[len(e.Args):])
+		return types.FuncType{Params: remainingParams, Return: ft.Return}
+	}
+	return ft.Return
 }
 
 func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {

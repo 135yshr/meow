@@ -356,15 +356,44 @@ func TestAndNonBoolOperands(t *testing.T) {
 	}
 }
 
-func TestFuncArityMismatch(t *testing.T) {
+func TestFuncArityTooMany(t *testing.T) {
 	_, errs := check(t, `
 meow add(a int, b int) int {
   bring a + b
 }
-nyan x = add(1)
+nyan x = add(1, 2, 3)
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for arity mismatch, got none")
+		t.Fatal("expected error for too many arguments, got none")
+	}
+}
+
+func TestFuncPartialApplication(t *testing.T) {
+	info, errs := check(t, `
+meow add(a int, b int) int {
+  bring a + b
+}
+nyan x = add(1)
+nyan y = x(2)
+`)
+	if len(errs) != 0 {
+		t.Fatalf("unexpected errors for partial application: %v", errs)
+	}
+	// x should be a FuncType (int) -> int
+	xType := info.VarTypes["x"]
+	if xType == nil {
+		t.Fatal("x should have a type")
+	}
+	ft, ok := xType.(types.FuncType)
+	if !ok {
+		t.Fatalf("x should be FuncType, got %T", xType)
+	}
+	if len(ft.Params) != 1 {
+		t.Fatalf("partial add(1) should have 1 remaining param, got %d", len(ft.Params))
+	}
+	// y should be IntType (result of calling x(2))
+	if _, ok := info.VarTypes["y"].(types.IntType); !ok {
+		t.Fatalf("y should be int, got %T", info.VarTypes["y"])
 	}
 }
 
