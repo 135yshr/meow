@@ -15,10 +15,8 @@
     <script src="{{ "js/consent.js" | relURL }}"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ .Site.Services.GoogleAnalytics.ID }}"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '{{ .Site.Services.GoogleAnalytics.ID }}');
+      gtag('config', '{{ .Site.Services.GoogleAnalytics.ID }}', { send_page_view: false });
     </script>
   {{ end }}
 </head>

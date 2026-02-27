@@ -46,6 +46,11 @@
   opacity: 0.85;
 }
 
+.meow-consent-actions button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 #meow-consent-accept {
   background: var(--consent-accept-bg, #6c63ff);
   color: var(--consent-accept-fg, #fff);

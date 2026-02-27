@@ -45,6 +45,7 @@
 
   if (stored === 'granted') {
     gtag('consent', 'update', GRANTED);
+    gtag('event', 'page_view');
     return;
   }
   if (stored === 'denied') {
@@ -57,13 +58,18 @@
     if (!banner) return;
     banner.hidden = false;
 
-    document.getElementById('meow-consent-accept').addEventListener('click', function () {
+    var acceptBtn = document.getElementById('meow-consent-accept');
+    var rejectBtn = document.getElementById('meow-consent-reject');
+    if (!acceptBtn || !rejectBtn) return;
+
+    acceptBtn.addEventListener('click', function () {
       try { localStorage.setItem(STORAGE_KEY, 'granted'); } catch (e) { /* ignore */ }
       gtag('consent', 'update', GRANTED);
+      gtag('event', 'page_view');
       banner.hidden = true;
     });
 
-    document.getElementById('meow-consent-reject').addEventListener('click', function () {
+    rejectBtn.addEventListener('click', function () {
       try { localStorage.setItem(STORAGE_KEY, 'denied'); } catch (e) { /* ignore */ }
       gtag('consent', 'update', DENIED);
       banner.hidden = true;
