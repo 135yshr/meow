@@ -1,0 +1,39 @@
+{{- $title := .Site.Title -}}
+{{- if not .IsHome -}}
+  {{- $title = printf "%s - %s" .Title .Site.Title -}}
+{{- end -}}
+
+{{- $description := .Site.Params.description -}}
+{{- with .Description -}}
+  {{- $description = . -}}
+{{- end -}}
+
+{{- $ogType := "website" -}}
+{{- if and (not .IsHome) (not .IsSection) -}}
+  {{- $ogType = "article" -}}
+{{- end -}}
+
+{{- $image := .Site.Params.ogpImage | absURL -}}
+{{- with .Params.images -}}
+  {{- $image = index . 0 | absURL -}}
+{{- end -}}
+
+<meta property="og:title" content="{{ $title }}">
+<meta property="og:description" content="{{ $description }}">
+<meta property="og:type" content="{{ $ogType }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:image" content="{{ $image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="{{ .Site.Title }}">
+{{- with .Site.Params.locale }}
+<meta property="og:locale" content="{{ . }}">
+{{- end }}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ $title }}">
+<meta name="twitter:description" content="{{ $description }}">
+<meta name="twitter:image" content="{{ $image }}">
+<meta name="twitter:image:alt" content="{{ $title }}">
+{{- with .Site.Params.twitterSite }}
+<meta name="twitter:site" content="{{ . }}">
+{{- end }}

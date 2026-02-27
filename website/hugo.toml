@@ -13,6 +13,9 @@ enableGitInfo = true
   tagline = "The purrfect functional programming language"
   githubRepo = "https://github.com/135yshr/meow"
   goPackage = "https://pkg.go.dev/github.com/135yshr/meow"
+  ogpImage = "images/ogp.svg"
+  twitterSite = ""
+  locale = "en_US"
 
 [markup]
   [markup.highlight]
