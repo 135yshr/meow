@@ -573,3 +573,34 @@ func TestMatchExpr(t *testing.T) {
 		t.Errorf("expected 3 arms, got %d", len(m.Arms))
 	}
 }
+
+func TestFetchStmtNoAlias(t *testing.T) {
+	prog := parse(t, `nab "file"`)
+	f := prog.Stmts[0].(*ast.FetchStmt)
+	if f.Path != "file" {
+		t.Errorf("expected path 'file', got %q", f.Path)
+	}
+	if f.Alias != "" {
+		t.Errorf("expected empty alias, got %q", f.Alias)
+	}
+}
+
+func TestFetchStmtWithAlias(t *testing.T) {
+	prog := parse(t, `nab "file" tag f`)
+	f := prog.Stmts[0].(*ast.FetchStmt)
+	if f.Path != "file" {
+		t.Errorf("expected path 'file', got %q", f.Path)
+	}
+	if f.Alias != "f" {
+		t.Errorf("expected alias 'f', got %q", f.Alias)
+	}
+}
+
+func TestFetchStmtTagWithoutIdent(t *testing.T) {
+	l := lexer.New(`nab "file" tag`, "test.nyan")
+	p := parser.New(l.Tokens())
+	_, errs := p.Parse()
+	if len(errs) == 0 {
+		t.Fatal("expected parse error for tag without identifier")
+	}
+}

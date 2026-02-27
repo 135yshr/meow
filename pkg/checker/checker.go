@@ -18,6 +18,7 @@ type TypeInfo struct {
 	CollarTypes map[string]types.CollarType
 	TrickTypes  map[string]types.TrickType
 	LearnImpls  map[string]map[string]types.FuncType // typeName → methodName → FuncType
+	ImportNames map[string]string                     // effective name → package path
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -31,6 +32,7 @@ func NewTypeInfo() *TypeInfo {
 		CollarTypes: make(map[string]types.CollarType),
 		TrickTypes:  make(map[string]types.TrickType),
 		LearnImpls:  make(map[string]map[string]types.FuncType),
+		ImportNames: make(map[string]string),
 	}
 }
 
@@ -91,6 +93,22 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
+	// Pre-pass: register import names and check for import-import collisions
+	for _, stmt := range prog.Stmts {
+		if fs, ok := stmt.(*ast.FetchStmt); ok {
+			effectiveName := fs.Path
+			if fs.Alias != "" {
+				effectiveName = fs.Alias
+			}
+			if prevPath, exists := c.info.ImportNames[effectiveName]; exists {
+				c.addError(fs.Token.Pos,
+					"import name '%s' already used for package %q", effectiveName, prevPath)
+			} else {
+				c.info.ImportNames[effectiveName] = fs.Path
+			}
+		}
+	}
+
 	// First pass: register type/function names as placeholders
 	for _, stmt := range prog.Stmts {
 		if bs, ok := stmt.(*ast.BreedStmt); ok {
@@ -109,6 +127,40 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 			ft := c.funcSignatureType(fn)
 			c.info.FuncTypes[fn.Name] = ft
 			c.define(fn.Name, ft)
+		}
+	}
+
+	// Check for collisions between import names and top-level definitions
+	for _, stmt := range prog.Stmts {
+		var defName string
+		var pos token.Position
+		switch s := stmt.(type) {
+		case *ast.VarStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		case *ast.FuncStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		case *ast.KittyStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		case *ast.BreedStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		case *ast.CollarStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		case *ast.TrickStmt:
+			defName = s.Name
+			pos = s.Token.Pos
+		}
+		if defName == "" {
+			continue
+		}
+		if pkgPath, exists := c.info.ImportNames[defName]; exists {
+			c.addError(pos,
+				"'%s' shadows imported package %q; use tag to rename the import (e.g., nab %q tag %s)",
+				defName, pkgPath, pkgPath, defName[:1])
 		}
 	}
 
