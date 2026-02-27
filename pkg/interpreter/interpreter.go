@@ -488,10 +488,7 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 		if env.Has(ident.Name) {
 			fnVal := env.Get(ident.Name)
 			if fn, ok := fnVal.(*meowrt.Func); ok {
-				if fn.Arity > 0 && len(args) < fn.Arity {
-					return meowrt.PartialApply(fn, args...)
-				}
-				return fn.Call(args...)
+				return meowrt.Call(fn, args...)
 			}
 			panic(fmt.Sprintf("Hiss! %s is not callable, nya~", ident.Name))
 		}
@@ -502,10 +499,7 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 	// First-class function call (e.g. variable holding a Func)
 	fnVal := interp.evalExpr(e.Fn, env)
 	if fn, ok := fnVal.(*meowrt.Func); ok {
-		if fn.Arity > 0 && len(args) < fn.Arity {
-			return meowrt.PartialApply(fn, args...)
-		}
-		return fn.Call(args...)
+		return meowrt.Call(fn, args...)
 	}
 	panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 }
@@ -662,10 +656,7 @@ func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env 
 	if env.Has(name) {
 		fnVal := env.Get(name)
 		if fn, ok := fnVal.(*meowrt.Func); ok {
-			if fn.Arity > 0 && len(args) < fn.Arity {
-				return meowrt.PartialApply(fn, args...)
-			}
-			return fn.Call(args...)
+			return meowrt.Call(fn, args...)
 		}
 	}
 

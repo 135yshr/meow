@@ -884,7 +884,27 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 		return types.AnyType{}
 	}
 
-	c.inferExpr(e.Fn)
+	// Handle chained calls (e.g. add(1)(2)) — check if callee returns a FuncType.
+	fnType := c.inferExpr(e.Fn)
+	if ft, ok := types.Unwrap(fnType).(types.FuncType); ok {
+		if len(e.Args) > len(ft.Params) {
+			c.addError(e.Token.Pos, "Function expects at most %d arguments but got %d",
+				len(ft.Params), len(e.Args))
+			return ft.Return
+		}
+		for i, arg := range e.Args {
+			argType := c.info.ExprTypes[arg]
+			if argType != nil && !types.IsAny(argType) && !types.IsAny(ft.Params[i]) && !ft.Params[i].Equals(argType) {
+				c.addError(e.Token.Pos, "Argument %d: expected %s but got %s", i+1, ft.Params[i], argType)
+			}
+		}
+		if len(e.Args) < len(ft.Params) {
+			remainingParams := make([]types.Type, len(ft.Params)-len(e.Args))
+			copy(remainingParams, ft.Params[len(e.Args):])
+			return types.FuncType{Params: remainingParams, Return: ft.Return}
+		}
+		return ft.Return
+	}
 	return types.AnyType{}
 }
 

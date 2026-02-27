@@ -1302,11 +1302,11 @@ func (g *Generator) genPartialCall(fnName string, ft types.FuncType, suppliedArg
 			"}()", capture, fnName, remaining, boxed)
 	}
 
-	// Untyped function: box arguments
+	// Untyped function: box arguments to ensure meow.Value
 	var captureLines []string
 	for i, a := range suppliedArgs {
 		captureLines = append(captureLines,
-			fmt.Sprintf("__c%d := %s", i, g.genExpr(a)))
+			fmt.Sprintf("__c%d := %s", i, g.boxValue(a)))
 	}
 	var callArgs []string
 	for i := range suppliedArgs {
