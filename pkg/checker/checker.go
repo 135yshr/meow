@@ -865,9 +865,6 @@ func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {
 	c.pushScope()
 	paramTypes := make([]types.Type, len(e.Params))
 	for i, p := range e.Params {
-		if p.TypeAnn == nil {
-			c.addError(e.Token.Pos, "Lambda parameter %q must have a type annotation", p.Name)
-		}
 		pt := c.resolveTypeExpr(p.TypeAnn)
 		paramTypes[i] = pt
 		c.define(p.Name, pt)

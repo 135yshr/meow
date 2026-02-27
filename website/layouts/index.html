@@ -197,7 +197,7 @@
 <span class="cm"># Pipeline: filter evens, double them, sum</span>
 <span class="kw">nyan</span> evens = numbers |=| <span class="fn">picky</span>(<span class="kw">paw</span>(x) { x % <span class="num">2</span> == <span class="num">0</span> })
 <span class="kw">nyan</span> doubled = evens |=| <span class="fn">lick</span>(<span class="kw">paw</span>(x) { x * <span class="num">2</span> })
-<span class="kw">nyan</span> result = doubled |=| <span class="fn">curl</span>(<span class="kw">paw</span>(acc, x) { acc + x }, <span class="num">0</span>)
+<span class="kw">nyan</span> result = doubled |=| <span class="fn">curl</span>(<span class="num">0</span>, <span class="kw">paw</span>(acc, x) { acc + x })
 
 <span class="fn">nya</span>(result)  <span class="cm"># 60</span></code></pre>
         </div>

@@ -370,8 +370,8 @@ nyan x = add(1)
 
 func TestLambdaUntypedParam(t *testing.T) {
 	_, errs := check(t, `nyan f = paw(x) { x }`)
-	if len(errs) == 0 {
-		t.Fatal("expected error for untyped lambda parameter, got none")
+	if len(errs) != 0 {
+		t.Fatalf("unexpected errors for untyped lambda parameter: %v", errs)
 	}
 }
 

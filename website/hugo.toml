@@ -52,6 +52,14 @@ enableGitInfo = true
     url = "/playground/"
     weight = 6
 
+[module]
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "../playground"
+    target = "static/playground"
+
 [outputs]
   home = ["HTML"]
 

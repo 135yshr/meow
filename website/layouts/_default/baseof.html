@@ -14,10 +14,10 @@
   {{ if hugo.IsProduction }}
     <link rel="stylesheet" href="{{ "css/consent.css" | relURL }}">
     <script src="{{ "js/consent.js" | relURL }}"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id={{ .Site.Services.GoogleAnalytics.ID }}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.Config.Services.GoogleAnalytics.ID }}"></script>
     <script>
       gtag('js', new Date());
-      gtag('config', '{{ .Site.Services.GoogleAnalytics.ID }}', { send_page_view: false });
+      gtag('config', '{{ site.Config.Services.GoogleAnalytics.ID }}', { send_page_view: false });
     </script>
   {{ end }}
 </head>
