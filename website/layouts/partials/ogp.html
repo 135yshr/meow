@@ -14,8 +14,10 @@
 {{- end -}}
 
 {{- $image := .Site.Params.ogpImage | absURL -}}
+{{- $useDefaultImageSize := true -}}
 {{- with .Params.images -}}
   {{- $image = index . 0 | absURL -}}
+  {{- $useDefaultImageSize = false -}}
 {{- end -}}
 
 <meta property="og:title" content="{{ $title }}">
@@ -23,8 +25,10 @@
 <meta property="og:type" content="{{ $ogType }}">
 <meta property="og:url" content="{{ .Permalink }}">
 <meta property="og:image" content="{{ $image }}">
+{{- if $useDefaultImageSize }}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+{{- end }}
 <meta property="og:site_name" content="{{ .Site.Title }}">
 {{- with .Site.Params.locale }}
 <meta property="og:locale" content="{{ . }}">
