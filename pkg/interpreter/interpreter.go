@@ -520,7 +520,7 @@ func (interp *Interpreter) evalMemberCall(member *ast.MemberExpr, rawArgs []ast.
 		// Kitty field that is a function
 		field := k.GetField(member.Member)
 		if fn, ok := field.(*meowrt.Func); ok {
-			return fn.Call(args...)
+			return meowrt.Call(fn, args...)
 		}
 		panic(fmt.Sprintf("Hiss! %s.%s is not callable, nya~", k.TypeName, member.Member))
 	}
@@ -635,7 +635,7 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 
 		fnVal := interp.evalExpr(call.Fn, env)
 		if fn, ok := fnVal.(*meowrt.Func); ok {
-			return fn.Call(args...)
+			return meowrt.Call(fn, args...)
 		}
 		panic(fmt.Sprintf("Hiss! pipe target is not callable, nya~"))
 	}
@@ -643,7 +643,7 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 	// x |=| f → f(x)
 	fnVal := interp.evalExpr(e.Right, env)
 	if fn, ok := fnVal.(*meowrt.Func); ok {
-		return fn.Call(left)
+		return meowrt.Call(fn, left)
 	}
 	panic(fmt.Sprintf("Hiss! pipe target is not callable, nya~"))
 }
