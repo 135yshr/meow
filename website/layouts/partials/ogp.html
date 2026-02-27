@@ -37,7 +37,9 @@
 <meta name="twitter:title" content="{{ $title }}">
 <meta name="twitter:description" content="{{ $description }}">
 <meta name="twitter:image" content="{{ $image }}">
+<meta name="twitter:image:src" content="{{ $image }}">
 <meta name="twitter:image:alt" content="{{ $title }}">
 {{- with .Site.Params.twitterSite }}
 <meta name="twitter:site" content="{{ . }}">
+<meta name="twitter:creator" content="{{ . }}">
 {{- end }}
