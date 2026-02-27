@@ -195,10 +195,9 @@
           <pre class="code-body"><code><span class="kw">nyan</span> numbers = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>, <span class="num">7</span>, <span class="num">8</span>, <span class="num">9</span>, <span class="num">10</span>]
 
 <span class="cm"># Pipeline: filter evens, double them, sum</span>
-<span class="kw">nyan</span> result = numbers
-  |=| <span class="fn">picky</span>(<span class="kw">paw</span>(x) { x % <span class="num">2</span> == <span class="num">0</span> })
-  |=| <span class="fn">lick</span>(<span class="kw">paw</span>(x) { x * <span class="num">2</span> })
-  |=| <span class="fn">curl</span>(<span class="kw">paw</span>(acc, x) { acc + x }, <span class="num">0</span>)
+<span class="kw">nyan</span> evens = numbers |=| <span class="fn">picky</span>(<span class="kw">paw</span>(x) { x % <span class="num">2</span> == <span class="num">0</span> })
+<span class="kw">nyan</span> doubled = evens |=| <span class="fn">lick</span>(<span class="kw">paw</span>(x) { x * <span class="num">2</span> })
+<span class="kw">nyan</span> result = doubled |=| <span class="fn">curl</span>(<span class="kw">paw</span>(acc, x) { acc + x }, <span class="num">0</span>)
 
 <span class="fn">nya</span>(result)  <span class="cm"># 60</span></code></pre>
         </div>
