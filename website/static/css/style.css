@@ -190,6 +190,7 @@ pre code {
 .nav-github {
   color: var(--color-text-secondary);
   display: flex;
+  flex-shrink: 0;
 }
 .nav-github:hover {
   color: var(--color-text);
@@ -222,14 +223,19 @@ pre code {
 .nav-share {
   color: var(--color-text-secondary);
   display: flex;
-  transition: color 0.15s;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
 }
 .nav-share:hover {
   color: var(--color-text);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .nav-share-separator {
   display: block;
+  flex-shrink: 0;
   width: 1px;
   height: 18px;
   background: var(--color-border);
