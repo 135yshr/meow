@@ -2,27 +2,7 @@
   <nav class="container nav-container">
     <a href="{{ "" | relURL }}" class="nav-logo">
       <svg class="nav-logo-icon" viewBox="0 0 32 32" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Ears -->
-        <path d="M5 14L3 3l7 7.5z" fill="currentColor" opacity="0.85"/>
-        <path d="M27 14l2-11-7 7.5z" fill="currentColor" opacity="0.85"/>
-        <!-- Inner ears -->
-        <path d="M6.5 12L5 6l4.5 4z" fill="currentColor" opacity="0.3"/>
-        <path d="M25.5 12l1.5-6-4.5 4z" fill="currentColor" opacity="0.3"/>
-        <!-- Head -->
-        <ellipse cx="16" cy="19" rx="12" ry="10.5" fill="currentColor" opacity="0.1"/>
-        <ellipse cx="16" cy="19" rx="12" ry="10.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
-        <!-- Eyes -->
-        <circle cx="11" cy="17" r="2" fill="currentColor"/>
-        <circle cx="21" cy="17" r="2" fill="currentColor"/>
-        <!-- Nose -->
-        <path d="M16 20.5l-1.2 1.5h2.4z" fill="currentColor" opacity="0.55"/>
-        <!-- Mouth -->
-        <path d="M12 23q2 1.5 4 0q2 1.5 4 0" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <!-- Whiskers -->
-        <line x1="1" y1="19.5" x2="7" y2="20.5" stroke="currentColor" stroke-width="0.7" opacity="0.45"/>
-        <line x1="1" y1="22" x2="7" y2="21.5" stroke="currentColor" stroke-width="0.7" opacity="0.45"/>
-        <line x1="31" y1="19.5" x2="25" y2="20.5" stroke="currentColor" stroke-width="0.7" opacity="0.45"/>
-        <line x1="31" y1="22" x2="25" y2="21.5" stroke="currentColor" stroke-width="0.7" opacity="0.45"/>
+        {{ partial "cat-logo.html" . }}
       </svg>
       <span>Meow</span>
     </a>
@@ -35,7 +15,7 @@
       {{ end }}
     </ul>
     <div class="nav-actions">
-      <a href="https://twitter.com/intent/tweet?url={{ .Permalink | safeURL }}&text={{ .Title | safeURL }}" target="_blank" rel="noopener noreferrer" class="nav-share" aria-label="Share on X">
+      <a href="https://twitter.com/intent/tweet?url={{ .Permalink | urlquery }}&text={{ .Title | urlquery }}" target="_blank" rel="noopener noreferrer" class="nav-share" aria-label="Share on X">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
         </svg>
