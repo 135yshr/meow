@@ -137,6 +137,9 @@ func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 		// Nested function definition
 		interp.registerFunc(s, env)
 	case *ast.FetchStmt:
+		if s.Alias != "" {
+			panic(fmt.Sprintf("Hiss! nab %q tag %s is not supported in the playground, nya~", s.Path, s.Alias))
+		}
 		panic(fmt.Sprintf("Hiss! nab %q is not supported in the playground, nya~", s.Path))
 	default:
 		// KittyStmt, CollarStmt, etc. already handled in Pass 1

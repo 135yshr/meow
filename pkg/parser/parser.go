@@ -277,8 +277,14 @@ func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {
 	tok := p.advance() // consume nab
 	path := p.expect(token.STRING)
+	var alias string
+	if p.cur.Type == token.TAG {
+		p.advance() // consume tag
+		aliasToken := p.expect(token.IDENT)
+		alias = aliasToken.Literal
+	}
 	p.consumeTerminator()
-	return &ast.FetchStmt{Token: tok, Path: path.Literal}
+	return &ast.FetchStmt{Token: tok, Path: path.Literal, Alias: alias}
 }
 
 func (p *Parser) parseKittyStmt() *ast.KittyStmt {

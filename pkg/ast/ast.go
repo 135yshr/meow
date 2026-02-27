@@ -312,12 +312,14 @@ func (n *MemberExpr) exprTag()            {}
 
 // --- Statements ---
 
-// FetchStmt represents a package import (nab "file").
+// FetchStmt represents a package import (nab "file" or nab "file" tag f).
 type FetchStmt struct {
 	// Token is the nab keyword token.
 	Token token.Token
 	// Path is the package name.
 	Path string
+	// Alias is the import alias (empty if no alias specified).
+	Alias string
 }
 
 func (n *FetchStmt) Pos() token.Position { return n.Token.Pos }

@@ -78,6 +78,7 @@ const (
 	POSE     // pose (interface)
 	GROOM    // groom (method impl)
 	SELF     // self (self reference)
+	TAG      // tag (import alias)
 
 	// Type keywords
 	TYPE_INT     // int
@@ -114,6 +115,7 @@ var keywords = map[string]TokenType{
 	"pose":     POSE,
 	"groom":    GROOM,
 	"self":     SELF,
+	"tag":      TAG,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,

@@ -31,8 +31,9 @@ type Generator struct {
 	kittyDefs     map[string]*ast.KittyStmt
 	collarDefs    map[string]*ast.CollarStmt
 	learnDefs     []*ast.LearnStmt
-	inLearnMethod bool // true when generating a learn method body
-
+	inLearnMethod  bool              // true when generating a learn method body
+	aliasToPackage map[string]string // alias → real package name
+	packageToAlias map[string]string // real package name → alias
 }
 
 type coverBlock struct {
@@ -43,6 +44,22 @@ var stdPackages = map[string]string{
 	"file":    "github.com/135yshr/meow/runtime/file",
 	"http":    "github.com/135yshr/meow/runtime/http",
 	"testing": "github.com/135yshr/meow/runtime/testing",
+}
+
+// resolveImportName resolves name to a real package name, considering aliases.
+// Returns (realPkg, true) if the name refers to an imported package,
+// or ("", false) if it does not.
+func (g *Generator) resolveImportName(name string) (string, bool) {
+	if rp, isAlias := g.aliasToPackage[name]; isAlias {
+		return rp, true
+	}
+	if _, imported := g.imports[name]; imported {
+		if _, hasAlias := g.packageToAlias[name]; !hasAlias {
+			return name, true
+		}
+		return "", false
+	}
+	return "", false
 }
 
 // capitalizeFirst returns s with its first byte uppercased.
@@ -945,6 +962,16 @@ func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 			g.imports = make(map[string]string)
 		}
 		g.imports[s.Path] = path
+		if s.Alias != "" {
+			if g.aliasToPackage == nil {
+				g.aliasToPackage = make(map[string]string)
+			}
+			if g.packageToAlias == nil {
+				g.packageToAlias = make(map[string]string)
+			}
+			g.aliasToPackage[s.Alias] = s.Path
+			g.packageToAlias[s.Path] = s.Alias
+		}
 		return "", nil
 	}
 	return g.genStmt(stmt), nil
@@ -1044,8 +1071,8 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		}
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
-			if _, imported := g.imports[obj.Name]; imported {
-				return fmt.Sprintf("meow_%s.%s", obj.Name, capitalizeFirst(e.Member))
+			if realPkg, ok := g.resolveImportName(obj.Name); ok {
+				return fmt.Sprintf("meow_%s.%s", realPkg, capitalizeFirst(e.Member))
 			}
 			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
 		}
@@ -1224,8 +1251,8 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 		return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q), %s)",
 			g.genExpr(member.Object), member.Member, argStr)
 	}
-	if _, imported := g.imports[obj.Name]; imported {
-		return fmt.Sprintf("meow_%s.%s(%s)", obj.Name, capitalizeFirst(member.Member), argStr)
+	if realPkg, ok := g.resolveImportName(obj.Name); ok {
+		return fmt.Sprintf("meow_%s.%s(%s)", realPkg, capitalizeFirst(member.Member), argStr)
 	}
 	if argStr == "" {
 		return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q))",

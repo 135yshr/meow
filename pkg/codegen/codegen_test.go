@@ -322,3 +322,27 @@ func TestCoverageDisabledByDefault(t *testing.T) {
 		t.Error("coverage should not appear when not enabled")
 	}
 }
+
+func TestFetchWithAliasAndMemberCall(t *testing.T) {
+	code := generate(t, `nab "file" tag f
+nyan content = f.snoop("data.txt")
+nya(content)`)
+	if !strings.Contains(code, `import meow_file "github.com/135yshr/meow/runtime/file"`) {
+		t.Error("expected meow_file import")
+	}
+	if !strings.Contains(code, `meow_file.Snoop(meow.NewString("data.txt"))`) {
+		t.Error("expected meow_file.Snoop call via alias")
+	}
+}
+
+func TestFetchWithAliasMemberExpr(t *testing.T) {
+	code := generate(t, `nab "http" tag h
+nyan res = h.pounce("https://example.com")
+nya(res)`)
+	if !strings.Contains(code, `import meow_http "github.com/135yshr/meow/runtime/http"`) {
+		t.Error("expected meow_http import")
+	}
+	if !strings.Contains(code, `meow_http.Pounce(meow.NewString("https://example.com"))`) {
+		t.Error("expected meow_http.Pounce call via alias 'h'")
+	}
+}

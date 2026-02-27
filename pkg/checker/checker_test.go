@@ -773,3 +773,84 @@ nyan o = Outer(Inner(42))
 		t.Fatalf("unexpected errors for collar->collar forward ref: %v", errs)
 	}
 }
+
+func TestImportVarCollision(t *testing.T) {
+	_, errs := check(t, `
+nab "file"
+nyan file = 1
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for import-variable name collision, got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "shadows imported package") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'shadows imported package' error, got: %v", errs)
+	}
+}
+
+func TestImportAliasAvoidCollision(t *testing.T) {
+	_, errs := check(t, `
+nab "file" tag f
+nyan file = 1
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: alias should avoid collision: %v", errs)
+	}
+}
+
+func TestImportAliasCollision(t *testing.T) {
+	_, errs := check(t, `
+nab "file" tag f
+nyan f = 1
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for alias-variable collision, got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "shadows imported package") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'shadows imported package' error, got: %v", errs)
+	}
+}
+
+func TestImportDuplicateAlias(t *testing.T) {
+	_, errs := check(t, `
+nab "file" tag f
+nab "http" tag f
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for duplicate import alias, got none")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Message, "import name 'f' already used") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected 'import name already used' error, got: %v", errs)
+	}
+}
+
+func TestImportBlockScopeNoCollision(t *testing.T) {
+	// Block-level variable should not collide with import
+	_, errs := check(t, `
+nab "file"
+meow test_fn() {
+  nyan file = 1
+  nya(file)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: block-level var should not collide: %v", errs)
+	}
+}
