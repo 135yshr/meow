@@ -2,9 +2,8 @@
   <rect width="1200" height="630" fill="#1a1a2e"/>
 
   <!-- ASCII art cat -->
-  <text x="600" y="160" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="64" xml:space="preserve"> /\_/\</text>
-  <text x="600" y="230" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="64" xml:space="preserve">( o.o )</text>
-  <text x="600" y="300" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="64" xml:space="preserve"> &gt; ^ &lt;</text>
+  <text x="600" y="180" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="72" xml:space="preserve">/\  /\</text>
+  <text x="600" y="280" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="96">(=^&#x30FB;^=)</text>
 
   <!-- Title -->
   <text x="600" y="460" text-anchor="middle" fill="white" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="700">Meow</text>
