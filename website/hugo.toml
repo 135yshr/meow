@@ -14,7 +14,7 @@ enableGitInfo = true
   githubRepo = "https://github.com/135yshr/meow"
   goPackage = "https://pkg.go.dev/github.com/135yshr/meow"
   ogpImage = "images/ogp.png"
-  twitterSite = ""
+  twitterSite = "@135yshr"
   locale = "en_US"
 
 [markup]
@@ -62,6 +62,11 @@ enableGitInfo = true
 
 [outputs]
   home = ["HTML"]
+
+[minify]
+  [minify.tdewolff]
+    [minify.tdewolff.html]
+      keepQuotes = true
 
 [sitemap]
   changefreq = "weekly"
