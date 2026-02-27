@@ -1,20 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <rect width="1200" height="630" fill="#1a1a2e"/>
 
-  <!-- Cat ears -->
-  <path d="M480 200L520 120h50l-50 80H480z" fill="#6c5ce7" opacity="0.9"/>
-  <path d="M630 120h50l40 80h-50l-40-80z" fill="#6c5ce7" opacity="0.9"/>
-
-  <!-- Cat face -->
-  <ellipse cx="580" cy="280" rx="120" ry="100" fill="#6c5ce7" opacity="0.15"/>
-  <ellipse cx="580" cy="280" rx="120" ry="100" stroke="#6c5ce7" stroke-width="3" fill="none"/>
-
-  <!-- Eyes -->
-  <circle cx="545" cy="260" r="12" fill="#6c5ce7"/>
-  <circle cx="615" cy="260" r="12" fill="#6c5ce7"/>
-
-  <!-- Mouth -->
-  <path d="M560 300q20 20 40 0" stroke="#6c5ce7" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Cat face as text art -->
+  <text x="600" y="300" text-anchor="middle" fill="#6c5ce7" font-family="monospace" font-size="200" font-weight="700">^^</text>
 
   <!-- Title -->
   <text x="600" y="460" text-anchor="middle" fill="white" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="700">Meow</text>
