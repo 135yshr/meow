@@ -46,4 +46,6 @@ The Meow standard library (`nab "file"` and `nab "http"`) provides direct access
 
 These are **by design** — Meow is a compiled language, not a sandboxed environment. If you need to restrict file or network access, use OS-level mechanisms (e.g., containers, seccomp, firewall rules).
 
+When processing untrusted input, be aware of path traversal attacks in file operations and Server-Side Request Forgery (SSRF) in HTTP operations.
+
 Thank you for helping keep Meow safe!

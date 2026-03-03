@@ -540,9 +540,9 @@ func readGoVersion(path string) string {
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "go ") {
-			ver := strings.TrimPrefix(line, "go ")
-			if validGoVersion.MatchString(ver) {
-				return ver
+			fields := strings.Fields(strings.TrimPrefix(line, "go "))
+			if len(fields) > 0 && validGoVersion.MatchString(fields[0]) {
+				return fields[0]
 			}
 			return "1.26"
 		}
