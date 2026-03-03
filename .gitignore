@@ -1,4 +1,37 @@
+# Build artifacts
 meow
-CLAUDE.md
 playground-server
 playground/meow.wasm
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go workspace
+go.work
+go.work.sum
+
+# Output of go coverage
+coverage*.out
+coverage.html
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# AI tools
+CLAUDE.md
+.claude/
+.cursor/
+.entire/
+
+# OS
+.DS_Store
+Thumbs.db

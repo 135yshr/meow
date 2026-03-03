@@ -1,0 +1,16 @@
+# Default owner for everything
+* @135yshr
+
+# Compiler pipeline
+/pkg/lexer/    @135yshr
+/pkg/parser/   @135yshr
+/pkg/checker/  @135yshr
+/pkg/codegen/  @135yshr
+/compiler/     @135yshr
+
+# Runtime
+/runtime/      @135yshr
+
+# CI/CD and release
+/.github/      @135yshr
+.goreleaser.yaml @135yshr
