@@ -84,7 +84,7 @@ jobs:
 
       - name: Run GoReleaser
         if: steps.tag.outputs.new_tag != ''
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@9a127d869fb706213d29cdf8eef3a4ea2b869415 # v7
         with:
           version: "~> v2"
           args: release --clean
