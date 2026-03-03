@@ -44,7 +44,7 @@ jobs:
             }
             core.setOutput('merge_sha', pr.data.merge_commit_sha);
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
