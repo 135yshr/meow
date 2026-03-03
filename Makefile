@@ -20,7 +20,7 @@ test-v:
 test-update:
 	go test ./compiler/ -update
 
-## lint: Run golangci-lint
+## lint: Run golangci-lint (install with: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
 lint:
 	golangci-lint run ./...
 
