@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -107,7 +108,10 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	// Create go.mod in temp dir
 	modRoot := c.findModuleRoot()
 	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
-	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	modContent, err := buildModContent(goVersion, modRoot)
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -249,7 +253,10 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 
 	modRoot := c.findModuleRoot()
 	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
-	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	modContent, err := buildModContent(goVersion, modRoot)
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -356,7 +363,10 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 
 	modRoot := c.findModuleRoot()
 	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
-	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	modContent, err := buildModContent(goVersion, modRoot)
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -376,7 +386,7 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	for _, name := range fuzzNames {
 		c.logger.Debug("running fuzz", "target", name, "fuzztime", fuzzTime)
 		fmt.Fprintf(os.Stdout, "  --- %s ---\n", name)
-		cmd := exec.Command("go", "test", fmt.Sprintf("-fuzz=^%s$", name), fmt.Sprintf("-fuzztime=%s", fuzzTime))
+		cmd := exec.Command("go", "test", fmt.Sprintf("-fuzz=^%s$", regexp.QuoteMeta(name)), fmt.Sprintf("-fuzztime=%s", fuzzTime))
 		cmd.Dir = tmpDir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -486,7 +496,10 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 
 	modRoot := c.findModuleRoot()
 	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
-	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	modContent, err := buildModContent(goVersion, modRoot)
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -515,6 +528,8 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	return nil
 }
 
+var validGoVersion = regexp.MustCompile(`^\d+\.\d+(\.\d+)?$`)
+
 // readGoVersion parses a go.mod file and returns the Go version directive.
 // Falls back to "1.26" if the file cannot be read or parsed.
 func readGoVersion(path string) string {
@@ -525,10 +540,22 @@ func readGoVersion(path string) string {
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "go ") {
-			return strings.TrimPrefix(line, "go ")
+			ver := strings.TrimPrefix(line, "go ")
+			if validGoVersion.MatchString(ver) {
+				return ver
+			}
+			return "1.26"
 		}
 	}
 	return "1.26"
+}
+
+// buildModContent generates go.mod content for a temporary build directory.
+func buildModContent(goVersion, modRoot string) (string, error) {
+	if strings.ContainsAny(modRoot, "\n\r") {
+		return "", fmt.Errorf("Hiss! Module root path contains invalid characters, nya~")
+	}
+	return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot), nil
 }
 
 // companionSourcePath returns the inferred source file path for a test file.

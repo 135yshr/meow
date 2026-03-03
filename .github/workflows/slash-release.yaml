@@ -100,11 +100,15 @@ jobs:
       - name: Comment result
         if: always()
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          MERGE_SHA: ${{ steps.pr.outputs.merge_sha }}
+          NEW_TAG: ${{ steps.tag.outputs.new_tag }}
+          JOB_STATUS: ${{ job.status }}
         with:
           script: |
-            const sha = '${{ steps.pr.outputs.merge_sha }}';
-            const tag = '${{ steps.tag.outputs.new_tag }}';
-            const success = '${{ job.status }}' === 'success';
+            const sha = process.env.MERGE_SHA || '';
+            const tag = process.env.NEW_TAG || '';
+            const success = process.env.JOB_STATUS === 'success';
             const emoji = success ? '✅' : '❌';
             const body = success
               ? `${emoji} Released ${tag} successfully! (${sha.substring(0, 7)})`
