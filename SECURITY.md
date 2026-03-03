@@ -37,4 +37,15 @@ Since Meow transpiles to Go and compiles via `go build`, security concerns may i
 - Vulnerabilities in the runtime (`runtime/meowrt`)
 - Supply chain issues in the build pipeline
 
+### Runtime File I/O and HTTP Access
+
+The Meow standard library (`nab "file"` and `nab "http"`) provides direct access to the filesystem and network, respectively. Compiled Meow programs run with the same OS-level privileges as any native executable, similar to programs written in Go, Python, or Ruby. This means:
+
+- **File I/O** (`file.snoop`, `file.stalk`): No path restrictions are enforced by the runtime. Programs can read any file accessible to the user running the binary.
+- **HTTP client** (`http.pounce`, `http.toss`, etc.): No URL restrictions are enforced. Programs can make requests to any reachable host, including internal/private networks.
+
+These are **by design** — Meow is a compiled language, not a sandboxed environment. If you need to restrict file or network access, use OS-level mechanisms (e.g., containers, seccomp, firewall rules).
+
+When processing untrusted input, be aware of path traversal attacks in file operations and Server-Side Request Forgery (SSRF) in HTTP operations.
+
 Thank you for helping keep Meow safe!
