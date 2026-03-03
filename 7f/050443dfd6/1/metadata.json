@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "7f050443dfd6",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:17:51.376857Z",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".editorconfig",
+    ".github/CODEOWNERS",
+    ".github/FUNDING.yml",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ".github/dependabot.yml",
+    ".github/pull_request_template.md",
+    ".github/workflows/ci.yml",
+    ".github/workflows/stale.yml",
+    ".gitignore",
+    ".golangci.yml",
+    "CHANGELOG.md",
+    "Makefile",
+    "SECURITY.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "331cabef3fca",
+  "token_usage": {
+    "input_tokens": 39,
+    "cache_creation_tokens": 60109,
+    "cache_read_tokens": 1789107,
+    "output_tokens": 14596,
+    "api_call_count": 31
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:17:51.304085Z",
+    "agent_lines": 498,
+    "human_added": 160,
+    "human_modified": 13,
+    "human_removed": 0,
+    "total_committed": 671,
+    "agent_percentage": 74.21758569299553
+  }
+}
