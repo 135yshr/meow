@@ -1,0 +1,35 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - gofmt
+    - goimports
+    - misspell
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+    disabled-checks:
+      - hugeParam
+  misspell:
+    locale: US
+
+issues:
+  exclude-dirs:
+    - testdata
+    - playground
+  max-issues-per-linter: 50
+  max-same-issues: 3
+
+run:
+  timeout: 5m
