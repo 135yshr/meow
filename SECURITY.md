@@ -13,7 +13,7 @@ If you discover a security vulnerability in Meow, please report it responsibly.
 
 **Do NOT open a public GitHub issue.**
 
-Instead, please email: **135yshr@gmail.com**
+Instead, please email: **isago@oreha.dev**
 
 Include:
 
