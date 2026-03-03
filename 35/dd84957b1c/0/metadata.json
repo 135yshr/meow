@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "35dd84957b1c",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:37:32.131719Z",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Makefile"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "3edeab0159a4",
+  "checkpoint_transcript_start": 556,
+  "transcript_lines_at_start": 556,
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 8765,
+    "cache_read_tokens": 911441,
+    "output_tokens": 1801,
+    "api_call_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:37:31.896319Z",
+    "agent_lines": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2,
+    "agent_percentage": 100
+  }
+}
