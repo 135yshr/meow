@@ -3,7 +3,7 @@
   "checkpoint_id": "b687f00538b6",
   "strategy": "manual-commit",
   "branch": "fix/security-vulnerabilities",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     ".github/workflows/slash-release.yaml",
     "SECURITY.md",
@@ -16,13 +16,20 @@
       "context": "/b6/87f00538b6/0/context.md",
       "content_hash": "/b6/87f00538b6/0/content_hash.txt",
       "prompt": "/b6/87f00538b6/0/prompt.txt"
+    },
+    {
+      "metadata": "/b6/87f00538b6/1/metadata.json",
+      "transcript": "/b6/87f00538b6/1/full.jsonl",
+      "context": "/b6/87f00538b6/1/context.md",
+      "content_hash": "/b6/87f00538b6/1/content_hash.txt",
+      "prompt": "/b6/87f00538b6/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 17,
-    "cache_creation_tokens": 49451,
-    "cache_read_tokens": 881231,
-    "output_tokens": 20177,
-    "api_call_count": 14
+    "input_tokens": 220,
+    "cache_creation_tokens": 252315,
+    "cache_read_tokens": 16496860,
+    "output_tokens": 60581,
+    "api_call_count": 171
   }
 }

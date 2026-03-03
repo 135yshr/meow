@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "b687f00538b6",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T11:20:24.847206Z",
+  "branch": "fix/security-vulnerabilities",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/slash-release.yaml",
+    "SECURITY.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "80444c83047a",
+  "token_usage": {
+    "input_tokens": 203,
+    "cache_creation_tokens": 202864,
+    "cache_read_tokens": 15615629,
+    "output_tokens": 40404,
+    "api_call_count": 157
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T11:20:24.414566Z",
+    "agent_lines": 16,
+    "human_added": 33,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 49,
+    "agent_percentage": 32.6530612244898
+  }
+}
