@@ -22,7 +22,7 @@ test-v:
 test-update:
 	go test ./compiler/ -update
 
-## lint: Run golangci-lint (install with: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
+## lint: Run golangci-lint (install with: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0)
 lint:
 	golangci-lint run ./...
 
@@ -32,7 +32,7 @@ vet:
 
 ## generate: Run go generate (requires stringer)
 generate:
-	go install golang.org/x/tools/cmd/stringer@latest
+	go install golang.org/x/tools/cmd/stringer@v0.42.0
 	go generate ./...
 
 ## wasm: Build WASM for Playground
