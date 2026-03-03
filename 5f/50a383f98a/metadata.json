@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "5f50a383f98a",
+  "strategy": "manual-commit",
+  "branch": "fix/security-vulnerabilities",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "compiler/compiler.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/5f/50a383f98a/0/metadata.json",
+      "transcript": "/5f/50a383f98a/0/full.jsonl",
+      "context": "/5f/50a383f98a/0/context.md",
+      "content_hash": "/5f/50a383f98a/0/content_hash.txt",
+      "prompt": "/5f/50a383f98a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 98,
+    "cache_creation_tokens": 154939,
+    "cache_read_tokens": 8899704,
+    "output_tokens": 50835,
+    "api_call_count": 72
+  }
+}
