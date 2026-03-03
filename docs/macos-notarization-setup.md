@@ -104,7 +104,10 @@ brew update && brew upgrade meow
 meow --version
 
 # または直接ダウンロード
-curl -L https://github.com/135yshr/meow/releases/latest/download/meow_darwin_arm64.tar.gz | tar xz
+curl -LO https://github.com/135yshr/meow/releases/latest/download/meow_darwin_arm64.tar.gz
+curl -LO https://github.com/135yshr/meow/releases/latest/download/checksums.txt
+shasum -a 256 -c checksums.txt --ignore-missing
+tar xzf meow_darwin_arm64.tar.gz
 ./meow --version
 ```
 

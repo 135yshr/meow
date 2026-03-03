@@ -1,4 +1,6 @@
-.PHONY: build test lint vet generate clean install wasm help
+.PHONY: all build test test-v test-update lint vet generate clean install wasm cover help
+
+all: build
 
 ## build: Build the meow compiler
 build:

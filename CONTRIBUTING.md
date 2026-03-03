@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the Meow programming language!
 ```bash
 git clone https://github.com/135yshr/meow.git
 cd meow
-go install golang.org/x/tools/cmd/stringer@latest
+go install golang.org/x/tools/cmd/stringer@v0.42.0
 go build ./cmd/meow
 go test ./...
 ```

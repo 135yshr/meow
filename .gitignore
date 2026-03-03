@@ -16,7 +16,7 @@ go.work
 go.work.sum
 
 # Output of go coverage
-*.out
+coverage*.out
 coverage.html
 
 # IDE / Editor
