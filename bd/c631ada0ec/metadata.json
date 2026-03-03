@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "bdc631ada0ec",
+  "strategy": "manual-commit",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/stale.yml",
+    ".gitignore",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/macos-notarization-setup.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/bd/c631ada0ec/0/metadata.json",
+      "transcript": "/bd/c631ada0ec/0/full.jsonl",
+      "context": "/bd/c631ada0ec/0/context.md",
+      "content_hash": "/bd/c631ada0ec/0/content_hash.txt",
+      "prompt": "/bd/c631ada0ec/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 29253,
+    "cache_read_tokens": 1115566,
+    "output_tokens": 2244,
+    "api_call_count": 11
+  }
+}

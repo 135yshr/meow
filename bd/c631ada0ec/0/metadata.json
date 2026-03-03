@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "bdc631ada0ec",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:30:41.095642Z",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/stale.yml",
+    ".gitignore",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/macos-notarization-setup.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d274665d96d4",
+  "checkpoint_transcript_start": 431,
+  "transcript_lines_at_start": 431,
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 29253,
+    "cache_read_tokens": 1115566,
+    "output_tokens": 2244,
+    "api_call_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:30:40.877749Z",
+    "agent_lines": 21,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 21,
+    "agent_percentage": 100
+  }
+}
