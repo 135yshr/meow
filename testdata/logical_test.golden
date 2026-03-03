@@ -1,0 +1,8 @@
+  PASS: test_and_operator
+  PASS: test_or_operator
+  PASS: test_not_operator
+  PASS: test_combined_logical
+  PASS: test_truthy_values
+  PASS: test_falsy_values
+
+All 6 tests passed, nya~!

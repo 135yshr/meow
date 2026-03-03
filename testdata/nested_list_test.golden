@@ -1,0 +1,11 @@
+  PASS: test_nested_list_creation
+  PASS: test_list_of_mixed_lists
+  PASS: test_deeply_nested_list
+  PASS: test_nested_list_head
+  PASS: test_nested_list_tail
+  PASS: test_nested_list_len
+  PASS: test_nested_list_append
+  PASS: test_map_over_nested_list
+  PASS: test_filter_nested_list
+
+All 9 tests passed, nya~!

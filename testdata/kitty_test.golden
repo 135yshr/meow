@@ -1,0 +1,9 @@
+Nyantyu
+3
+Cat{name: Nyantyu, age: 3}
+  PASS: test_kitty_constructor
+  PASS: test_kitty_string
+  PASS: test_kitty_equality
+  PASS: test_kitty_point
+
+All 4 tests passed, nya~!

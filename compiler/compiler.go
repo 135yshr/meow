@@ -8,15 +8,21 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/codegen"
 	"github.com/135yshr/meow/pkg/lexer"
+	"github.com/135yshr/meow/pkg/mutation"
 	"github.com/135yshr/meow/pkg/parser"
 )
 
 // Compiler orchestrates the compilation pipeline.
 type Compiler struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	coverEnabled bool
+	coverProfile string
 }
 
 // New creates a new Compiler.
@@ -25,6 +31,12 @@ func New(logger *slog.Logger) *Compiler {
 		logger = slog.Default()
 	}
 	return &Compiler{logger: logger}
+}
+
+// EnableCoverage activates statement coverage for test runs.
+func (c *Compiler) EnableCoverage(profile string) {
+	c.coverEnabled = true
+	c.coverProfile = profile
 }
 
 // CompileToGo compiles a .nyan file to Go source code.
@@ -43,8 +55,20 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
 	c.logger.Debug("generating Go code", "file", filename)
 	gen := codegen.New()
+	gen.SetTypeInfo(typeInfo)
 	raw, err := gen.Generate(prog)
 	if err != nil {
 		return "", err
@@ -81,7 +105,9 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	}
 
 	// Create go.mod in temp dir
-	modContent := fmt.Sprintf("module meow_build\n\ngo 1.26\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", c.findModuleRoot())
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
@@ -130,6 +156,391 @@ func (c *Compiler) Run(nyanPath string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
+}
+
+// CompileTestToGo compiles a .nyan file to Go source in test mode.
+func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
+	// First pass: extract catwalk output expectations from comments.
+	c.logger.Debug("extracting catwalk outputs", "file", filename)
+	l1 := lexer.New(source, filename)
+	catwalkOutputs := codegen.ExtractCatwalkOutputs(l1.Tokens())
+
+	// Second pass: normal lex + parse.
+	c.logger.Debug("lexing", "file", filename)
+	l := lexer.New(source, filename)
+
+	c.logger.Debug("parsing", "file", filename)
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
+	c.logger.Debug("generating test Go code", "file", filename)
+	gen := codegen.NewTest()
+	gen.SetTypeInfo(typeInfo)
+	if c.coverEnabled {
+		gen.EnableCoverage(filename)
+	}
+	if len(catwalkOutputs) > 0 {
+		gen.SetCatwalkOutput(catwalkOutputs)
+	}
+	raw, err := gen.GenerateTest(prog)
+	if err != nil {
+		return "", err
+	}
+	formatted, err := format.Source([]byte(raw))
+	if err != nil {
+		return raw, nil
+	}
+	return string(formatted), nil
+}
+
+// BuildTest compiles a _test.nyan file to an executable binary.
+// If a companion source file exists (e.g. math.nyan for math_test.nyan),
+// it is automatically prepended so the test can call its functions.
+func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
+	source, err := os.ReadFile(nyanPath)
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", nyanPath, err)
+	}
+
+	combined := string(source)
+	if companionPath := companionSourcePath(nyanPath); companionPath != "" {
+		companionData, err := os.ReadFile(companionPath)
+		if err == nil {
+			c.logger.Debug("including companion source", "file", companionPath)
+			combined = string(companionData) + "\n" + combined
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("Hiss! Cannot read companion %s, nya~: %w", companionPath, err)
+		}
+	}
+
+	goCode, err := c.CompileTestToGo(combined, filepath.Base(nyanPath))
+	if err != nil {
+		return err
+	}
+
+	tmpDir, err := os.MkdirTemp("", "meow-test-build-*")
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot create temp dir, nya~: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	goFile := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(goFile, []byte(goCode), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write Go source, nya~: %w", err)
+	}
+
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd.Dir = tmpDir
+	tidyCmd.Stderr = os.Stderr
+	if err := tidyCmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! go mod tidy failed, nya~: %w", err)
+	}
+
+	if outputPath == "" {
+		base := strings.TrimSuffix(filepath.Base(nyanPath), ".nyan")
+		outputPath = base
+	}
+
+	absOutput, _ := filepath.Abs(outputPath)
+
+	c.logger.Debug("building test", "output", absOutput)
+	cmd := exec.Command("go", "build", "-o", absOutput, ".")
+	cmd.Dir = tmpDir
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! go build failed, nya~: %w", err)
+	}
+
+	return nil
+}
+
+// CompileFuzzToGo compiles a .nyan file to fuzz test Go source.
+// Returns helper code and fuzz test code separately.
+func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests string, fuzzNames []string, err error) {
+	c.logger.Debug("lexing", "file", filename)
+	l := lexer.New(source, filename)
+
+	c.logger.Debug("parsing", "file", filename)
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
+	c.logger.Debug("type checking", "file", filename)
+	ch := checker.New()
+	typeInfo, typeErrs := ch.Check(prog)
+	if len(typeErrs) > 0 {
+		var msgs []string
+		for _, e := range typeErrs {
+			msgs = append(msgs, e.Error())
+		}
+		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
+	c.logger.Debug("generating fuzz Go code", "file", filename)
+	gen := codegen.New()
+	gen.SetTypeInfo(typeInfo)
+	helpers, fuzzTests, fuzzNames, err = gen.GenerateFuzz(prog)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	if formatted, fmtErr := format.Source([]byte(helpers)); fmtErr == nil {
+		helpers = string(formatted)
+	}
+	if formatted, fmtErr := format.Source([]byte(fuzzTests)); fmtErr == nil {
+		fuzzTests = string(formatted)
+	}
+	return helpers, fuzzTests, fuzzNames, nil
+}
+
+// RunFuzz compiles a .nyan file and runs Go fuzz testing.
+// Each fuzz_ function in the file is executed individually.
+func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
+	source, err := os.ReadFile(nyanPath)
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", nyanPath, err)
+	}
+
+	helpers, fuzzTests, fuzzNames, err := c.CompileFuzzToGo(string(source), filepath.Base(nyanPath))
+	if err != nil {
+		return err
+	}
+
+	if len(fuzzNames) == 0 {
+		return fmt.Errorf("Hiss! No fuzz_ functions found in %s, nya~", nyanPath)
+	}
+
+	tmpDir, err := os.MkdirTemp("", "meow-fuzz-*")
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot create temp dir, nya~: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(helpers), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write main.go, nya~: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "main_test.go"), []byte(fuzzTests), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write main_test.go, nya~: %w", err)
+	}
+
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd.Dir = tmpDir
+	tidyCmd.Stderr = os.Stderr
+	if err := tidyCmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! go mod tidy failed, nya~: %w", err)
+	}
+
+	if fuzzTime == "" {
+		fuzzTime = "10s"
+	}
+
+	// Run each fuzz function individually (Go requires -fuzz to match exactly one target)
+	for _, name := range fuzzNames {
+		c.logger.Debug("running fuzz", "target", name, "fuzztime", fuzzTime)
+		fmt.Fprintf(os.Stdout, "  --- %s ---\n", name)
+		cmd := exec.Command("go", "test", fmt.Sprintf("-fuzz=^%s$", name), fmt.Sprintf("-fuzztime=%s", fuzzTime))
+		cmd.Dir = tmpDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Hiss! fuzz %s failed, nya~: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// RunTest compiles and runs a _test.nyan file.
+func (c *Compiler) RunTest(nyanPath string) error {
+	tmpBin, err := os.CreateTemp("", "meow-test-run-*")
+	if err != nil {
+		return err
+	}
+	tmpBin.Close()
+	defer os.Remove(tmpBin.Name())
+
+	if err := c.BuildTest(nyanPath, tmpBin.Name()); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(tmpBin.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if c.coverProfile != "" {
+		cmd.Env = append(os.Environ(), "MEOW_COVERPROFILE="+c.coverProfile)
+	}
+	return cmd.Run()
+}
+
+// RunMutationTest runs mutation testing on a source file using the given test files.
+func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error {
+	// Read and parse the source file
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", sourcePath, err)
+	}
+
+	l := lexer.New(string(source), filepath.Base(sourcePath))
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		var msgs []string
+		for _, e := range errs {
+			msgs = append(msgs, e.Error())
+		}
+		return fmt.Errorf("%s", strings.Join(msgs, "\n"))
+	}
+
+	// Enumerate mutations
+	mutants := mutation.Enumerate(prog)
+	if len(mutants) == 0 {
+		fmt.Println("No mutations found, nya~")
+		return nil
+	}
+	fmt.Printf("Found %d mutations, nya~\n", len(mutants))
+
+	// Parse test files and combine ASTs (source AST nodes are shared so mutant closures remain valid)
+	combinedProg := &ast.Program{Stmts: append([]ast.Stmt{}, prog.Stmts...)}
+	for _, tp := range testPaths {
+		data, err := os.ReadFile(tp)
+		if err != nil {
+			return fmt.Errorf("Hiss! Cannot read %s, nya~: %w", tp, err)
+		}
+		tl := lexer.New(string(data), filepath.Base(tp))
+		tparser := parser.New(tl.Tokens())
+		testProg, testErrs := tparser.Parse()
+		if len(testErrs) > 0 {
+			var msgs []string
+			for _, e := range testErrs {
+				msgs = append(msgs, e.Error())
+			}
+			return fmt.Errorf("%s", strings.Join(msgs, "\n"))
+		}
+		combinedProg.Stmts = append(combinedProg.Stmts, testProg.Stmts...)
+	}
+
+	// Build schema using source-only mutants to avoid mutating test code
+	schema := mutation.BuildSchema(combinedProg, mutants)
+
+	// Generate mutated test binary
+	gen := codegen.NewTest()
+	gen.SetMutations(schema)
+	raw, err := gen.GenerateTest(combinedProg)
+	if err != nil {
+		return err
+	}
+
+	formatted, fmtErr := format.Source([]byte(raw))
+	if fmtErr != nil {
+		formatted = []byte(raw)
+	}
+
+	// Build the mutated binary
+	tmpDir, err := os.MkdirTemp("", "meow-mutate-*")
+	if err != nil {
+		return fmt.Errorf("Hiss! Cannot create temp dir, nya~: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), formatted, 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write Go source, nya~: %w", err)
+	}
+
+	modRoot := c.findModuleRoot()
+	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	modContent := fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
+		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd.Dir = tmpDir
+	tidyCmd.Stderr = os.Stderr
+	if err := tidyCmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! go mod tidy failed, nya~: %w", err)
+	}
+
+	binPath := filepath.Join(tmpDir, "mutant_test")
+	buildCmd := exec.Command("go", "build", "-o", binPath, ".")
+	buildCmd.Dir = tmpDir
+	buildCmd.Stderr = os.Stderr
+	if err := buildCmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! go build failed, nya~: %w", err)
+	}
+
+	// Run mutation tests
+	runner := mutation.NewRunner(binPath, 10*time.Second)
+	results := runner.RunAll(mutants)
+
+	// Report
+	mutation.Report(os.Stdout, mutants, results)
+	return nil
+}
+
+// readGoVersion parses a go.mod file and returns the Go version directive.
+// Falls back to "1.26" if the file cannot be read or parsed.
+func readGoVersion(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "1.26"
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "go ") {
+			return strings.TrimPrefix(line, "go ")
+		}
+	}
+	return "1.26"
+}
+
+// companionSourcePath returns the inferred source file path for a test file.
+// e.g. "testdata/math_test.nyan" → "testdata/math.nyan"
+func companionSourcePath(testPath string) string {
+	dir := filepath.Dir(testPath)
+	base := filepath.Base(testPath)
+	if !strings.HasSuffix(base, "_test.nyan") {
+		return ""
+	}
+	name := strings.TrimSuffix(base, "_test.nyan")
+	return filepath.Join(dir, name+".nyan")
 }
 
 func (c *Compiler) findModuleRoot() string {

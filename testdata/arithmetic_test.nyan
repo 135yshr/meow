@@ -1,0 +1,50 @@
+# Arithmetic operations test
+
+meow test_addition() {
+  expect(1 + 2, 3)
+  expect(0 + 0, 0)
+  expect(-1 + 1, 0)
+  expect(100 + 200, 300)
+}
+
+meow test_subtraction() {
+  expect(5 - 3, 2)
+  expect(0 - 0, 0)
+  expect(1 - 5, -4)
+  expect(100 - 1, 99)
+}
+
+meow test_multiplication() {
+  expect(3 * 4, 12)
+  expect(0 * 100, 0)
+  expect(-2 * 3, -6)
+  expect(-3 * -4, 12)
+}
+
+meow test_division() {
+  expect(10 / 2, 5)
+  expect(7 / 2, 3)
+  expect(-6 / 3, -2)
+  expect(100 / 10, 10)
+}
+
+meow test_modulo() {
+  expect(10 % 3, 1)
+  expect(7 % 2, 1)
+  expect(8 % 4, 0)
+  expect(15 % 7, 1)
+}
+
+meow test_float_arithmetic() {
+  expect(1.5 + 2.5, 4.0)
+  expect(3.0 * 2.0, 6.0)
+  expect(7.5 - 2.5, 5.0)
+  expect(10.0 / 4.0, 2.5)
+}
+
+meow test_mixed_arithmetic() {
+  expect(2 + 3 * 4, 14)
+  expect((2 + 3) * 4, 20)
+  expect(10 - 2 * 3, 4)
+  expect((10 - 2) * 3, 24)
+}

@@ -1,0 +1,73 @@
+baseURL = "https://135yshr.github.io/meow/"
+languageCode = "en"
+title = "Meow Programming Language"
+enableRobotsTXT = true
+enableGitInfo = true
+
+[services]
+  [services.googleAnalytics]
+    ID = "G-ER6J1C357P"
+
+[params]
+  description = "The purrfect cat-themed programming language that transpiles to Go"
+  tagline = "The purrfect functional programming language"
+  githubRepo = "https://github.com/135yshr/meow"
+  goPackage = "https://pkg.go.dev/github.com/135yshr/meow"
+  ogpImage = "images/ogp.png"
+  twitterSite = "@135yshr"
+  locale = "en_US"
+
+[markup]
+  [markup.highlight]
+    style = "dracula"
+    lineNos = false
+    guessSyntax = true
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[menu]
+  [[menu.main]]
+    name = "Learn"
+    url = "/learn/"
+    weight = 1
+  [[menu.main]]
+    name = "Docs"
+    url = "/doc/"
+    weight = 2
+  [[menu.main]]
+    name = "Cookbook"
+    url = "/cookbook/"
+    weight = 3
+  [[menu.main]]
+    name = "Blog"
+    url = "/blog/"
+    weight = 4
+  [[menu.main]]
+    name = "Community"
+    url = "/community/"
+    weight = 5
+  [[menu.main]]
+    name = "Playground"
+    url = "/playground/"
+    weight = 6
+
+[module]
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "../playground"
+    target = "static/playground"
+
+[outputs]
+  home = ["HTML"]
+
+[minify]
+  [minify.tdewolff]
+    [minify.tdewolff.html]
+      keepQuotes = true
+
+[sitemap]
+  changefreq = "weekly"
+  priority = 0.5

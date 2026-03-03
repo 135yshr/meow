@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meow Playground</title>
+    <meta name="description" content="Try the Meow programming language in your browser. Write .nyan code and see it run instantly.">
+    <meta property="og:title" content="Meow Playground">
+    <meta property="og:description" content="Try the Meow programming language in your browser. Write .nyan code and see it run instantly.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://135yshr.github.io/meow/playground/">
+    <meta property="og:image" content="https://135yshr.github.io/meow/images/ogp.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Meow Programming Language">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Meow Playground">
+    <meta name="twitter:description" content="Try the Meow programming language in your browser. Write .nyan code and see it run instantly.">
+    <meta name="twitter:image" content="https://135yshr.github.io/meow/images/ogp.png">
+    <meta name="twitter:image:alt" content="Meow Playground">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="consent.css">
+    <script src="consent.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ER6J1C357P"></script>
+    <script>
+      gtag('js', new Date());
+      gtag('config', 'G-ER6J1C357P', { send_page_view: false });
+    </script>
+</head>
+<body>
+    <div id="meow-consent-banner" role="dialog" aria-live="polite" aria-label="Cookie consent" hidden>
+      <p>This site uses cookies and Google Analytics to improve your experience. You can accept or reject non-essential cookies.</p>
+      <div class="meow-consent-actions">
+        <button id="meow-consent-accept" type="button">Accept</button>
+        <button id="meow-consent-reject" type="button">Reject</button>
+      </div>
+    </div>
+
+    <header>
+        <h1>Meow Playground</h1>
+        <p class="subtitle">A cat-themed language that transpiles to Go</p>
+    </header>
+
+    <main>
+        <div class="toolbar">
+            <select id="examples" aria-label="Example program">
+                <option value="">-- Select Example --</option>
+            </select>
+            <button id="run-btn" disabled>Run (Ctrl+Enter)</button>
+            <span id="status">Loading WASM...</span>
+        </div>
+
+        <div class="editor-panel">
+            <div class="panel">
+                <div class="panel-header">Code</div>
+                <textarea id="editor" aria-label="Meow source code editor" spellcheck="false" placeholder="Write your .nyan code here..."></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">Output</div>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <a href="https://github.com/135yshr/meow" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span>Meow Language Playground</span>
+    </footer>
+
+    <script src="wasm_exec.js"></script>
+    <script src="examples.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

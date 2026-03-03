@@ -1,0 +1,69 @@
+# Type conversion test: to_int, to_float, to_string
+
+# to_int: Float -> Int, Bool -> Int
+meow test_to_int_from_float() {
+  expect(to_int(3.14), 3)
+  expect(to_int(9.99), 9)
+  expect(to_int(0.0), 0)
+  expect(to_int(-2.7), -2)
+}
+
+meow test_to_int_from_bool() {
+  expect(to_int(yarn), 1)
+  expect(to_int(hairball), 0)
+}
+
+meow test_to_int_identity() {
+  expect(to_int(42), 42)
+  expect(to_int(0), 0)
+  expect(to_int(-5), -5)
+}
+
+# to_float: Int -> Float
+meow test_to_float_from_int() {
+  expect(to_float(42), 42.0)
+  expect(to_float(0), 0.0)
+  expect(to_float(-3), -3.0)
+}
+
+meow test_to_float_identity() {
+  expect(to_float(3.14), 3.14)
+  expect(to_float(0.0), 0.0)
+}
+
+# to_string: any type -> String
+meow test_to_string_from_int() {
+  expect(to_string(42), "42")
+  expect(to_string(0), "0")
+  expect(to_string(-5), "-5")
+}
+
+meow test_to_string_from_float() {
+  expect(to_string(3.14), "3.14")
+  expect(to_string(0.0), "0")
+}
+
+meow test_to_string_from_bool() {
+  expect(to_string(yarn), "true")
+  expect(to_string(hairball), "false")
+}
+
+meow test_to_string_from_nil() {
+  expect(to_string(catnap), "catnap")
+}
+
+meow test_to_string_from_list() {
+  expect(to_string([1, 2, 3]), "[1, 2, 3]")
+  expect(to_string([]), "[]")
+}
+
+# to_int from String panics — verify via error recovery
+meow test_to_int_from_string_panics() {
+  nyan result = gag(paw() { to_int("42") })
+  judge(is_furball(result))
+}
+
+meow test_to_float_from_string_panics() {
+  nyan result = gag(paw() { to_float("3.14") })
+  judge(is_furball(result))
+}

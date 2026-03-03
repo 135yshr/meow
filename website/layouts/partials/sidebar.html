@@ -1,0 +1,17 @@
+{{ $section := .CurrentSection }}
+{{ if $section }}
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <h4>{{ $section.Title }}</h4>
+    <ul>
+      {{ range $section.Pages }}
+      <li>
+        <a href="{{ .RelPermalink }}"{{ if eq $.RelPermalink .RelPermalink }} class="active"{{ end }}>
+          {{ .Title }}
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </nav>
+</aside>
+{{ end }}

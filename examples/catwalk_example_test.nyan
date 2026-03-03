@@ -1,0 +1,52 @@
+# catwalk test examples
+# Functions with catwalk_ prefix verify output using # Output: blocks.
+# Run: meow test examples/catwalk_example_test.nyan
+
+# Basic output verification
+meow catwalk_hello() {
+  nya("Hello, Tama!")
+  # Output:
+  # Hello, Tama!
+}
+
+# Output and verify function return values
+meow greet(who string) string {
+  bring "Hello, " + who + "!"
+}
+
+meow catwalk_greet() {
+  nya(greet("Mochi"))
+  nya(greet("Sora"))
+  # Output:
+  # Hello, Mochi!
+  # Hello, Sora!
+}
+
+# Arithmetic result verification
+meow catwalk_arithmetic() {
+  nya(2 + 3)
+  nya(10 * 4)
+  nya(100 / 5)
+  # Output:
+  # 5
+  # 40
+  # 20
+}
+
+# Loop output verification
+meow catwalk_countdown() {
+  purr i (3) {
+    nya(3 - i)
+  }
+  nya("Go!")
+  # Output:
+  # 3
+  # 2
+  # 1
+  # Go!
+}
+
+# test_ and catwalk_ can coexist in the same file
+meow test_addition() {
+  expect(1 + 2, 3)
+}

@@ -1,0 +1,8 @@
+  PASS: test_lambda_with_lick
+  PASS: test_lambda_with_picky
+  PASS: test_lambda_with_curl
+  PASS: test_lambda_with_pipe
+  PASS: test_lambda_with_error_recovery
+  PASS: test_lambda_chained_operations
+
+All 6 tests passed, nya~!

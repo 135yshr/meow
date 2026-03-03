@@ -1,0 +1,67 @@
+# Control flow test (sniff/scratch, purr)
+
+meow if_true_result() int {
+  sniff (yarn) { bring 1 }
+  bring 0
+}
+meow test_if_true() {
+  expect(if_true_result(), 1)
+}
+
+meow if_false_result() int {
+  sniff (hairball) { bring 1 }
+  bring 0
+}
+meow test_if_false() {
+  expect(if_false_result(), 0)
+}
+
+meow if_else_result() string {
+  sniff (1 > 2) {
+    bring "greater"
+  } scratch {
+    bring "not greater"
+  }
+}
+meow test_if_else() {
+  expect(if_else_result(), "not greater")
+}
+
+meow if_else_if_result(x int) string {
+  sniff (x > 20) {
+    bring "big"
+  } scratch sniff (x > 10) {
+    bring "medium"
+  } scratch {
+    bring "small"
+  }
+}
+meow test_if_else_if() {
+  expect(if_else_if_result(15), "medium")
+}
+
+meow nested_if_result(x int) string {
+  sniff (x > 0) {
+    sniff (x < 10) {
+      bring "single digit positive"
+    } scratch {
+      bring "large positive"
+    }
+  } scratch {
+    bring "non-positive"
+  }
+}
+meow test_nested_if() {
+  expect(nested_if_result(5), "single digit positive")
+}
+
+meow test_purr_sum() {
+  nyan nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  nyan sum = curl(nums, 0, paw(acc int, x int) { acc + x })
+  expect(sum, 55)
+}
+
+meow test_purr_range() {
+  nyan sum = curl([0, 1, 2, 3, 4], 0, paw(acc int, x int) { acc + x })
+  expect(sum, 10)
+}

@@ -19,13 +19,13 @@ func collect(l *lexer.Lexer) []token.Token {
 }
 
 func TestKeywords(t *testing.T) {
-	input := `nyan meow bring sniff scratch purr paw nya lick picky curl peek hiss fetch flaunt catnap yarn hairball`
+	input := `nyan meow bring sniff scratch purr paw nya lick picky curl peek hiss nab flaunt catnap yarn hairball`
 	l := lexer.New(input, "test.nyan")
 	tokens := collect(l)
 	expected := []token.TokenType{
 		token.NYAN, token.MEOW, token.BRING, token.SNIFF, token.SCRATCH,
 		token.PURR, token.PAW, token.NYA, token.LICK, token.PICKY,
-		token.CURL, token.PEEK, token.HISS, token.FETCH, token.FLAUNT,
+		token.CURL, token.PEEK, token.HISS, token.NAB, token.FLAUNT,
 		token.CATNAP, token.YARN, token.HAIRBALL, token.EOF,
 	}
 	if len(tokens) != len(expected) {
@@ -104,6 +104,77 @@ nya(name)`
 	for i, tok := range tokens {
 		if tok.Type != expected[i] {
 			t.Errorf("token[%d]: expected %v, got %v (%q)", i, expected[i], tok.Type, tok.Literal)
+		}
+	}
+}
+
+func TestDotToken(t *testing.T) {
+	input := `file.snoop`
+	l := lexer.New(input, "test.nyan")
+	tokens := collect(l)
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.IDENT, "file"},
+		{token.DOT, "."},
+		{token.IDENT, "snoop"},
+		{token.EOF, ""},
+	}
+	if len(tokens) != len(expected) {
+		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
+	}
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
+		}
+	}
+}
+
+func TestDotDotStillWorks(t *testing.T) {
+	input := `1..10`
+	l := lexer.New(input, "test.nyan")
+	tokens := collect(l)
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.INT, "1"},
+		{token.DOTDOT, ".."},
+		{token.INT, "10"},
+		{token.EOF, ""},
+	}
+	if len(tokens) != len(expected) {
+		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
+	}
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
+		}
+	}
+}
+
+func TestColonToken(t *testing.T) {
+	input := `{"key": 42}`
+	l := lexer.New(input, "test.nyan")
+	tokens := collect(l)
+	expected := []struct {
+		typ token.TokenType
+		lit string
+	}{
+		{token.LBRACE, "{"},
+		{token.STRING, "key"},
+		{token.COLON, ":"},
+		{token.INT, "42"},
+		{token.RBRACE, "}"},
+		{token.EOF, ""},
+	}
+	if len(tokens) != len(expected) {
+		t.Fatalf("expected %d tokens, got %d", len(expected), len(tokens))
+	}
+	for i, tt := range expected {
+		if tokens[i].Type != tt.typ || tokens[i].Literal != tt.lit {
+			t.Errorf("token[%d]: expected (%v, %q), got (%v, %q)", i, tt.typ, tt.lit, tokens[i].Type, tokens[i].Literal)
 		}
 	}
 }

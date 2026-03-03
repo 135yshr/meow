@@ -1,0 +1,44 @@
+meow add(a int, b int) int {
+  bring a + b
+}
+
+meow sub(a int, b int) int {
+  bring a - b
+}
+
+meow mul(a int, b int) int {
+  bring a * b
+}
+
+meow div(a int, b int) int {
+  bring a / b
+}
+
+meow abs(x int) int {
+  sniff (x < 0) {
+    bring 0 - x
+  }
+  bring x
+}
+
+meow fib(n int) int {
+  sniff (n <= 1) {
+    bring n
+  }
+  bring fib(n - 1) + fib(n - 2)
+}
+
+meow max_val(a int, b int) int {
+  sniff (a > b) {
+    bring a
+  }
+  bring b
+}
+
+meow concat(a string, b string) string {
+  bring a + b
+}
+
+meow is_positive(n int) bool {
+  bring n > 0
+}

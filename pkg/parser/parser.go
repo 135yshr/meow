@@ -94,7 +94,19 @@ func (p *Parser) parseStmt() ast.Stmt {
 	case token.SNIFF:
 		return p.parseIfStmt()
 	case token.PURR:
-		return p.parseWhileStmt()
+		return p.parsePurrStmt()
+	case token.NAB:
+		return p.parseFetchStmt()
+	case token.KITTY:
+		return p.parseKittyStmt()
+	case token.BREED:
+		return p.parseBreedStmt()
+	case token.COLLAR:
+		return p.parseCollarStmt()
+	case token.POSE:
+		return p.parseTrickStmt()
+	case token.GROOM:
+		return p.parseLearnStmt()
 	default:
 		return p.parseExprStmtOrAssign()
 	}
@@ -103,33 +115,99 @@ func (p *Parser) parseStmt() ast.Stmt {
 func (p *Parser) parseVarStmt() *ast.VarStmt {
 	tok := p.advance() // consume nyan
 	name := p.expect(token.IDENT)
+	var typeAnn ast.TypeExpr
+	if p.isTypeToken() {
+		typeAnn = p.parseTypeExpr()
+	}
 	p.expect(token.ASSIGN)
 	value := p.parseExpr(0)
 	p.consumeTerminator()
-	return &ast.VarStmt{Token: tok, Name: name.Literal, Value: value}
+	return &ast.VarStmt{Token: tok, Name: name.Literal, TypeAnn: typeAnn, Value: value}
 }
 
 func (p *Parser) parseFuncStmt() *ast.FuncStmt {
 	tok := p.advance() // consume meow
 	name := p.expect(token.IDENT)
 	p.expect(token.LPAREN)
-	params := p.parseParamList()
+	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
+	var returnType ast.TypeExpr
+	if p.isTypeToken() {
+		returnType = p.parseTypeExpr()
+	}
 	body := p.parseBlock()
-	return &ast.FuncStmt{Token: tok, Name: name.Literal, Params: params, Body: body}
+	return &ast.FuncStmt{Token: tok, Name: name.Literal, Params: params, ReturnType: returnType, Body: body}
 }
 
-func (p *Parser) parseParamList() []string {
-	var params []string
+func (p *Parser) parseTypedParamList() []ast.Param {
+	var params []ast.Param
 	if p.cur.Type == token.RPAREN {
 		return params
 	}
-	params = append(params, p.expect(token.IDENT).Literal)
+	params = append(params, p.parseParam())
 	for p.cur.Type == token.COMMA {
 		p.advance()
-		params = append(params, p.expect(token.IDENT).Literal)
+		params = append(params, p.parseParam())
+	}
+	// Go-style grouped type propagation: right-to-left
+	// e.g. (a, b int, c, d string) → a:int, b:int, c:string, d:string
+	var lastType ast.TypeExpr
+	for i := len(params) - 1; i >= 0; i-- {
+		if params[i].TypeAnn != nil {
+			lastType = params[i].TypeAnn
+		} else if lastType != nil {
+			params[i].TypeAnn = lastType
+		}
 	}
 	return params
+}
+
+func (p *Parser) parseParam() ast.Param {
+	name := p.expect(token.IDENT)
+	var typeAnn ast.TypeExpr
+	if p.isTypeToken() {
+		typeAnn = p.parseTypeExpr()
+	}
+	return ast.Param{Name: name.Literal, TypeAnn: typeAnn}
+}
+
+func (p *Parser) parseTypeExpr() ast.TypeExpr {
+	tok := p.advance()
+	switch tok.Type {
+	case token.TYPE_INT:
+		return &ast.BasicType{Token: tok, Name: "int"}
+	case token.TYPE_FLOAT:
+		return &ast.BasicType{Token: tok, Name: "float"}
+	case token.TYPE_STRING:
+		return &ast.BasicType{Token: tok, Name: "string"}
+	case token.TYPE_BOOL:
+		return &ast.BasicType{Token: tok, Name: "bool"}
+	case token.TYPE_FURBALL:
+		return &ast.BasicType{Token: tok, Name: "furball"}
+	case token.TYPE_LITTER:
+		return &ast.BasicType{Token: tok, Name: "litter"}
+	case token.IDENT:
+		return &ast.NamedType{Token: tok, Name: tok.Literal}
+	default:
+		p.errs = append(p.errs, newError(tok.Pos, "expected type, got %v (%q)", tok.Type, tok.Literal))
+		return &ast.BasicType{Token: tok, Name: tok.Literal}
+	}
+}
+
+func (p *Parser) isTypeToken() bool {
+	switch p.cur.Type {
+	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LITTER:
+		return true
+	case token.IDENT:
+		// An IDENT is a type name only when it's followed by something that
+		// indicates it's a type annotation (= for assignment, , for param list,
+		// ) for closing params, { for function body).
+		switch p.peek.Type {
+		case token.ASSIGN, token.COMMA, token.RPAREN, token.LBRACE, token.NEWLINE:
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Parser) parseBlock() []ast.Stmt {
@@ -177,22 +255,149 @@ func (p *Parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Token: tok, Condition: cond, Body: body, ElseBody: elseBody}
 }
 
-func (p *Parser) parseWhileStmt() *ast.WhileStmt {
+func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 	tok := p.advance() // consume purr
+	varName := p.expect(token.IDENT)
 	p.expect(token.LPAREN)
-	cond := p.parseExpr(0)
+	first := p.parseExpr(0)
+	if p.cur.Type == token.DOTDOT {
+		// purr i (start..end) — inclusive range
+		p.advance() // consume ..
+		end := p.parseExpr(0)
+		p.expect(token.RPAREN)
+		body := p.parseBlock()
+		return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: first, End: end, Inclusive: true, Body: body}
+	}
+	// purr i (count) — count form: 0 to count-1
 	p.expect(token.RPAREN)
 	body := p.parseBlock()
-	return &ast.WhileStmt{Token: tok, Condition: cond, Body: body}
+	return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: nil, End: first, Inclusive: false, Body: body}
+}
+
+func (p *Parser) parseFetchStmt() *ast.FetchStmt {
+	tok := p.advance() // consume nab
+	path := p.expect(token.STRING)
+	var alias string
+	if p.cur.Type == token.TAG {
+		p.advance() // consume tag
+		aliasToken := p.expect(token.IDENT)
+		alias = aliasToken.Literal
+	}
+	p.consumeTerminator()
+	return &ast.FetchStmt{Token: tok, Path: path.Literal, Alias: alias}
+}
+
+func (p *Parser) parseKittyStmt() *ast.KittyStmt {
+	tok := p.advance() // consume kitty
+	name := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var fields []ast.KittyField
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		fieldName := p.expect(token.IDENT)
+		p.expect(token.COLON)
+		typeAnn := p.parseTypeExpr()
+		fields = append(fields, ast.KittyField{Name: fieldName.Literal, TypeAnn: typeAnn})
+		p.skipNewlines()
+		if p.cur.Type == token.COMMA {
+			p.advance()
+			p.skipNewlines()
+		}
+	}
+	p.expect(token.RBRACE)
+	return &ast.KittyStmt{Token: tok, Name: name.Literal, Fields: fields}
+}
+
+func (p *Parser) parseBreedStmt() *ast.BreedStmt {
+	tok := p.advance() // consume breed
+	name := p.expect(token.IDENT)
+	p.expect(token.ASSIGN)
+	original := p.parseTypeExpr()
+	p.consumeTerminator()
+	return &ast.BreedStmt{Token: tok, Name: name.Literal, Original: original}
+}
+
+func (p *Parser) parseCollarStmt() *ast.CollarStmt {
+	tok := p.advance() // consume collar
+	name := p.expect(token.IDENT)
+	p.expect(token.ASSIGN)
+	wrapped := p.parseTypeExpr()
+	p.consumeTerminator()
+	return &ast.CollarStmt{Token: tok, Name: name.Literal, Wrapped: wrapped}
+}
+
+func (p *Parser) parseTrickStmt() *ast.TrickStmt {
+	tok := p.advance() // consume pose
+	name := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var methods []ast.TrickMethod
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		p.expect(token.MEOW)
+		methodName := p.expect(token.IDENT)
+		p.expect(token.LPAREN)
+		params := p.parseTypedParamList()
+		p.expect(token.RPAREN)
+		var returnType ast.TypeExpr
+		if p.isTypeToken() {
+			returnType = p.parseTypeExpr()
+		}
+		methods = append(methods, ast.TrickMethod{
+			Name:       methodName.Literal,
+			Params:     params,
+			ReturnType: returnType,
+		})
+		p.skipNewlines()
+	}
+	p.expect(token.RBRACE)
+	return &ast.TrickStmt{Token: tok, Name: name.Literal, Methods: methods}
+}
+
+func (p *Parser) parseLearnStmt() *ast.LearnStmt {
+	tok := p.advance() // consume groom
+	typeName := p.expect(token.IDENT)
+	p.skipNewlines()
+	p.expect(token.LBRACE)
+	p.skipNewlines()
+	var methods []ast.FuncStmt
+	for p.cur.Type != token.RBRACE && p.cur.Type != token.EOF {
+		fn := p.parseFuncStmt()
+		methods = append(methods, *fn)
+		p.skipNewlines()
+	}
+	p.expect(token.RBRACE)
+	return &ast.LearnStmt{Token: tok, TypeName: typeName.Literal, Methods: methods}
+}
+
+func (p *Parser) parseSelfExpr() ast.Expr {
+	tok := p.advance() // consume self
+	selfExpr := &ast.SelfExpr{Token: tok}
+	if p.cur.Type == token.DOT {
+		return p.parseMemberAccess(selfExpr)
+	}
+	return selfExpr
+}
+
+func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
+	dot := p.advance() // consume .
+	member := p.expect(token.IDENT)
+	expr := &ast.MemberExpr{Token: dot, Object: object, Member: member.Literal}
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(expr)
+	}
+	return expr
 }
 
 func (p *Parser) parseExprStmtOrAssign() ast.Stmt {
 	expr := p.parseExpr(0)
 	if ident, ok := expr.(*ast.Ident); ok && p.cur.Type == token.ASSIGN {
-		tok := p.advance() // consume =
+		p.advance() // consume =
 		value := p.parseExpr(0)
 		p.consumeTerminator()
-		return &ast.AssignStmt{Token: tok, Name: ident.Name, Value: value}
+		// x = 42 is equivalent to nyan x = 42 (implicit variable declaration)
+		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value}
 	}
 	p.consumeTerminator()
 	return &ast.ExprStmt{Token: expr.(ast.Node).Pos().AsToken(), Expr: expr}
@@ -285,6 +490,8 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return &ast.NilLit{Token: tok}
 	case token.IDENT:
 		return p.parseIdentOrCall()
+	case token.SELF:
+		return p.parseSelfExpr()
 	case token.NYA:
 		return p.parseNyaCall()
 	case token.HISS:
@@ -301,6 +508,8 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return p.parseLambda()
 	case token.LBRACKET:
 		return p.parseListLit()
+	case token.LBRACE:
+		return p.parseMapLit()
 	case token.PEEK:
 		return p.parseMatch()
 	default:
@@ -350,6 +559,9 @@ func (p *Parser) parseString() ast.Expr {
 func (p *Parser) parseIdentOrCall() ast.Expr {
 	tok := p.advance()
 	ident := &ast.Ident{Token: tok, Name: tok.Literal}
+	if p.cur.Type == token.DOT {
+		return p.parseMemberAccess(ident)
+	}
 	if p.cur.Type == token.LPAREN {
 		return p.finishCall(ident)
 	}
@@ -362,13 +574,19 @@ func (p *Parser) parseIdentOrCall() ast.Expr {
 func (p *Parser) parseNyaCall() ast.Expr {
 	tok := p.advance() // consume nya
 	ident := &ast.Ident{Token: tok, Name: "nya"}
-	return p.finishCall(ident)
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(ident)
+	}
+	return ident
 }
 
 func (p *Parser) parseBuiltinCall() ast.Expr {
 	tok := p.advance()
 	ident := &ast.Ident{Token: tok, Name: tok.Literal}
-	return p.finishCall(ident)
+	if p.cur.Type == token.LPAREN {
+		return p.finishCall(ident)
+	}
+	return ident
 }
 
 func (p *Parser) finishCall(fn ast.Expr) ast.Expr {
@@ -401,7 +619,7 @@ func (p *Parser) parseGrouped() ast.Expr {
 func (p *Parser) parseLambda() ast.Expr {
 	tok := p.advance() // consume paw
 	p.expect(token.LPAREN)
-	params := p.parseParamList()
+	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
 	p.expect(token.LBRACE)
 	body := p.parseExpr(0)
@@ -427,6 +645,34 @@ func (p *Parser) parseListLit() ast.Expr {
 	p.skipNewlines()
 	p.expect(token.RBRACKET)
 	return &ast.ListLit{Token: tok, Items: items}
+}
+
+func (p *Parser) parseMapLit() ast.Expr {
+	tok := p.advance() // consume {
+	var keys, vals []ast.Expr
+	p.skipNewlines()
+	if p.cur.Type != token.RBRACE {
+		key := p.parseExpr(0)
+		p.expect(token.COLON)
+		val := p.parseExpr(0)
+		keys = append(keys, key)
+		vals = append(vals, val)
+		for p.cur.Type == token.COMMA {
+			p.advance()
+			p.skipNewlines()
+			if p.cur.Type == token.RBRACE {
+				break
+			}
+			key = p.parseExpr(0)
+			p.expect(token.COLON)
+			val = p.parseExpr(0)
+			keys = append(keys, key)
+			vals = append(vals, val)
+		}
+	}
+	p.skipNewlines()
+	p.expect(token.RBRACE)
+	return &ast.MapLit{Token: tok, Keys: keys, Vals: vals}
 }
 
 func (p *Parser) parseIndex(left ast.Expr) ast.Expr {

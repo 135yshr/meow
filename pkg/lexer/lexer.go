@@ -156,7 +156,9 @@ func (l *Lexer) readBlockComment() token.Token {
 			lit := l.input[start:l.pos]
 			l.advance() // ~
 			l.advance() // -
-			return l.makeToken(token.COMMENT, lit, pos)
+			tok := l.makeToken(token.COMMENT, lit, pos)
+			tok.BlockComment = true
+			return tok
 		}
 		l.advance()
 	}
@@ -246,6 +248,11 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 			case r == ',':
 				l.advance()
 				if !yield(l.makeToken(token.COMMA, ",", pos)) {
+					return
+				}
+			case r == ':':
+				l.advance()
+				if !yield(l.makeToken(token.COLON, ":", pos)) {
 					return
 				}
 			case r == '-':
@@ -351,7 +358,7 @@ func (l *Lexer) Tokens() iter.Seq[token.Token] {
 						return
 					}
 				} else {
-					if !yield(l.makeToken(token.ILLEGAL, ".", pos)) {
+					if !yield(l.makeToken(token.DOT, ".", pos)) {
 						return
 					}
 				}

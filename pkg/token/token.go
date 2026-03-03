@@ -37,6 +37,7 @@ const (
 	NOT     // !
 	PIPE       // |=|
 	TILDEARROW // ~>
+	DOT        // .
 	DOTDOT     // ..
 	ARROW   // =>
 
@@ -48,6 +49,7 @@ const (
 	LBRACKET // [
 	RBRACKET // ]
 	COMMA    // ,
+	COLON    // :
 	NEWLINE  // \n
 
 	// Keywords
@@ -65,11 +67,26 @@ const (
 	CURL     // curl (reduce)
 	PEEK     // peek (match)
 	HISS     // hiss (error/throw)
-	FETCH    // fetch (import)
+	NAB      // nab (import)
 	FLAUNT   // flaunt (export)
 	CATNAP   // catnap (nil)
 	YARN     // yarn (true)
 	HAIRBALL // hairball (false)
+	KITTY    // kitty (struct)
+	BREED    // breed (type alias)
+	COLLAR   // collar (newtype)
+	POSE     // pose (interface)
+	GROOM    // groom (method impl)
+	SELF     // self (self reference)
+	TAG      // tag (import alias)
+
+	// Type keywords
+	TYPE_INT     // int
+	TYPE_FLOAT   // float
+	TYPE_STRING  // string
+	TYPE_BOOL    // bool
+	TYPE_FURBALL // furball
+	TYPE_LITTER  // litter
 	keywordsEnd
 )
 
@@ -87,11 +104,24 @@ var keywords = map[string]TokenType{
 	"curl":     CURL,
 	"peek":     PEEK,
 	"hiss":     HISS,
-	"fetch":    FETCH,
+	"nab":      NAB,
 	"flaunt":   FLAUNT,
 	"catnap":   CATNAP,
 	"yarn":     YARN,
 	"hairball": HAIRBALL,
+	"kitty":    KITTY,
+	"breed":    BREED,
+	"collar":   COLLAR,
+	"pose":     POSE,
+	"groom":    GROOM,
+	"self":     SELF,
+	"tag":      TAG,
+	"int":      TYPE_INT,
+	"float":    TYPE_FLOAT,
+	"string":   TYPE_STRING,
+	"bool":     TYPE_BOOL,
+	"furball":  TYPE_FURBALL,
+	"litter":   TYPE_LITTER,
 }
 
 // LookupIdent returns the token type for a given identifier.
@@ -137,4 +167,6 @@ type Token struct {
 	Literal string
 	// Pos is the source location of the token.
 	Pos Position
+	// BlockComment is true when Type is COMMENT and the comment uses -~ ~- delimiters.
+	BlockComment bool
 }

@@ -1,0 +1,9 @@
+UserId{value: 42}
+Email{value: nyantyu@meow.cat}
+42
+nyantyu@meow.cat
+  PASS: test_collar_constructor
+  PASS: test_collar_string
+  PASS: test_collar_distinct
+
+All 3 tests passed, nya~!

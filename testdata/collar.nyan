@@ -1,0 +1,11 @@
+# Collar (newtype) basic test
+
+collar UserId = int
+collar Email = string
+
+nyan id = UserId(42)
+nyan email = Email("nyantyu@meow.cat")
+nya(id)
+nya(email)
+nya(id.value)
+nya(email.value)

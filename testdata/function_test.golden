@@ -1,0 +1,14 @@
+  PASS: test_basic_function
+  PASS: test_recursion
+  PASS: test_string_return
+  PASS: test_conditional_return
+  PASS: test_abs
+  PASS: test_fibonacci
+  PASS: test_factorial_small
+  PASS: test_greet_various
+  PASS: test_max_val_negative
+  PASS: test_min_val_negative
+  PASS: test_abs_boundary
+  PASS: test_fib_sequence
+
+All 12 tests passed, nya~!

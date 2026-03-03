@@ -1,0 +1,46 @@
+# Logical operators test
+
+meow test_and_operator() {
+  judge(yarn && yarn)
+  refuse(yarn && hairball)
+  refuse(hairball && yarn)
+  refuse(hairball && hairball)
+}
+
+meow test_or_operator() {
+  judge(yarn || yarn)
+  judge(yarn || hairball)
+  judge(hairball || yarn)
+  refuse(hairball || hairball)
+}
+
+meow test_not_operator() {
+  judge(!hairball)
+  refuse(!yarn)
+  judge(!0)
+  refuse(!1)
+  judge(!"")
+  refuse(!"hello")
+}
+
+meow test_combined_logical() {
+  judge((1 > 0) && (2 > 1))
+  refuse((1 > 0) && (2 < 1))
+  judge((1 < 0) || (2 > 1))
+  refuse((1 < 0) || (2 < 1))
+}
+
+meow test_truthy_values() {
+  judge(1)
+  judge(42)
+  judge("hello")
+  judge([1])
+  judge(yarn)
+}
+
+meow test_falsy_values() {
+  refuse(0)
+  refuse("")
+  refuse(hairball)
+  refuse(catnap)
+}

@@ -1,0 +1,47 @@
+# Builtin functions test: len, head, tail, append
+
+meow test_len_list() {
+  expect(len([1, 2, 3]), 3)
+  expect(len([]), 0)
+  expect(len([42]), 1)
+}
+
+meow test_len_string() {
+  expect(len("hello"), 5)
+  expect(len(""), 0)
+  expect(len("meow"), 4)
+}
+
+meow test_head() {
+  expect(head([10, 20, 30]), 10)
+  expect(head([42]), 42)
+  expect(head(["a", "b"]), "a")
+}
+
+meow test_tail() {
+  expect(tail([10, 20, 30]), [20, 30])
+  expect(tail([42]), [])
+  expect(tail(["a", "b", "c"]), ["b", "c"])
+}
+
+meow test_append() {
+  expect(append([1, 2], 3), [1, 2, 3])
+  expect(append([], 1), [1])
+  expect(append(["a"], "b"), ["a", "b"])
+}
+
+meow test_append_does_not_mutate() {
+  nyan original = [1, 2, 3]
+  nyan extended = append(original, 4)
+  expect(original, [1, 2, 3])
+  expect(extended, [1, 2, 3, 4])
+}
+
+meow test_head_tail_roundtrip() {
+  nyan nums = [1, 2, 3, 4, 5]
+  nyan first = head(nums)
+  nyan rest = tail(nums)
+  expect(first, 1)
+  expect(rest, [2, 3, 4, 5])
+  expect(len(rest), 4)
+}

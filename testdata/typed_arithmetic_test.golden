@@ -1,0 +1,11 @@
+  PASS: test_typed_add
+  PASS: test_typed_sub
+  PASS: test_typed_mul
+  PASS: test_typed_div
+  PASS: test_typed_abs
+  PASS: test_typed_fib
+  PASS: test_typed_max_val
+  PASS: test_typed_concat
+  PASS: test_typed_is_positive
+
+All 9 tests passed, nya~!

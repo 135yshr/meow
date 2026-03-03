@@ -1,0 +1,135 @@
+name: Deploy Hugo Site + Playground
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "docs/**"
+      - "playground/**"
+      - "cmd/playground/**"
+      - "pkg/interpreter/**"
+      - "runtime/meowrt/**"
+      - "pkg/lexer/**"
+      - "pkg/parser/**"
+      - "pkg/ast/**"
+      - "pkg/checker/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/hugo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HUGO_VERSION: "0.155.3"
+    steps:
+      - name: Install Hugo
+        run: |
+          DEB="hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
+          wget -q -O "${{ runner.temp }}/${DEB}" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${DEB}"
+          wget -q -O "${{ runner.temp }}/checksums.txt" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_checksums.txt"
+          cd ${{ runner.temp }}
+          grep "${DEB}" checksums.txt | sha256sum --check --status
+          sudo dpkg -i "${DEB}"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Validate front matter
+        run: |
+          cd website
+          fail=0
+          for f in content/learn/*.md content/doc/*.md content/blog/*.md content/community/*.md; do
+            if [ -f "$f" ]; then
+              if ! head -1 "$f" | grep -q "^---"; then
+                echo "ERROR: $f is missing front matter"
+                fail=1
+              fi
+            fi
+          done
+          if [ "$fail" -eq 1 ]; then
+            echo "Front matter validation failed"
+            exit 1
+          fi
+
+      - name: Build with Hugo
+        env:
+          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
+          HUGO_ENVIRONMENT: production
+          TZ: Asia/Tokyo
+        run: |
+          cd website
+          hugo \
+            --gc \
+            --minify \
+            --baseURL "${{ steps.pages.outputs.base_url }}/"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Install stringer
+        run: go install golang.org/x/tools/cmd/stringer@latest
+
+      - name: Generate
+        run: go generate ./...
+
+      - name: Build Playground WASM
+        run: |
+          GOOS=js GOARCH=wasm go build -o playground/meow.wasm ./cmd/playground/
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" playground/wasm_exec.js
+
+      - name: Copy consent files to Playground
+        run: |
+          cp website/static/js/consent.js playground/consent.js
+          cp website/static/css/consent.css playground/consent.css
+
+      - name: Copy Playground into Hugo output
+        run: |
+          mkdir -p website/public/playground
+          cp playground/index.html website/public/playground/
+          cp playground/style.css website/public/playground/
+          cp playground/app.js website/public/playground/
+          cp playground/examples.js website/public/playground/
+          cp playground/wasm_exec.js website/public/playground/
+          cp playground/meow.wasm website/public/playground/
+          cp playground/consent.js website/public/playground/
+          cp playground/consent.css website/public/playground/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./website/public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

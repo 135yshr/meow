@@ -1,5 +1,5 @@
 nyan name = "Tama"
-meow greet(who) {
+meow greet(who string) string {
   bring "Hello, " + who + "!"
 }
 nya(greet(name))

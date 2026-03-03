@@ -1,0 +1,32 @@
+# Comment syntax test
+
+# Single line comment
+meow test_single_line_comment() {
+  nyan x = 1 # inline comment
+  expect(x, 1)
+}
+
+-~ Block comment ~-
+meow test_block_comment() {
+  nyan x = 10
+  -~ nyan x = 999 ~-
+  expect(x, 10)
+}
+
+-~
+  Multi-line block comment.
+  This spans multiple lines.
+  nyan x = 42
+~-
+meow test_multiline_block_comment() {
+  nyan result = 1 + 2
+  expect(result, 3)
+}
+
+meow test_comment_preserves_logic() {
+  nyan a = 1
+  # a = 100
+  nyan b = 2
+  -~ b = 200 ~-
+  expect(a + b, 3)
+}

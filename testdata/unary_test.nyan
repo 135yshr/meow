@@ -1,0 +1,47 @@
+# Unary operators test: negation (-), logical not (!)
+
+meow test_negate_variable() {
+  nyan x = 5
+  nyan y = -x
+  expect(y, -5)
+}
+
+meow test_negate_expression() {
+  nyan a = 3
+  nyan b = 7
+  expect(-(a + b), -10)
+}
+
+meow test_double_negation() {
+  nyan x = -42
+  nyan y = -x
+  expect(y, 42)
+}
+
+meow test_negate_zero() {
+  nyan x = 0
+  expect(-x, 0)
+}
+
+meow test_negate_float() {
+  nyan f = 3.14
+  expect(-f, -3.14)
+}
+
+meow test_not_variable() {
+  nyan t = yarn
+  nyan f = hairball
+  refuse(!t)
+  judge(!f)
+}
+
+meow test_not_expression() {
+  nyan x = 5
+  refuse(!(x > 0))
+  judge(!(x < 0))
+}
+
+meow test_double_not() {
+  judge(!!yarn)
+  refuse(!!hairball)
+}

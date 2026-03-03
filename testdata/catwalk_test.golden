@@ -1,0 +1,6 @@
+  PASS: test_basic
+  PASS: catwalk_hello
+  PASS: catwalk_arithmetic
+  PASS: catwalk_multi_line
+
+All 4 tests passed, nya~!

@@ -1,0 +1,24 @@
+# Breed (type alias) unit tests
+
+breed Nickname = string
+breed Flag = bool
+breed Num = int
+
+meow test_breed_alias() {
+    nyan name Nickname = "Nyantyu"
+    judge(name == "Nyantyu", "breed alias works as underlying type")
+    judge(name + " chan" == "Nyantyu chan", "breed alias supports operations")
+}
+
+meow test_breed_in_condition() {
+    nyan f Flag = yarn
+    sniff (f) {
+        judge(yarn, "breed bool in sniff")
+    }
+}
+
+meow test_breed_unary() {
+    nyan x Num = 42
+    nyan y = -x
+    judge(y == -42, "breed unary minus")
+}

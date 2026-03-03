@@ -1,0 +1,25 @@
+# Collar (newtype) example
+# collar wraps an existing type into a distinct new type.
+# Use .value to unwrap the inner value.
+
+collar UserId = int
+collar Email = string
+
+nyan id = UserId(42)
+nyan email = Email("nyantyu@meow.cat")
+
+nya(id)
+nya(email)
+
+# Access the wrapped value with .value
+nya("User " + to_string(id.value) + ": " + email.value)
+
+# Different collar types with the same underlying type are NOT equal
+collar Temperature = int
+collar Humidity = int
+
+nyan temp = Temperature(72)
+nyan humid = Humidity(72)
+sniff (temp != humid) {
+  nya("Temperature and Humidity are distinct types!")
+}

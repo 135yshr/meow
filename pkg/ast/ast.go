@@ -154,8 +154,8 @@ func (n *CallExpr) exprTag()            {}
 type LambdaExpr struct {
 	// Token is the paw keyword token.
 	Token token.Token
-	// Params is the list of parameter names.
-	Params []string
+	// Params is the list of parameters with optional type annotations.
+	Params []Param
 	// Body is the lambda body expression.
 	Body Expr
 }
@@ -282,14 +282,58 @@ func (n *WildcardPattern) Pos() token.Position { return n.Token.Pos }
 func (n *WildcardPattern) nodeTag()            {}
 func (n *WildcardPattern) patternTag()         {}
 
+// MapLit represents a map literal (e.g. {"key": value}).
+type MapLit struct {
+	// Token is the opening brace token.
+	Token token.Token
+	// Keys is the list of key expressions.
+	Keys []Expr
+	// Vals is the list of value expressions.
+	Vals []Expr
+}
+
+func (n *MapLit) Pos() token.Position { return n.Token.Pos }
+func (n *MapLit) nodeTag()            {}
+func (n *MapLit) exprTag()            {}
+
+// MemberExpr represents member access (e.g. file.snoop).
+type MemberExpr struct {
+	// Token is the DOT token.
+	Token token.Token
+	// Object is the left-hand expression (e.g. file).
+	Object Expr
+	// Member is the member name (e.g. snoop).
+	Member string
+}
+
+func (n *MemberExpr) Pos() token.Position { return n.Token.Pos }
+func (n *MemberExpr) nodeTag()            {}
+func (n *MemberExpr) exprTag()            {}
+
 // --- Statements ---
 
-// VarStmt represents a variable declaration (nyan x = ...).
+// FetchStmt represents a package import (nab "file" or nab "file" tag f).
+type FetchStmt struct {
+	// Token is the nab keyword token.
+	Token token.Token
+	// Path is the package name.
+	Path string
+	// Alias is the import alias (empty if no alias specified).
+	Alias string
+}
+
+func (n *FetchStmt) Pos() token.Position { return n.Token.Pos }
+func (n *FetchStmt) nodeTag()            {}
+func (n *FetchStmt) stmtTag()            {}
+
+// VarStmt represents a variable declaration (nyan x = ... or nyan x int = ...).
 type VarStmt struct {
 	// Token is the nyan keyword token.
 	Token token.Token
 	// Name is the variable name.
 	Name string
+	// TypeAnn is the optional type annotation (nil if absent).
+	TypeAnn TypeExpr
 	// Value is the initial value expression.
 	Value Expr
 }
@@ -298,28 +342,16 @@ func (n *VarStmt) Pos() token.Position { return n.Token.Pos }
 func (n *VarStmt) nodeTag()            {}
 func (n *VarStmt) stmtTag()            {}
 
-// AssignStmt represents a variable reassignment (x = ...).
-type AssignStmt struct {
-	// Token is the assignment operator token.
-	Token token.Token
-	// Name is the variable name.
-	Name string
-	// Value is the new value expression.
-	Value Expr
-}
-
-func (n *AssignStmt) Pos() token.Position { return n.Token.Pos }
-func (n *AssignStmt) nodeTag()            {}
-func (n *AssignStmt) stmtTag()            {}
-
-// FuncStmt represents a function definition (meow f(x) { ... }).
+// FuncStmt represents a function definition (meow f(x) { ... } or meow f(x int) int { ... }).
 type FuncStmt struct {
 	// Token is the meow keyword token.
 	Token token.Token
 	// Name is the function name.
 	Name string
-	// Params is the list of parameter names.
-	Params []string
+	// Params is the list of parameters with optional type annotations.
+	Params []Param
+	// ReturnType is the optional return type annotation (nil if absent).
+	ReturnType TypeExpr
 	// Body is the list of statements in the function body.
 	Body []Stmt
 }
@@ -356,19 +388,125 @@ func (n *IfStmt) Pos() token.Position { return n.Token.Pos }
 func (n *IfStmt) nodeTag()            {}
 func (n *IfStmt) stmtTag()            {}
 
-// WhileStmt represents a while loop (purr).
-type WhileStmt struct {
+// RangeStmt represents a range-based loop.
+//
+// Two forms are supported:
+//
+//	purr i (n)        — count form: i = 0, 1, …, n-1 (n iterations)
+//	purr i (a..b)     — range form: i = a, a+1, …, b  (inclusive)
+//
+// In the count form, Start is nil and Inclusive is false.
+type RangeStmt struct {
 	// Token is the purr keyword token.
 	Token token.Token
-	// Condition is the loop condition expression.
-	Condition Expr
+	// Var is the loop variable name.
+	Var string
+	// Start is the range start expression, or nil for the count form.
+	Start Expr
+	// End is the upper bound expression.
+	End Expr
+	// Inclusive is true for the a..b form (closed interval).
+	Inclusive bool
 	// Body is the list of statements in the loop body.
 	Body []Stmt
 }
 
-func (n *WhileStmt) Pos() token.Position { return n.Token.Pos }
-func (n *WhileStmt) nodeTag()            {}
-func (n *WhileStmt) stmtTag()            {}
+func (n *RangeStmt) Pos() token.Position { return n.Token.Pos }
+func (n *RangeStmt) nodeTag()            {}
+func (n *RangeStmt) stmtTag()            {}
+
+// KittyField represents a field in a kitty (struct) definition.
+type KittyField struct {
+	Name    string
+	TypeAnn TypeExpr
+}
+
+// KittyStmt represents a kitty (struct) definition.
+type KittyStmt struct {
+	// Token is the kitty keyword token.
+	Token token.Token
+	// Name is the struct type name.
+	Name string
+	// Fields is the list of fields.
+	Fields []KittyField
+}
+
+func (n *KittyStmt) Pos() token.Position { return n.Token.Pos }
+func (n *KittyStmt) nodeTag()            {}
+func (n *KittyStmt) stmtTag()            {}
+
+// BreedStmt represents a type alias declaration (breed Nickname = string).
+type BreedStmt struct {
+	// Token is the breed keyword token.
+	Token token.Token
+	// Name is the alias name.
+	Name string
+	// Original is the original type.
+	Original TypeExpr
+}
+
+func (n *BreedStmt) Pos() token.Position { return n.Token.Pos }
+func (n *BreedStmt) nodeTag()            {}
+func (n *BreedStmt) stmtTag()            {}
+
+// CollarStmt represents a newtype declaration (collar UserId = int).
+type CollarStmt struct {
+	// Token is the collar keyword token.
+	Token token.Token
+	// Name is the newtype name.
+	Name string
+	// Wrapped is the wrapped type.
+	Wrapped TypeExpr
+}
+
+func (n *CollarStmt) Pos() token.Position { return n.Token.Pos }
+func (n *CollarStmt) nodeTag()            {}
+func (n *CollarStmt) stmtTag()            {}
+
+// TrickMethod represents a single method signature in a pose definition.
+type TrickMethod struct {
+	Name       string
+	Params     []Param
+	ReturnType TypeExpr
+}
+
+// TrickStmt represents a pose (interface) definition.
+type TrickStmt struct {
+	// Token is the pose keyword token.
+	Token token.Token
+	// Name is the pose name.
+	Name string
+	// Methods is the list of method signatures.
+	Methods []TrickMethod
+}
+
+func (n *TrickStmt) Pos() token.Position { return n.Token.Pos }
+func (n *TrickStmt) nodeTag()            {}
+func (n *TrickStmt) stmtTag()            {}
+
+// LearnStmt represents a method implementation block for a type.
+type LearnStmt struct {
+	// Token is the groom keyword token.
+	Token token.Token
+	// TypeName is the target type name (kitty/collar).
+	TypeName string
+	// Methods is the list of method definitions.
+	Methods []FuncStmt
+}
+
+func (n *LearnStmt) Pos() token.Position { return n.Token.Pos }
+func (n *LearnStmt) nodeTag()            {}
+func (n *LearnStmt) stmtTag()            {}
+
+// SelfExpr represents a self reference expression.
+type SelfExpr struct {
+	// Token is the self keyword token.
+	Token token.Token
+}
+
+func (n *SelfExpr) Pos() token.Position { return n.Token.Pos }
+func (n *SelfExpr) nodeTag()            {}
+func (n *SelfExpr) exprTag()            {}
 
 // ExprStmt represents an expression used as a statement.
 type ExprStmt struct {

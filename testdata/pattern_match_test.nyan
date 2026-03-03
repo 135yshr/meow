@@ -1,0 +1,61 @@
+# Pattern matching (peek) test
+
+meow test_literal_patterns() {
+  expect(describe(0), "zero")
+  expect(describe(1), "one")
+  expect(describe(2), "two")
+  expect(describe(3), "three")
+}
+
+meow test_range_patterns() {
+  expect(classify(1), "low")
+  expect(classify(3), "low")
+  expect(classify(5), "low")
+  expect(classify(6), "mid")
+  expect(classify(8), "mid")
+  expect(classify(10), "mid")
+  expect(classify(11), "high")
+  expect(classify(50), "high")
+}
+
+meow test_range_boundary() {
+  expect(classify(1), "low")
+  expect(classify(5), "low")
+  expect(classify(6), "mid")
+  expect(classify(10), "mid")
+  expect(classify(11), "high")
+  expect(classify(100), "high")
+}
+
+meow test_many_literal_patterns() {
+  expect(day_name(1), "Monday")
+  expect(day_name(2), "Tuesday")
+  expect(day_name(3), "Wednesday")
+  expect(day_name(4), "Thursday")
+  expect(day_name(5), "Friday")
+  expect(day_name(6), "Saturday")
+  expect(day_name(7), "Sunday")
+}
+
+meow test_describe_non_empty() {
+  judge(describe(0) != "")
+  judge(describe(1) != "")
+  judge(describe(2) != "")
+  judge(describe(3) != "")
+}
+
+meow test_classify_non_empty() {
+  judge(classify(1) != "")
+  judge(classify(6) != "")
+  judge(classify(11) != "")
+}
+
+meow test_day_name_non_empty() {
+  judge(day_name(1) != "")
+  judge(day_name(2) != "")
+  judge(day_name(3) != "")
+  judge(day_name(4) != "")
+  judge(day_name(5) != "")
+  judge(day_name(6) != "")
+  judge(day_name(7) != "")
+}

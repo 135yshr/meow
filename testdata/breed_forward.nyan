@@ -1,0 +1,7 @@
+# Breed forward reference test
+
+breed Score = Points
+breed Points = int
+
+nyan s Score = 42
+nya(s)

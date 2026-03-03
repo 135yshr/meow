@@ -28,7 +28,7 @@
 //   - Pipe expressions (|=|)
 //   - Error recovery expressions (~>)
 //   - Pattern matching (peek)
-//   - Error raising (hiss) and recovery (gag/isFurball)
+//   - Error raising (hiss) and recovery (gag/is_furball)
 //
 // # Usage
 //

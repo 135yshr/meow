@@ -1,0 +1,8 @@
+  PASS: test_equal
+  PASS: test_not_equal
+  PASS: test_less_than
+  PASS: test_greater_than
+  PASS: test_less_than_or_equal
+  PASS: test_greater_than_or_equal
+
+All 6 tests passed, nya~!

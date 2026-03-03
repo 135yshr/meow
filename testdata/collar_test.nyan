@@ -1,0 +1,22 @@
+# Collar (newtype) unit tests
+
+collar UserId = int
+collar Email = string
+collar Temperature = int
+collar Humidity = int
+
+meow test_collar_constructor() {
+    nyan id = UserId(42)
+    judge(id.value == 42, "collar wraps value")
+}
+
+meow test_collar_string() {
+    nyan id = UserId(42)
+    judge(to_string(id) == "UserId{value: 42}", "collar string representation")
+}
+
+meow test_collar_distinct() {
+    nyan temp = Temperature(72)
+    nyan humid = Humidity(72)
+    judge(temp != humid, "different collar types are not equal")
+}

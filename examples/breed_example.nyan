@@ -1,0 +1,14 @@
+# Breed (type alias) example
+# breed creates a transparent alias — the new name is interchangeable
+# with the original type.
+
+breed Nickname = string
+breed Score = int
+
+nyan name Nickname = "Nyantyu"
+nyan score Score = 42
+
+# breed aliases work just like their underlying types
+nya(name + " scored " + to_string(score) + " points!")
+nya(name)
+nya(score)

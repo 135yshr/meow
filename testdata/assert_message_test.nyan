@@ -1,0 +1,18 @@
+# Custom assertion message test
+
+meow test_expect_with_message() {
+  expect(1 + 1, 2, "addition should work")
+  expect("a" + "b", "ab", "string concat should work")
+}
+
+meow test_judge_with_message() {
+  judge(yarn, "yarn should be truthy")
+  judge(42, "non-zero int should be truthy")
+  judge("hello", "non-empty string should be truthy")
+}
+
+meow test_refuse_with_message() {
+  refuse(hairball, "hairball should be falsy")
+  refuse(0, "zero should be falsy")
+  refuse("", "empty string should be falsy")
+}

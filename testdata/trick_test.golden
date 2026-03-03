@@ -1,0 +1,6 @@
+  PASS: test_trick_method_dispatch
+  PASS: test_trick_bool_method
+  PASS: test_trick_multiple_types
+  PASS: test_trick_collar
+
+All 4 tests passed, nya~!

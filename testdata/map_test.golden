@@ -1,0 +1,8 @@
+  PASS: test_map_creation
+  PASS: test_map_is_truthy
+  PASS: test_empty_map
+  PASS: test_map_with_various_types
+  PASS: test_nested_map
+  PASS: test_map_with_list_value
+
+All 6 tests passed, nya~!

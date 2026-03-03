@@ -1,0 +1,6 @@
+  PASS: test_string_concatenation
+  PASS: test_string_equality
+  PASS: test_string_in_variable
+  PASS: test_string_with_numbers
+
+All 4 tests passed, nya~!

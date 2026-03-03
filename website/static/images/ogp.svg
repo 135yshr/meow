@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#1a1a2e"/>
+
+  <!-- ASCII art cat -->
+  <text x="600" y="150" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="72" xml:space="preserve">  /\  /\</text>
+  <text x="600" y="250" text-anchor="middle" fill="#6c5ce7" font-family="'Courier New', monospace" font-size="96" xml:space="preserve"> (=^&#x30FB;^=)</text>
+  <text x="600" y="340" text-anchor="middle" fill="#a29bfe" font-family="'Courier New', monospace" font-size="96" xml:space="preserve"> |= o =|</text>
+
+  <!-- Title -->
+  <text x="600" y="460" text-anchor="middle" fill="white" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="700">Meow</text>
+
+  <!-- Tagline -->
+  <text x="600" y="520" text-anchor="middle" fill="#a29bfe" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400">The purrfect cat-themed programming language</text>
+</svg>
