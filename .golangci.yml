@@ -11,6 +11,19 @@ linters:
     - misspell
 
   settings:
+    errcheck:
+      exclude-functions:
+        - (*os.File).Close
+        - (io.Closer).Close
+        - (*net/http.Response).Body.Close
+        - (*bytes.Buffer).ReadFrom
+        - os.RemoveAll
+        - os.Remove
+        - (net/http.ResponseWriter).Write
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*os.Process).Kill
     govet:
       enable-all: true
       disable:
