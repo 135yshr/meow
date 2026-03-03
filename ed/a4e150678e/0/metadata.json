@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "eda4e150678e",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:46:15.055772Z",
+  "branch": "dependabot/github_actions/actions/github-script-8",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/slash-release.yaml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "de1c3646d099",
+  "checkpoint_transcript_start": 595,
+  "transcript_lines_at_start": 595,
+  "token_usage": {
+    "input_tokens": 21,
+    "cache_creation_tokens": 13587,
+    "cache_read_tokens": 2274661,
+    "output_tokens": 3699,
+    "api_call_count": 16
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:46:14.791013Z",
+    "agent_lines": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3,
+    "agent_percentage": 100
+  }
+}

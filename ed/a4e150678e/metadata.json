@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "eda4e150678e",
+  "strategy": "manual-commit",
+  "branch": "dependabot/github_actions/actions/github-script-8",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/slash-release.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ed/a4e150678e/0/metadata.json",
+      "transcript": "/ed/a4e150678e/0/full.jsonl",
+      "context": "/ed/a4e150678e/0/context.md",
+      "content_hash": "/ed/a4e150678e/0/content_hash.txt",
+      "prompt": "/ed/a4e150678e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 21,
+    "cache_creation_tokens": 13587,
+    "cache_read_tokens": 2274661,
+    "output_tokens": 3699,
+    "api_call_count": 16
+  }
+}
