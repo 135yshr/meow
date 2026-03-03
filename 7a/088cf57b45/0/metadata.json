@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "7a088cf57b45",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:57:10.523763Z",
+  "branch": "dependabot/github_actions/actions/setup-go-6",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/goreleaser.yaml",
+    ".github/workflows/slash-release.yaml",
+    ".github/workflows/hugo.yml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "de1c3646d099",
+  "checkpoint_transcript_start": 789,
+  "transcript_lines_at_start": 789,
+  "token_usage": {
+    "input_tokens": 6,
+    "cache_creation_tokens": 2738,
+    "cache_read_tokens": 946934,
+    "output_tokens": 1130,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:57:10.241307Z",
+    "agent_lines": 5,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 5,
+    "agent_percentage": 100
+  }
+}
