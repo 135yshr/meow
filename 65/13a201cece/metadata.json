@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "6513a201cece",
+  "strategy": "manual-commit",
+  "branch": "dependabot/github_actions/actions/checkout-6",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/goreleaser.yaml",
+    ".github/workflows/hugo.yml",
+    ".github/workflows/slash-release.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/65/13a201cece/0/metadata.json",
+      "transcript": "/65/13a201cece/0/full.jsonl",
+      "context": "/65/13a201cece/0/context.md",
+      "content_hash": "/65/13a201cece/0/content_hash.txt",
+      "prompt": "/65/13a201cece/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 6,
+    "cache_creation_tokens": 2223,
+    "cache_read_tokens": 916318,
+    "output_tokens": 1143,
+    "api_call_count": 6
+  }
+}
