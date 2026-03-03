@@ -553,7 +553,7 @@ func readGoVersion(path string) string {
 // buildModContent generates go.mod content for a temporary build directory.
 func buildModContent(goVersion, modRoot string) (string, error) {
 	if strings.ContainsAny(modRoot, "\n\r") {
-		return "", fmt.Errorf("Hiss! Module root path contains invalid characters, nya~")
+		return "", fmt.Errorf("hiss! module root path contains invalid characters, nya~")
 	}
 	return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot), nil
 }
