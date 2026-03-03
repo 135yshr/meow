@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "784faf64afbe",
+  "strategy": "manual-commit",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".golangci.yml",
+    "Makefile"
+  ],
+  "sessions": [
+    {
+      "metadata": "/78/4faf64afbe/0/metadata.json",
+      "transcript": "/78/4faf64afbe/0/full.jsonl",
+      "context": "/78/4faf64afbe/0/context.md",
+      "content_hash": "/78/4faf64afbe/0/content_hash.txt",
+      "prompt": "/78/4faf64afbe/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 13011,
+    "cache_read_tokens": 2094193,
+    "output_tokens": 4417,
+    "api_call_count": 26
+  }
+}

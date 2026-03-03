@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "784faf64afbe",
+  "session_id": "fc996c60-fb21-4123-b967-4f406da4bc25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T08:23:58.82996Z",
+  "branch": "feat/oss-community-health",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    ".golangci.yml",
+    "Makefile"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "10b2cc8cb265",
+  "checkpoint_transcript_start": 316,
+  "transcript_lines_at_start": 316,
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 13011,
+    "cache_read_tokens": 2094193,
+    "output_tokens": 4417,
+    "api_call_count": 26
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T08:23:58.718373Z",
+    "agent_lines": 23,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 23,
+    "agent_percentage": 100
+  }
+}
