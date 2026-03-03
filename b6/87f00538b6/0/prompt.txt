@@ -1,0 +1,130 @@
+Implement the following plan:
+
+# セキュリティ脆弱性修正プラン
+
+## Context
+リポジトリ全体のセキュリティレビューで5件の脆弱性が検出された。実際にコード修正が必要な項目を対応する。
+
+## 修正対象
+
+### 1. GitHub Actions スクリプトインジェクション (HIGH)
+**ファイル**: `.github/workflows/slash-release.yaml:100-117`
+
+`${{ }}` でステップ出力を JavaScript 文字列リテラルに直接展開しているパターンを、環境変数経由に変更する。
+
+**変更内容**:
+```yaml
+      - name: Comment result
+        if: always()
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          MERGE_SHA: ${{ steps.pr.outputs.merge_sha }}
+          NEW_TAG: ${{ steps.tag.outputs.new_tag }}
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const sha = process.env.MERGE_SHA || '';
+            const tag = process.env.NEW_TAG || '';
+            const success = process.env.JOB_STATUS === 'success';
+            ...
+```
+
+### 2. go.mod の goVersion / modRoot バリデーション (MEDIUM)
+**ファイル**: `compiler/compiler.go:110, 252, 359, 489, 520-531`
+
+- `readGoVersion`: 返り値が `X.Y` 形式であることを正規表現でバリデーション
+- `modRoot`: パスに改行が含まれていないことを検証
+
+**変更内容**:
+- `readGoVersion` に `regexp.MustCompile(`^\d+\.\d+(\.\d+)?$`)` でバリデーション追加
+- `modContent` 生成時に `modRoot` の改行チェック追加
+
+### 3. Fuzz 関数名の regexp.QuoteMeta (MEDIUM)
+**ファイル**: `compiler/compiler.go:379`
+
+`fmt.Sprintf("-fuzz=^%s$", name)` → `fmt.Sprintf("-fuzz=^%s$", regexp.QuoteMeta(name))`
+
+### 4-5. ファイルI/O パストラバーサル / HTTP SSRF (MEDIUM)
+**ファイル**: `runtime/file/file.go`, `runtime/http/http.go`
+
+これらは言語の設計上の特性（コンパイルされたプログラムが OS 権限で動作する）であり、Go, Python, Ruby 等と同様。コード修正ではなくドキュメントに注意事項を追記する。
+
+**変更内容**: SECURITY.md の Scope セクションに注意書き追加
+
+## 修正しないもの
+- Finding 2 (Unicode identifier): lexer制約 + Go コンパイラ検証で安全
+- Finding 1 (String codegen): `%q` フォーマットで安全（レビュー結果 NOT VULNERABLE）
+
+## 検証方法
+- `go test ./compiler/ -v` でコンパイラテスト通過確認
+- `go vet ./...` で静的解析
+- GitHub Actions の YAML 構文確認
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/135yshr/.claude/projects/-Users-135yshr-go-src-github-com-135yshr-meow/fc996c60-fb21-4123-b967-4f406da4bc25.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+# Smart Commit with Gitmoji
+
+Execute the following steps non-interactively:
+
+## Branch Management
+
+- If currently on `main` or `master` branch, create and checkout a new feature branch with a descriptive name
+- If on any other branch, proceed with commit on current branch (no branch creation)
+- If no changes are detected, exit without doing anything
+
+## Change Analysis & Commit
+
+1. **Review all changes** using `git status` and `git diff --staged` (or `git diff` if nothing staged)
+2. **Stage changes** if not already staged using `git add .` or selective staging
+3. **Analyze the changes** to understand:
+   - Type of changes (new feature, bug fix, refactor, etc.)
+   - Scope of changes (which files/components affected)
+   - Impact and purpose of the changes
+
+## Commit Message Creation
+
+Create a commit message following this format:
+
+```
+<gitmoji> <type>: <concise description>
+
+<optional detailed explanation if needed>
+```
+
+### Gitmoji Selection Guide
+
+Choose the most appropriate gitmoji from <https://gitmoji.dev/> based on change type:
+
+**Common Patterns:**
+
+- ✨ `:sparkles:` - New features
+- 🐛 `:bug:` - Bug fixes
+- 🎨 `:art:` - Code structure/format improvements
+- ⚡️ `:zap:` - Performance improvements
+- 📝 `:memo:` - Documentation updates
+- 🔧 `:wrench:` - Configuration changes
+- ♻️ `:recycle:` - Code refactoring
+- 🚨 `:rotating_light:` - Fix linter warnings
+- ✅ `:white_check_mark:` - Add/update tests
+- 🔒️ `:lock:` - Security fixes
+- ⬆️ `:arrow_up:` - Upgrade dependencies
+- 🚚 `:truck:` - Move/rename files
+- 🗑️ `:wastebasket:` - Remove deprecated code
+
+### Message Guidelines
+
+- **Title**: Keep under 50 characters, use imperative mood
+- **Body**: Explain "what" and "why", not "how"
+- **Language**: Write in English
+- **Tone**: Professional and concise
+
+## Final Steps
+
+- Execute the commit with the generated message
+- Display a summary of what was committed
+- Suggest next steps (push to remote, create PR, etc.)
