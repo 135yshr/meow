@@ -119,7 +119,7 @@ jobs:
           cp playground/consent.css website/public/playground/
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./website/public
 
