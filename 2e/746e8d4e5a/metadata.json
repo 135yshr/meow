@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "2e746e8d4e5a",
+  "strategy": "manual-commit",
+  "branch": "feat/string-iteration-in-purr",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/codegen/codegen.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2e/746e8d4e5a/0/metadata.json",
+      "transcript": "/2e/746e8d4e5a/0/full.jsonl",
+      "context": "/2e/746e8d4e5a/0/context.md",
+      "content_hash": "/2e/746e8d4e5a/0/content_hash.txt",
+      "prompt": "/2e/746e8d4e5a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 14,
+    "cache_creation_tokens": 23659,
+    "cache_read_tokens": 323954,
+    "output_tokens": 3133,
+    "api_call_count": 11
+  }
+}

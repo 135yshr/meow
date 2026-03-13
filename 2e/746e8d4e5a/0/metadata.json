@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "2e746e8d4e5a",
+  "session_id": "247c895f-0ca7-4b34-8dee-85df6b65a107",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-13T14:28:17.702536Z",
+  "branch": "feat/string-iteration-in-purr",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/codegen/codegen.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "edbf81aa4217",
+  "token_usage": {
+    "input_tokens": 14,
+    "cache_creation_tokens": 23659,
+    "cache_read_tokens": 323954,
+    "output_tokens": 3133,
+    "api_call_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-13T14:28:17.654695Z",
+    "agent_lines": 6,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 6,
+    "agent_percentage": 100
+  }
+}
