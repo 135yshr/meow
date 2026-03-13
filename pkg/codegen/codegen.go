@@ -491,6 +491,9 @@ func (g *Generator) genTypedIf(s *ast.IfStmt) string {
 
 func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	endType := g.getExprType(s.End)
+	if endType != nil {
+		endType = types.Unwrap(endType)
+	}
 	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
 		return g.genTypedStringRange(s)
 	}
@@ -1028,6 +1031,9 @@ func (g *Generator) genIf(s *ast.IfStmt) string {
 
 func (g *Generator) genRange(s *ast.RangeStmt) string {
 	endType := g.getExprType(s.End)
+	if endType != nil {
+		endType = types.Unwrap(endType)
+	}
 	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
 		return g.genStringRange(s)
 	}
