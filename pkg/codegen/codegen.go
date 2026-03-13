@@ -747,12 +747,13 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
-	case "to_string", "to_int", "to_float", "is_furball", "gag", "len",
+	case "to_string", "to_int", "to_float", "to_bytes", "is_furball", "gag", "len",
 		"head", "tail", "append", "lick", "picky", "curl":
 		builtinNames := map[string]string{
 			"to_string":  "ToString",
 			"to_int":     "ToInt",
 			"to_float":   "ToFloat",
+			"to_bytes":   "ToBytes",
 			"is_furball":  "IsFurball",
 			"gag":        "Gag",
 			"len":        "Len",
@@ -1231,6 +1232,8 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToFloat(%s)", argStr)
 		case "to_string":
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
+		case "to_bytes":
+			return fmt.Sprintf("meow.ToBytes(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
 		case "is_furball":

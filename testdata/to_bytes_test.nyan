@@ -1,0 +1,29 @@
+# to_bytes built-in function tests
+
+# Empty string returns empty list
+meow test_to_bytes_empty() {
+  expect(to_bytes(""), [])
+}
+
+# ASCII string returns byte values
+meow test_to_bytes_ascii() {
+  nyan result = to_bytes("ABC")
+  expect(result, [65, 66, 67])
+}
+
+# Single character
+meow test_to_bytes_single_char() {
+  expect(to_bytes("a"), [97])
+}
+
+# Multi-byte UTF-8 (hiragana あ = 0xE3 0x81 0x82 = 227 129 130)
+meow test_to_bytes_utf8() {
+  nyan result = to_bytes("あ")
+  expect(result, [227, 129, 130])
+}
+
+# Non-string panics
+meow test_to_bytes_non_string_panics() {
+  nyan result = gag(paw() { to_bytes(42) })
+  judge(is_furball(result))
+}

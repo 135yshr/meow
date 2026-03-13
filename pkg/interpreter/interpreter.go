@@ -441,6 +441,9 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "to_string":
 		requireArgs("to_string", args, 1)
 		return meowrt.ToString(args[0]), true
+	case "to_bytes":
+		requireArgs("to_bytes", args, 1)
+		return meowrt.ToBytes(args[0]), true
 	case "gag":
 		requireArgs("gag", args, 1)
 		return meowrt.Gag(args[0]), true

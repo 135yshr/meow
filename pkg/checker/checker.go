@@ -828,6 +828,8 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.FloatType{}
 		case "to_string":
 			return types.StringType{}
+		case "to_bytes":
+			return types.AnyType{}
 		case "is_furball":
 			return types.BoolType{}
 		case "len":
