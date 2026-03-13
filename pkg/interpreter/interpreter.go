@@ -418,7 +418,7 @@ func (interp *Interpreter) evalBinary(e *ast.BinaryExpr, env *Environment) meowr
 // --- Builtin Helpers ---
 
 func requireArgs(name string, args []meowrt.Value, count int) {
-	if len(args) < count {
+	if len(args) != count {
 		panic(fmt.Sprintf("Hiss! %s requires %d argument(s), got %d, nya~", name, count, len(args)))
 	}
 }
@@ -441,6 +441,9 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "to_string":
 		requireArgs("to_string", args, 1)
 		return meowrt.ToString(args[0]), true
+	case "to_bytes":
+		requireArgs("to_bytes", args, 1)
+		return meowrt.ToBytes(args[0]), true
 	case "gag":
 		requireArgs("gag", args, 1)
 		return meowrt.Gag(args[0]), true

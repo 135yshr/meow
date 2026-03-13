@@ -162,6 +162,20 @@ nya(to_string(42))          # => 42
 nya(to_string([1, 2, 3]))   # => [1, 2, 3]
 ```
 
+### `to_bytes(s)`
+
+Convert a string to a list of byte (integer) values.
+
+- **s** (string): The string to convert.
+- **Returns**: A list of integers representing the UTF-8 byte values.
+- **Panics**: If the argument is not a string.
+
+```meow
+nya(to_bytes("ABC"))    # => [65, 66, 67]
+nya(to_bytes("あ"))     # => [227, 129, 130]
+nya(to_bytes(""))       # => []
+```
+
 ---
 
 ## file Package

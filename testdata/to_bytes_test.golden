@@ -1,0 +1,7 @@
+  PASS: test_to_bytes_empty
+  PASS: test_to_bytes_ascii
+  PASS: test_to_bytes_single_char
+  PASS: test_to_bytes_utf8
+  PASS: test_to_bytes_non_string_panics
+
+All 5 tests passed, nya~!

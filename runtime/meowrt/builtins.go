@@ -98,6 +98,20 @@ func ToString(v Value) Value {
 	return NewString(v.String())
 }
 
+// ToBytes converts a string value to a list of byte integers.
+func ToBytes(v Value) Value {
+	s, ok := v.(*String)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! Cannot convert %s to bytes, nya~", v.Type()))
+	}
+	bytes := []byte(s.Val)
+	elems := make([]Value, len(bytes))
+	for i, b := range bytes {
+		elems[i] = NewInt(int64(b))
+	}
+	return NewList(elems...)
+}
+
 // Gag calls fn (a zero-argument Func) and recovers from any panic,
 // returning the panic message wrapped in a Furball.
 // If fn succeeds, its return value is returned as-is.
