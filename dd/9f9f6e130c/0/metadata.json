@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "dd9f9f6e130c",
+  "session_id": "0c9da6c5-b0cd-42a8-ab7b-4c9ae1b60190",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-13T14:13:23.311666Z",
+  "branch": "feat/string-iteration-in-purr",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "examples/string_iter.nyan",
+    "pkg/ast/doc.go"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "efbd982a0e35",
+  "checkpoint_transcript_start": 396,
+  "transcript_lines_at_start": 396,
+  "token_usage": {
+    "input_tokens": 31,
+    "cache_creation_tokens": 10704,
+    "cache_read_tokens": 2189554,
+    "output_tokens": 3720,
+    "api_call_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-13T14:13:23.080234Z",
+    "agent_lines": 32,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 32,
+    "agent_percentage": 100
+  }
+}
