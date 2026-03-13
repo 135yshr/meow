@@ -333,6 +333,44 @@ purr i (1..3) {
 	}
 }
 
+func TestRangeString(t *testing.T) {
+	got := runMeow(t, `
+purr ch ("meow") {
+    nya(ch)
+}
+`)
+	expected := "m\ne\no\nw\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestRangeStringWithIndex(t *testing.T) {
+	got := runMeow(t, `
+purr i, ch ("nya") {
+    nya(i)
+    nya(ch)
+}
+`)
+	expected := "0\nn\n1\ny\n2\na\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestRangeStringMultibyte(t *testing.T) {
+	got := runMeow(t, `
+purr i, ch ("にゃん") {
+    nya(i)
+    nya(ch)
+}
+`)
+	expected := "0\nに\n1\nゃ\n2\nん\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
 func TestStringConcat(t *testing.T) {
 	got := runMeow(t, `
 nyan a = "hello"

@@ -490,6 +490,13 @@ func (g *Generator) genTypedIf(s *ast.IfStmt) string {
 }
 
 func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
+	endType := g.getExprType(s.End)
+	if endType != nil {
+		endType = types.Unwrap(endType)
+	}
+	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
+		return g.genTypedStringRange(s)
+	}
 	var b strings.Builder
 	cmp := "<"
 	if s.Inclusive {
@@ -504,7 +511,6 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 			startCode = ""
 		}
 	}
-	endType := g.getExprType(s.End)
 	if startCode != "" && endType != nil && !types.IsAny(endType) {
 		fmt.Fprintf(&b, "for %s := %s; %s %s %s; %s++ {\n",
 			s.Var, startCode, s.Var, cmp, g.genTypedExpr(s.End), s.Var)
@@ -516,6 +522,29 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 			startExpr, cmp, g.boxValue(s.End))
 		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
+	}
+	for _, stmt := range s.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genTypedStmt(stmt))
+		b.WriteString("\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func (g *Generator) genTypedStringRange(s *ast.RangeStmt) string {
+	var b strings.Builder
+	if s.IndexVar != "" {
+		fmt.Fprintf(&b, "for __idx, __r := range []rune(%s) {\n",
+			g.genTypedExpr(s.End))
+		fmt.Fprintf(&b, "\t%s := int64(__idx)\n", s.IndexVar)
+		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
+	} else {
+		fmt.Fprintf(&b, "for _, __r := range []rune(%s) {\n",
+			g.genTypedExpr(s.End))
+		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
@@ -1001,6 +1030,13 @@ func (g *Generator) genIf(s *ast.IfStmt) string {
 }
 
 func (g *Generator) genRange(s *ast.RangeStmt) string {
+	endType := g.getExprType(s.End)
+	if endType != nil {
+		endType = types.Unwrap(endType)
+	}
+	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
+		return g.genStringRange(s)
+	}
 	var b strings.Builder
 	cmp := "<"
 	if s.Inclusive {
@@ -1013,6 +1049,29 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 		startExpr, cmp, g.genExpr(s.End))
 	fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
+	for _, stmt := range s.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genStmt(stmt))
+		b.WriteString("\n")
+	}
+	b.WriteString("}")
+	return b.String()
+}
+
+func (g *Generator) genStringRange(s *ast.RangeStmt) string {
+	var b strings.Builder
+	if s.IndexVar != "" {
+		fmt.Fprintf(&b, "for __idx, __r := range []rune(meow.AsString(%s)) {\n",
+			g.genExpr(s.End))
+		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(int64(__idx))\n", s.IndexVar)
+		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
+	} else {
+		fmt.Fprintf(&b, "for _, __r := range []rune(meow.AsString(%s)) {\n",
+			g.genExpr(s.End))
+		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
+	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
