@@ -418,7 +418,7 @@ func (interp *Interpreter) evalBinary(e *ast.BinaryExpr, env *Environment) meowr
 // --- Builtin Helpers ---
 
 func requireArgs(name string, args []meowrt.Value, count int) {
-	if len(args) < count {
+	if len(args) != count {
 		panic(fmt.Sprintf("Hiss! %s requires %d argument(s), got %d, nya~", name, count, len(args)))
 	}
 }
