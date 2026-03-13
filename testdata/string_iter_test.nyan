@@ -1,0 +1,53 @@
+# String iteration test
+
+meow catwalk_string_iter_each_char() {
+  purr ch ("cat") {
+    nya(ch)
+  }
+  # Output:
+  # c
+  # a
+  # t
+}
+
+meow catwalk_string_iter_with_index() {
+  purr i, ch ("ab") {
+    nya(i)
+    nya(ch)
+  }
+  # Output:
+  # 0
+  # a
+  # 1
+  # b
+}
+
+meow catwalk_string_iter_multibyte() {
+  purr ch ("にゃん") {
+    nya(ch)
+  }
+  # Output:
+  # に
+  # ゃ
+  # ん
+}
+
+meow catwalk_string_iter_multibyte_index() {
+  purr i, ch ("にゃん") {
+    nya(i)
+  }
+  # Output:
+  # 0
+  # 1
+  # 2
+}
+
+meow catwalk_string_iter_variable() {
+  nyan word = "hi"
+  purr ch (word) {
+    nya(ch)
+  }
+  # Output:
+  # h
+  # i
+}

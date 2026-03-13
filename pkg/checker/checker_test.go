@@ -295,11 +295,39 @@ func TestRangeLoopRangeForm(t *testing.T) {
 }
 
 func TestRangeLoopNonIntBound(t *testing.T) {
-	_, errs := check(t, `purr i ("hello") {
+	_, errs := check(t, `purr i (yarn) {
   nya(i)
 }`)
 	if len(errs) == 0 {
 		t.Fatal("expected error for non-int range bound, got none")
+	}
+}
+
+func TestRangeLoopStringForm(t *testing.T) {
+	_, errs := check(t, `purr ch ("hello") {
+  nya(ch)
+}`)
+	if len(errs) != 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestRangeLoopStringFormWithIndex(t *testing.T) {
+	_, errs := check(t, `purr i, ch ("hello") {
+  nya(i)
+  nya(ch)
+}`)
+	if len(errs) != 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+func TestRangeLoopTwoVarNonString(t *testing.T) {
+	_, errs := check(t, `purr i, ch (10) {
+  nya(i)
+}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for two-variable form with non-string, got none")
 	}
 }
 

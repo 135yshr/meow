@@ -164,11 +164,29 @@ func (interp *Interpreter) execIf(s *ast.IfStmt, env *Environment) {
 }
 
 func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
-	var start, end int64
+	endVal := interp.evalExpr(s.End, env)
+
+	// String iteration: purr ch (str) or purr i, ch (str)
+	if s.Start == nil && !s.Inclusive {
+		if str, ok := endVal.(*meowrt.String); ok {
+			for i, r := range []rune(str.Val) {
+				interp.checkStep()
+				child := env.Child()
+				child.Define(s.Var, meowrt.NewString(string(r)))
+				if s.IndexVar != "" {
+					child.Define(s.IndexVar, meowrt.NewInt(int64(i)))
+				}
+				interp.execBlock(s.Body, child)
+			}
+			return
+		}
+	}
+
+	var start int64
 	if s.Start != nil {
 		start = meowrt.AsInt(interp.evalExpr(s.Start, env))
 	}
-	end = meowrt.AsInt(interp.evalExpr(s.End, env))
+	end := meowrt.AsInt(endVal)
 
 	if s.Start == nil {
 		// count form: purr i (n) → i = 0..n-1

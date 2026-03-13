@@ -567,14 +567,29 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 		}
 	}
 	endType := types.Unwrap(c.inferExpr(s.End))
+	isStringRange := false
 	if !types.IsAny(endType) {
-		if _, ok := endType.(types.IntType); !ok {
+		if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
+			isStringRange = true
+		} else if _, ok := endType.(types.IntType); !ok {
 			c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
 		}
 	}
+	if s.IndexVar != "" && !isStringRange {
+		c.addError(s.Token.Pos, "Two-variable form is only allowed for string iteration")
+	}
 	c.pushScope()
-	c.define(s.Var, types.IntType{})
-	c.info.VarTypes[s.Var] = types.IntType{}
+	if isStringRange {
+		c.define(s.Var, types.StringType{})
+		c.info.VarTypes[s.Var] = types.StringType{}
+		if s.IndexVar != "" {
+			c.define(s.IndexVar, types.IntType{})
+			c.info.VarTypes[s.IndexVar] = types.IntType{}
+		}
+	} else {
+		c.define(s.Var, types.IntType{})
+		c.info.VarTypes[s.Var] = types.IntType{}
+	}
 	for _, stmt := range s.Body {
 		c.checkStmt(stmt)
 	}

@@ -1,0 +1,7 @@
+  PASS: catwalk_string_iter_each_char
+  PASS: catwalk_string_iter_with_index
+  PASS: catwalk_string_iter_multibyte
+  PASS: catwalk_string_iter_multibyte_index
+  PASS: catwalk_string_iter_variable
+
+All 5 tests passed, nya~!

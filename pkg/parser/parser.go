@@ -257,7 +257,18 @@ func (p *Parser) parseIfStmt() *ast.IfStmt {
 
 func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 	tok := p.advance() // consume purr
-	varName := p.expect(token.IDENT)
+	firstName := p.expect(token.IDENT)
+	var indexVar string
+	var varName string
+	if p.cur.Type == token.COMMA {
+		// purr i, ch (expr) — two-variable form
+		p.advance() // consume ,
+		secondName := p.expect(token.IDENT)
+		indexVar = firstName.Literal
+		varName = secondName.Literal
+	} else {
+		varName = firstName.Literal
+	}
 	p.expect(token.LPAREN)
 	first := p.parseExpr(0)
 	if p.cur.Type == token.DOTDOT {
@@ -266,12 +277,12 @@ func (p *Parser) parsePurrStmt() *ast.RangeStmt {
 		end := p.parseExpr(0)
 		p.expect(token.RPAREN)
 		body := p.parseBlock()
-		return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: first, End: end, Inclusive: true, Body: body}
+		return &ast.RangeStmt{Token: tok, Var: varName, IndexVar: indexVar, Start: first, End: end, Inclusive: true, Body: body}
 	}
-	// purr i (count) — count form: 0 to count-1
+	// purr i (count) or purr ch (str) — count form or string form
 	p.expect(token.RPAREN)
 	body := p.parseBlock()
-	return &ast.RangeStmt{Token: tok, Var: varName.Literal, Start: nil, End: first, Inclusive: false, Body: body}
+	return &ast.RangeStmt{Token: tok, Var: varName, IndexVar: indexVar, Start: nil, End: first, Inclusive: false, Body: body}
 }
 
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {

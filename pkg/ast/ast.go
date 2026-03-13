@@ -390,20 +390,27 @@ func (n *IfStmt) stmtTag()            {}
 
 // RangeStmt represents a range-based loop.
 //
-// Two forms are supported:
+// Four forms are supported:
 //
 //	purr i (n)        — count form: i = 0, 1, …, n-1 (n iterations)
 //	purr i (a..b)     — range form: i = a, a+1, …, b  (inclusive)
+//	purr ch (str)     — string form: ch iterates over each rune as a one-char string
+//	purr i, ch (str)  — string form with index: i is rune index, ch is the character
 //
 // In the count form, Start is nil and Inclusive is false.
+// In the string forms, Start is nil, Inclusive is false, and End holds the string expression.
+// The string form is distinguished at type-check time by the type of End.
 type RangeStmt struct {
 	// Token is the purr keyword token.
 	Token token.Token
-	// Var is the loop variable name.
+	// Var is the loop variable name (character in string form, counter in numeric forms).
 	Var string
-	// Start is the range start expression, or nil for the count form.
+	// IndexVar is the optional index variable name for the two-variable string form.
+	// Empty string means no index variable was specified.
+	IndexVar string
+	// Start is the range start expression, or nil for the count/string form.
 	Start Expr
-	// End is the upper bound expression.
+	// End is the upper bound expression (numeric forms) or the string expression (string form).
 	End Expr
 	// Inclusive is true for the a..b form (closed interval).
 	Inclusive bool

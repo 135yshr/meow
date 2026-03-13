@@ -127,6 +127,50 @@ func TestPurrRangeForm(t *testing.T) {
 	}
 }
 
+func TestPurrStringForm(t *testing.T) {
+	prog := parse(t, `purr ch ("hello") {
+  nya(ch)
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
+	if !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if rs.Var != "ch" {
+		t.Errorf("expected var 'ch', got %q", rs.Var)
+	}
+	if rs.IndexVar != "" {
+		t.Errorf("expected empty IndexVar, got %q", rs.IndexVar)
+	}
+	if rs.Start != nil {
+		t.Error("expected nil Start for string form")
+	}
+}
+
+func TestPurrStringFormWithIndex(t *testing.T) {
+	prog := parse(t, `purr i, ch ("hello") {
+  nya(ch)
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
+	if !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if rs.IndexVar != "i" {
+		t.Errorf("expected IndexVar 'i', got %q", rs.IndexVar)
+	}
+	if rs.Var != "ch" {
+		t.Errorf("expected var 'ch', got %q", rs.Var)
+	}
+	if rs.Start != nil {
+		t.Error("expected nil Start for string form")
+	}
+}
+
 func TestImplicitVarStmt(t *testing.T) {
 	prog := parse(t, `x = 42`)
 	if len(prog.Stmts) != 1 {
