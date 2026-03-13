@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "7c25dbb846ec",
+  "strategy": "manual-commit",
+  "branch": "feat/add-to-bytes-builtin",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "docs/stdlib.md",
+    "pkg/checker/checker.go",
+    "pkg/codegen/codegen.go",
+    "pkg/interpreter/interpreter.go",
+    "runtime/meowrt/builtins.go",
+    "testdata/to_bytes_test.golden",
+    "testdata/to_bytes_test.nyan",
+    "website/content/doc/stdlib.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7c/25dbb846ec/0/metadata.json",
+      "transcript": "/7c/25dbb846ec/0/full.jsonl",
+      "context": "/7c/25dbb846ec/0/context.md",
+      "content_hash": "/7c/25dbb846ec/0/content_hash.txt",
+      "prompt": "/7c/25dbb846ec/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 31,
+    "cache_creation_tokens": 29528,
+    "cache_read_tokens": 1084342,
+    "output_tokens": 5889,
+    "api_call_count": 26
+  }
+}

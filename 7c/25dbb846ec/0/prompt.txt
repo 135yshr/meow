@@ -1,0 +1,234 @@
+Implement the following plan:
+
+# Plan: Add `to_bytes` built-in function
+
+## Files to modify
+
+- **`runtime/meowrt/builtins.go`** (after line 99): Add `ToBytes(v Value) Value` — assert `*String`, convert to `[]byte`, wrap each as `NewInt`, return `NewList`
+- **`pkg/checker/checker.go`** (line 824 switch): Add `case "to_bytes": return types.ListType{Elem: types.IntType{}}`
+- **`pkg/codegen/codegen.go`** (line 750-773): Add `"to_bytes"` to case list, `builtinNames` map (`"ToBytes"`), and `builtinRetTypes` map
+- **`pkg/interpreter/interpreter.go`** (line 426 switch): Add `case "to_bytes": requireArgs(..., 1); return meowrt.ToBytes(args[0]), true`
+
+## New files
+
+- **`testdata/to_bytes_test.nyan`** + `.golden`: Golden test — empty string, ASCII, multi-byte UTF-8, non-string panic via `gag`
+
+## Documentation updates
+
+- **`docs/stdlib.md`** (after line 159): Add `### to_bytes(s)` section with description and examples
+- **`website/content/doc/stdlib.md`** (after line 163): Same documentation
+
+## Verification
+
+```bash
+go test ./... -v
+```
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/135yshr/.claude/projects/-Users-135yshr-go-src-github-com-135yshr-meow/ddfba5a1-1665-4e45-991e-8814b71ca7fc.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+# Smart Commit with Gitmoji
+
+Execute the following steps non-interactively:
+
+## Branch Management
+
+- If currently on `main` or `master` branch, create and checkout a new feature branch with a descriptive name
+- If on any other branch, proceed with commit on current branch (no branch creation)
+- If no changes are detected, exit without doing anything
+
+## Change Analysis & Commit
+
+1. **Review all changes** using `git status` and `git diff --staged` (or `git diff` if nothing staged)
+2. **Stage changes** if not already staged using `git add .` or selective staging
+3. **Analyze the changes** to understand:
+   - Type of changes (new feature, bug fix, refactor, etc.)
+   - Scope of changes (which files/components affected)
+   - Impact and purpose of the changes
+
+## Commit Message Creation
+
+Create a commit message following this format:
+
+```
+<gitmoji> <type>: <concise description>
+
+<optional detailed explanation if needed>
+```
+
+### Gitmoji Selection Guide
+
+Choose the most appropriate gitmoji from <https://gitmoji.dev/> based on change type:
+
+**Common Patterns:**
+
+- ✨ `:sparkles:` - New features
+- 🐛 `:bug:` - Bug fixes
+- 🎨 `:art:` - Code structure/format improvements
+- ⚡️ `:zap:` - Performance improvements
+- 📝 `:memo:` - Documentation updates
+- 🔧 `:wrench:` - Configuration changes
+- ♻️ `:recycle:` - Code refactoring
+- 🚨 `:rotating_light:` - Fix linter warnings
+- ✅ `:white_check_mark:` - Add/update tests
+- 🔒️ `:lock:` - Security fixes
+- ⬆️ `:arrow_up:` - Upgrade dependencies
+- 🚚 `:truck:` - Move/rename files
+- 🗑️ `:wastebasket:` - Remove deprecated code
+
+### Message Guidelines
+
+- **Title**: Keep under 50 characters, use imperative mood
+- **Body**: Explain "what" and "why", not "how"
+- **Language**: Write in English
+- **Tone**: Professional and concise
+
+## Final Steps
+
+- Execute the commit with the generated message
+- Display a summary of what was committed
+- Suggest next steps (push to remote, create PR, etc.)
+
+---
+
+[Request interrupted by user]
+
+---
+
+# CodeRabbit Code Review
+
+Run an AI-powered code review using CodeRabbit.
+
+## Context
+
+- Current directory: /Users/135yshr/go/src/github.com/135yshr/meow
+- Git repo: true
+Yes
+- Branch: feat/add-to-bytes-builtin
+- Has changes: Yes
+
+## Instructions
+
+Review code based on: ****
+
+### Prerequisites Check
+
+**Skip these checks if you already verified them earlier in this session.**
+
+Otherwise, run:
+
+```bash
+coderabbit --version 2>/dev/null && coderabbit auth status 2>&1 | head -3
+```
+
+**If CLI not found**, tell user:
+> CodeRabbit CLI is not installed. Run in your terminal:
+>
+> ```bash
+> curl -fsSL https://cli.coderabbit.ai/install.sh | sh
+> ```
+>
+> Then restart your shell and try again.
+
+**If "Not logged in"**, tell user:
+> You need to authenticate. Run in your terminal:
+>
+> ```bash
+> coderabbit auth login
+> ```
+>
+> Then try again.
+
+### Run Review
+
+Once prerequisites are met:
+
+```bash
+coderabbit review --plain -t <type>
+```
+
+Where `<type>` from ``:
+
+- `all` (default) - All changes
+- `committed` - Committed changes only
+- `uncommitted` - Uncommitted only
+
+Add `--base <branch>` if specified.
+
+### Present Results
+
+Group findings by severity:
+
+1. **Critical** - Security, bugs
+2. **Suggestions** - Improvements
+3. **Positive** - What's good
+
+Offer to apply fixes if `codegenInstructions` are present.
+
+---
+
+# Smart Commit with Gitmoji
+
+Execute the following steps non-interactively:
+
+## Branch Management
+
+- If currently on `main` or `master` branch, create and checkout a new feature branch with a descriptive name
+- If on any other branch, proceed with commit on current branch (no branch creation)
+- If no changes are detected, exit without doing anything
+
+## Change Analysis & Commit
+
+1. **Review all changes** using `git status` and `git diff --staged` (or `git diff` if nothing staged)
+2. **Stage changes** if not already staged using `git add .` or selective staging
+3. **Analyze the changes** to understand:
+   - Type of changes (new feature, bug fix, refactor, etc.)
+   - Scope of changes (which files/components affected)
+   - Impact and purpose of the changes
+
+## Commit Message Creation
+
+Create a commit message following this format:
+
+```
+<gitmoji> <type>: <concise description>
+
+<optional detailed explanation if needed>
+```
+
+### Gitmoji Selection Guide
+
+Choose the most appropriate gitmoji from <https://gitmoji.dev/> based on change type:
+
+**Common Patterns:**
+
+- ✨ `:sparkles:` - New features
+- 🐛 `:bug:` - Bug fixes
+- 🎨 `:art:` - Code structure/format improvements
+- ⚡️ `:zap:` - Performance improvements
+- 📝 `:memo:` - Documentation updates
+- 🔧 `:wrench:` - Configuration changes
+- ♻️ `:recycle:` - Code refactoring
+- 🚨 `:rotating_light:` - Fix linter warnings
+- ✅ `:white_check_mark:` - Add/update tests
+- 🔒️ `:lock:` - Security fixes
+- ⬆️ `:arrow_up:` - Upgrade dependencies
+- 🚚 `:truck:` - Move/rename files
+- 🗑️ `:wastebasket:` - Remove deprecated code
+
+### Message Guidelines
+
+- **Title**: Keep under 50 characters, use imperative mood
+- **Body**: Explain "what" and "why", not "how"
+- **Language**: Write in English
+- **Tone**: Professional and concise
+
+## Final Steps
+
+- Execute the commit with the generated message
+- Display a summary of what was committed
+- Suggest next steps (push to remote, create PR, etc.)
