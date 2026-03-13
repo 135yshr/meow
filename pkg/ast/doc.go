@@ -33,7 +33,7 @@
 //   - [FuncStmt]    function definition (meow f(x) { ... })
 //   - [ReturnStmt]  return statement (bring ...)
 //   - [IfStmt]      conditional (sniff / scratch)
-//   - [RangeStmt]   range-based loop (purr i (n) or purr i (a..b))
+//   - [RangeStmt]   range-based loop (purr i (n), purr i (a..b), purr ch (str), purr i, ch (str))
 //   - [ExprStmt]    expression used as a statement
 //
 // # Patterns
