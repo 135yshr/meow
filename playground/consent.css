@@ -1,0 +1,62 @@
+#meow-consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 1000;
+  border-top: 1px solid #333;
+  font-size: 14px;
+}
+
+#meow-consent-banner[hidden] {
+  display: none;
+}
+
+#meow-consent-banner p {
+  margin: 0;
+  flex: 1;
+}
+
+.meow-consent-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.meow-consent-actions button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.meow-consent-actions button:hover {
+  opacity: 0.85;
+}
+
+#meow-consent-accept {
+  background: #4caf50;
+  color: #fff;
+}
+
+#meow-consent-reject {
+  background: #555;
+  color: #e0e0e0;
+}
+
+@media (max-width: 600px) {
+  #meow-consent-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+}
