@@ -496,8 +496,8 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	if endType != nil {
 		endType = types.Unwrap(endType)
 	}
-	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-		return g.genTypedStringRange(s)
+	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
+		return g.genListRange(s)
 	}
 	var b strings.Builder
 	cmp := "<"
@@ -534,28 +534,7 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	return b.String()
 }
 
-func (g *Generator) genTypedStringRange(s *ast.RangeStmt) string {
-	var b strings.Builder
-	if s.IndexVar != "" {
-		fmt.Fprintf(&b, "for __idx, __r := range []rune(%s) {\n",
-			g.genTypedExpr(s.End))
-		fmt.Fprintf(&b, "\t%s := int64(__idx)\n", s.IndexVar)
-		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
-	} else {
-		fmt.Fprintf(&b, "for _, __r := range []rune(%s) {\n",
-			g.genTypedExpr(s.End))
-		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
-	}
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genTypedStmt(stmt))
-		b.WriteString("\n")
-	}
-	b.WriteString("}")
-	return b.String()
-}
+
 
 func (g *Generator) getExprType(expr ast.Expr) types.Type {
 	if g.typeInfo == nil {

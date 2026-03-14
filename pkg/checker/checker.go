@@ -281,6 +281,8 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 		switch t.Name {
 		case "int":
 			return types.IntType{}
+		case "byte":
+			return types.ByteType{}
 		case "float":
 			return types.FloatType{}
 		case "string":
@@ -582,8 +584,9 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 	}
 	c.pushScope()
 	if isListRange {
-		c.define(s.Var, types.AnyType{})
-		c.info.VarTypes[s.Var] = types.AnyType{}
+		elemType := endType.(types.ListType).Elem
+		c.define(s.Var, elemType)
+		c.info.VarTypes[s.Var] = elemType
 		if s.IndexVar != "" {
 			c.define(s.IndexVar, types.IntType{})
 			c.info.VarTypes[s.IndexVar] = types.IntType{}
@@ -764,7 +767,7 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 	case token.PLUS:
 		if uleft.Equals(uright) {
 			switch uleft.(type) {
-			case types.IntType, types.FloatType, types.StringType:
+			case types.IntType, types.ByteType, types.FloatType, types.StringType:
 				return left
 			}
 		}
@@ -781,8 +784,9 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 
 	case token.PERCENT:
 		if uleft.Equals(uright) {
-			if _, ok := uleft.(types.IntType); ok {
-				return types.IntType{}
+			switch uleft.(type) {
+			case types.IntType, types.ByteType:
+				return left
 			}
 		}
 		c.addError(e.Token.Pos, "Cannot modulo %s and %s", left, right)
