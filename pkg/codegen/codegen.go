@@ -400,8 +400,10 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 
 func goTypeString(t types.Type) string {
 	switch t := t.(type) {
-	case types.IntType, types.ByteType:
+	case types.IntType:
 		return "int64"
+	case types.ByteType:
+		return "byte"
 	case types.FloatType:
 		return "float64"
 	case types.StringType:
@@ -616,8 +618,10 @@ func (g *Generator) genExprBoxed(expr ast.Expr) string {
 // boxNative wraps a native Go value in its meow.Value constructor.
 func (g *Generator) boxNative(name string, t types.Type) string {
 	switch types.Unwrap(t).(type) {
-	case types.IntType, types.ByteType:
+	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", name)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewInt(int64(%s))", name)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", name)
 	case types.StringType:
@@ -819,8 +823,10 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 	}
 	typed := g.genTypedExpr(expr)
 	switch types.Unwrap(t).(type) {
-	case types.IntType, types.ByteType:
+	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", typed)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewInt(int64(%s))", typed)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", typed)
 	case types.StringType:
@@ -869,8 +875,10 @@ func isLiteralExpr(expr ast.Expr) bool {
 
 func unboxToNative(boxedExpr string, targetType types.Type) string {
 	switch types.Unwrap(targetType).(type) {
-	case types.IntType, types.ByteType:
+	case types.IntType:
 		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
+	case types.ByteType:
+		return fmt.Sprintf("byte(meow.AsInt(%s))", boxedExpr)
 	case types.FloatType:
 		return fmt.Sprintf("meow.AsFloat(%s)", boxedExpr)
 	case types.StringType:
@@ -884,8 +892,10 @@ func unboxToNative(boxedExpr string, targetType types.Type) string {
 
 func boxNativeCall(call string, retType types.Type) string {
 	switch types.Unwrap(retType).(type) {
-	case types.IntType, types.ByteType:
+	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", call)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewInt(int64(%s))", call)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", call)
 	case types.StringType:
