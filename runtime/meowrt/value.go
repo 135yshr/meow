@@ -301,6 +301,17 @@ func AsString(v Value) string {
 	panic(fmt.Sprintf("Hiss! expected string but got %s, nya~", v.Type()))
 }
 
+// AsList extracts a *List from a Value, panicking with a descriptive message on type mismatch.
+func AsList(v Value) *List {
+	if l, ok := v.(*List); ok {
+		return l
+	}
+	if v == nil {
+		panic("Hiss! expected list but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected list but got %s, nya~", v.Type()))
+}
+
 // AsBool extracts a bool from a Value, panicking with a descriptive message on type mismatch.
 func AsBool(v Value) bool {
 	if b, ok := v.(*Bool); ok {

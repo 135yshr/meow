@@ -12,6 +12,13 @@ type IntType struct{}
 func (IntType) String() string    { return "int" }
 func (IntType) Equals(t Type) bool { _, ok := Unwrap(t).(IntType); return ok }
 
+// ByteType represents the byte type. At runtime, bytes are stored as Int (int64)
+// but the type system distinguishes them for type safety.
+type ByteType struct{}
+
+func (ByteType) String() string    { return "byte" }
+func (ByteType) Equals(t Type) bool { _, ok := Unwrap(t).(ByteType); return ok }
+
 // FloatType represents the float type.
 type FloatType struct{}
 
@@ -178,10 +185,10 @@ func IsAny(t Type) bool {
 	return ok
 }
 
-// IsNumeric reports whether t is IntType or FloatType.
+// IsNumeric reports whether t is IntType, ByteType, or FloatType.
 func IsNumeric(t Type) bool {
 	switch t.(type) {
-	case IntType, FloatType:
+	case IntType, ByteType, FloatType:
 		return true
 	}
 	return false

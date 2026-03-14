@@ -400,7 +400,7 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 
 func goTypeString(t types.Type) string {
 	switch t := t.(type) {
-	case types.IntType:
+	case types.IntType, types.ByteType:
 		return "int64"
 	case types.FloatType:
 		return "float64"
@@ -616,7 +616,7 @@ func (g *Generator) genExprBoxed(expr ast.Expr) string {
 // boxNative wraps a native Go value in its meow.Value constructor.
 func (g *Generator) boxNative(name string, t types.Type) string {
 	switch types.Unwrap(t).(type) {
-	case types.IntType:
+	case types.IntType, types.ByteType:
 		return fmt.Sprintf("meow.NewInt(%s)", name)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", name)
@@ -747,13 +747,14 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
-	case "to_string", "to_int", "to_float", "to_bytes", "is_furball", "gag", "len",
+	case "to_string", "to_int", "to_float", "to_bytes", "to_runes", "is_furball", "gag", "len",
 		"head", "tail", "append", "lick", "picky", "curl":
 		builtinNames := map[string]string{
 			"to_string":  "ToString",
 			"to_int":     "ToInt",
 			"to_float":   "ToFloat",
 			"to_bytes":   "ToBytes",
+			"to_runes":   "ToRunes",
 			"is_furball":  "IsFurball",
 			"gag":        "Gag",
 			"len":        "Len",
@@ -818,7 +819,7 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 	}
 	typed := g.genTypedExpr(expr)
 	switch types.Unwrap(t).(type) {
-	case types.IntType:
+	case types.IntType, types.ByteType:
 		return fmt.Sprintf("meow.NewInt(%s)", typed)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", typed)
@@ -835,7 +836,7 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 // ListType, FurballType, and AnyType are NOT native types; they use meow.Value.
 func isNativeType(t types.Type) bool {
 	switch t.(type) {
-	case types.IntType, types.FloatType, types.StringType, types.BoolType:
+	case types.IntType, types.ByteType, types.FloatType, types.StringType, types.BoolType:
 		return true
 	case types.AliasType:
 		return isNativeType(types.Unwrap(t))
@@ -868,7 +869,7 @@ func isLiteralExpr(expr ast.Expr) bool {
 
 func unboxToNative(boxedExpr string, targetType types.Type) string {
 	switch types.Unwrap(targetType).(type) {
-	case types.IntType:
+	case types.IntType, types.ByteType:
 		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
 	case types.FloatType:
 		return fmt.Sprintf("meow.AsFloat(%s)", boxedExpr)
@@ -883,7 +884,7 @@ func unboxToNative(boxedExpr string, targetType types.Type) string {
 
 func boxNativeCall(call string, retType types.Type) string {
 	switch types.Unwrap(retType).(type) {
-	case types.IntType:
+	case types.IntType, types.ByteType:
 		return fmt.Sprintf("meow.NewInt(%s)", call)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", call)
@@ -1035,8 +1036,8 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	if endType != nil {
 		endType = types.Unwrap(endType)
 	}
-	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-		return g.genStringRange(s)
+	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
+		return g.genListRange(s)
 	}
 	var b strings.Builder
 	cmp := "<"
@@ -1059,20 +1060,18 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	return b.String()
 }
 
-func (g *Generator) genStringRange(s *ast.RangeStmt) string {
+func (g *Generator) genListRange(s *ast.RangeStmt) string {
 	var b strings.Builder
+	fmt.Fprintf(&b, "for __idx, __elem := range meow.AsList(%s).Items {\n",
+		g.genExpr(s.End))
 	if s.IndexVar != "" {
-		fmt.Fprintf(&b, "for __idx, __r := range []rune(meow.AsString(%s)) {\n",
-			g.genExpr(s.End))
 		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(int64(__idx))\n", s.IndexVar)
-		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n", s.IndexVar)
 	} else {
-		fmt.Fprintf(&b, "for _, __r := range []rune(meow.AsString(%s)) {\n",
-			g.genExpr(s.End))
-		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
+		b.WriteString("\t_ = __idx\n")
 	}
+	fmt.Fprintf(&b, "\tvar %s meow.Value = __elem\n", s.Var)
+	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
@@ -1234,6 +1233,8 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
 		case "to_bytes":
 			return fmt.Sprintf("meow.ToBytes(%s)", argStr)
+		case "to_runes":
+			return fmt.Sprintf("meow.ToRunes(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
 		case "is_furball":

@@ -112,6 +112,20 @@ func ToBytes(v Value) Value {
 	return NewList(elems...)
 }
 
+// ToRunes converts a string value to a list of single-character strings.
+func ToRunes(v Value) Value {
+	s, ok := v.(*String)
+	if !ok {
+		panic(fmt.Sprintf("Hiss! Cannot convert %s to runes, nya~", v.Type()))
+	}
+	runes := []rune(s.Val)
+	elems := make([]Value, len(runes))
+	for i, r := range runes {
+		elems[i] = NewString(string(r))
+	}
+	return NewList(elems...)
+}
+
 // Gag calls fn (a zero-argument Func) and recovers from any panic,
 // returning the panic message wrapped in a Furball.
 // If fn succeeds, its return value is returned as-is.

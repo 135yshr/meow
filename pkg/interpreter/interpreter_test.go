@@ -335,7 +335,7 @@ purr i (1..3) {
 
 func TestRangeString(t *testing.T) {
 	got := runMeow(t, `
-purr ch ("meow") {
+purr ch (to_runes("meow")) {
     nya(ch)
 }
 `)
@@ -347,7 +347,7 @@ purr ch ("meow") {
 
 func TestRangeStringWithIndex(t *testing.T) {
 	got := runMeow(t, `
-purr i, ch ("nya") {
+purr i, ch (to_runes("nya")) {
     nya(i)
     nya(ch)
 }
@@ -360,7 +360,7 @@ purr i, ch ("nya") {
 
 func TestRangeStringMultibyte(t *testing.T) {
 	got := runMeow(t, `
-purr i, ch ("にゃん") {
+purr i, ch (to_runes("にゃん")) {
     nya(i)
     nya(ch)
 }

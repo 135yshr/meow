@@ -1,31 +1,32 @@
 # String iteration example
-# purr can iterate over each character (rune) of a string.
+# Use to_runes() to convert a string to a list of characters,
+# then iterate with purr.
 
 nyan greeting = "Hello, Nyantyu!"
 
-# Basic form: purr ch (string_expr)
+# Basic form: purr ch (to_runes(string_expr))
 # ch receives each character as a one-char String.
 nya("=== Each character ===")
-purr ch (greeting) {
+purr ch (to_runes(greeting)) {
   nya(ch)
 }
 
-# Two-variable form: purr i, ch (string_expr)
-# i receives the rune index (Int), ch receives the character (String).
+# Two-variable form: purr i, ch (to_runes(string_expr))
+# i receives the index (Int), ch receives the character (String).
 nya("=== With index ===")
-purr i, ch ("meow") {
+purr i, ch (to_runes("meow")) {
   nya(to_string(i) + ": " + ch)
 }
 
 # Works with multibyte characters (rune-based, not byte-based).
 nya("=== Multibyte ===")
-purr i, ch ("にゃん") {
+purr i, ch (to_runes("にゃん")) {
   nya(to_string(i) + ": " + ch)
 }
 
 # Iterating over a variable.
 nya("=== Variable ===")
 nyan word = "cat"
-purr ch (word) {
+purr ch (to_runes(word)) {
   nya(ch)
 }
