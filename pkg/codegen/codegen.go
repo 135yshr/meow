@@ -621,7 +621,7 @@ func (g *Generator) boxNative(name string, t types.Type) string {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", name)
 	case types.ByteType:
-		return fmt.Sprintf("meow.NewInt(int64(%s))", name)
+		return fmt.Sprintf("meow.NewByte(%s)", name)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", name)
 	case types.StringType:
@@ -826,7 +826,7 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", typed)
 	case types.ByteType:
-		return fmt.Sprintf("meow.NewInt(int64(%s))", typed)
+		return fmt.Sprintf("meow.NewByte(%s)", typed)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", typed)
 	case types.StringType:
@@ -878,7 +878,7 @@ func unboxToNative(boxedExpr string, targetType types.Type) string {
 	case types.IntType:
 		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
 	case types.ByteType:
-		return fmt.Sprintf("byte(meow.AsInt(%s))", boxedExpr)
+		return fmt.Sprintf("meow.AsByte(%s)", boxedExpr)
 	case types.FloatType:
 		return fmt.Sprintf("meow.AsFloat(%s)", boxedExpr)
 	case types.StringType:
@@ -895,7 +895,7 @@ func boxNativeCall(call string, retType types.Type) string {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", call)
 	case types.ByteType:
-		return fmt.Sprintf("meow.NewInt(int64(%s))", call)
+		return fmt.Sprintf("meow.NewByte(%s)", call)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", call)
 	case types.StringType:

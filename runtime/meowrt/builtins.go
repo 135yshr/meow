@@ -98,7 +98,7 @@ func ToString(v Value) Value {
 	return NewString(v.String())
 }
 
-// ToBytes converts a string value to a list of byte integers.
+// ToBytes converts a string value to a list of Byte values.
 func ToBytes(v Value) Value {
 	s, ok := v.(*String)
 	if !ok {
@@ -107,7 +107,7 @@ func ToBytes(v Value) Value {
 	bytes := []byte(s.Val)
 	elems := make([]Value, len(bytes))
 	for i, b := range bytes {
-		elems[i] = NewInt(int64(b))
+		elems[i] = NewByte(b)
 	}
 	return NewList(elems...)
 }
