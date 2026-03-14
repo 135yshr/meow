@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "fc7f2dc86b7b",
+  "strategy": "manual-commit",
+  "branch": "feat/add-to-bytes-builtin",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "playground/consent.css",
+    "playground/consent.js",
+    "playground/index.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/fc/7f2dc86b7b/0/metadata.json",
+      "transcript": "/fc/7f2dc86b7b/0/full.jsonl",
+      "context": "/fc/7f2dc86b7b/0/context.md",
+      "content_hash": "/fc/7f2dc86b7b/0/content_hash.txt",
+      "prompt": "/fc/7f2dc86b7b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 447,
+    "cache_creation_tokens": 64394,
+    "cache_read_tokens": 306274,
+    "output_tokens": 3476,
+    "api_call_count": 12
+  }
+}
