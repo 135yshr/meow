@@ -14,26 +14,26 @@ import (
 
 // Generator produces Go source code from a Meow AST.
 type Generator struct {
-	funcs         []string
-	topLevel      []string
-	indent        int
-	imports       map[string]string // meow pkg name → Go import path
-	testMode      bool
-	testFuncs     []string // names of test_ prefixed functions
-	catwalkFuncs  []string // names of catwalk_ prefixed functions
-	catwalkOutput CatwalkOutput
-	mutations     map[ast.Expr][]mutation.MutationEntry
-	coverEnabled  bool
-	coverFilename string
-	coverBlocks   []coverBlock
-	typeInfo      *checker.TypeInfo
+	funcs             []string
+	topLevel          []string
+	indent            int
+	imports           map[string]string // meow pkg name → Go import path
+	testMode          bool
+	testFuncs         []string // names of test_ prefixed functions
+	catwalkFuncs      []string // names of catwalk_ prefixed functions
+	catwalkOutput     CatwalkOutput
+	mutations         map[ast.Expr][]mutation.MutationEntry
+	coverEnabled      bool
+	coverFilename     string
+	coverBlocks       []coverBlock
+	typeInfo          *checker.TypeInfo
 	currentReturnType types.Type // return type of the function currently being generated
-	kittyDefs     map[string]*ast.KittyStmt
-	collarDefs    map[string]*ast.CollarStmt
-	learnDefs     []*ast.LearnStmt
-	inLearnMethod  bool              // true when generating a learn method body
-	aliasToPackage map[string]string // alias → real package name
-	packageToAlias map[string]string // real package name → alias
+	kittyDefs         map[string]*ast.KittyStmt
+	collarDefs        map[string]*ast.CollarStmt
+	learnDefs         []*ast.LearnStmt
+	inLearnMethod     bool              // true when generating a learn method body
+	aliasToPackage    map[string]string // alias → real package name
+	packageToAlias    map[string]string // real package name → alias
 }
 
 type coverBlock struct {
@@ -534,8 +534,6 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	return b.String()
 }
 
-
-
 func (g *Generator) getExprType(expr ast.Expr) types.Type {
 	if g.typeInfo == nil {
 		return nil
@@ -738,7 +736,7 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"to_float":   "ToFloat",
 			"to_bytes":   "ToBytes",
 			"to_runes":   "ToRunes",
-			"is_furball":  "IsFurball",
+			"is_furball": "IsFurball",
 			"gag":        "Gag",
 			"len":        "Len",
 			"head":       "Head",
@@ -753,7 +751,7 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"to_string":  types.StringType{},
 			"to_int":     types.IntType{},
 			"to_float":   types.FloatType{},
-			"is_furball":  types.BoolType{},
+			"is_furball": types.BoolType{},
 			"len":        types.IntType{},
 		}
 		args := make([]string, len(e.Args))
