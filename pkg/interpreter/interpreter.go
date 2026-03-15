@@ -166,13 +166,13 @@ func (interp *Interpreter) execIf(s *ast.IfStmt, env *Environment) {
 func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 	endVal := interp.evalExpr(s.End, env)
 
-	// String iteration: purr ch (str) or purr i, ch (str)
+	// List iteration: purr elem (list) or purr i, elem (list)
 	if s.Start == nil && !s.Inclusive {
-		if str, ok := endVal.(*meowrt.String); ok {
-			for i, r := range []rune(str.Val) {
+		if list, ok := endVal.(*meowrt.List); ok {
+			for i, elem := range list.Items {
 				interp.checkStep()
 				child := env.Child()
-				child.Define(s.Var, meowrt.NewString(string(r)))
+				child.Define(s.Var, elem)
 				if s.IndexVar != "" {
 					child.Define(s.IndexVar, meowrt.NewInt(int64(i)))
 				}
@@ -444,6 +444,9 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "to_bytes":
 		requireArgs("to_bytes", args, 1)
 		return meowrt.ToBytes(args[0]), true
+	case "to_runes":
+		requireArgs("to_runes", args, 1)
+		return meowrt.ToRunes(args[0]), true
 	case "gag":
 		requireArgs("gag", args, 1)
 		return meowrt.Gag(args[0]), true

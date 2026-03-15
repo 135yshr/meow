@@ -1,7 +1,7 @@
-# String iteration test
+# String iteration test (using to_runes)
 
 meow catwalk_string_iter_each_char() {
-  purr ch ("cat") {
+  purr ch (to_runes("cat")) {
     nya(ch)
   }
   # Output:
@@ -11,7 +11,7 @@ meow catwalk_string_iter_each_char() {
 }
 
 meow catwalk_string_iter_with_index() {
-  purr i, ch ("ab") {
+  purr i, ch (to_runes("ab")) {
     nya(i)
     nya(ch)
   }
@@ -23,7 +23,7 @@ meow catwalk_string_iter_with_index() {
 }
 
 meow catwalk_string_iter_multibyte() {
-  purr ch ("にゃん") {
+  purr ch (to_runes("にゃん")) {
     nya(ch)
   }
   # Output:
@@ -33,7 +33,7 @@ meow catwalk_string_iter_multibyte() {
 }
 
 meow catwalk_string_iter_multibyte_index() {
-  purr i, ch ("にゃん") {
+  purr i, ch (to_runes("にゃん")) {
     nya(i)
   }
   # Output:
@@ -44,7 +44,7 @@ meow catwalk_string_iter_multibyte_index() {
 
 meow catwalk_string_iter_variable() {
   nyan word = "hi"
-  purr ch (word) {
+  purr ch (to_runes(word)) {
     nya(ch)
   }
   # Output:

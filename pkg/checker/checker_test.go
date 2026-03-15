@@ -303,8 +303,17 @@ func TestRangeLoopNonIntBound(t *testing.T) {
 	}
 }
 
-func TestRangeLoopStringForm(t *testing.T) {
+func TestRangeLoopStringFormDirect(t *testing.T) {
 	_, errs := check(t, `purr ch ("hello") {
+  nya(ch)
+}`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for direct string iteration, got none")
+	}
+}
+
+func TestRangeLoopWithToRunes(t *testing.T) {
+	_, errs := check(t, `purr ch (to_runes("hello")) {
   nya(ch)
 }`)
 	if len(errs) != 0 {
@@ -312,8 +321,8 @@ func TestRangeLoopStringForm(t *testing.T) {
 	}
 }
 
-func TestRangeLoopStringFormWithIndex(t *testing.T) {
-	_, errs := check(t, `purr i, ch ("hello") {
+func TestRangeLoopWithToRunesAndIndex(t *testing.T) {
+	_, errs := check(t, `purr i, ch (to_runes("hello")) {
   nya(i)
   nya(ch)
 }`)
@@ -322,12 +331,12 @@ func TestRangeLoopStringFormWithIndex(t *testing.T) {
 	}
 }
 
-func TestRangeLoopTwoVarNonString(t *testing.T) {
+func TestRangeLoopTwoVarNonList(t *testing.T) {
 	_, errs := check(t, `purr i, ch (10) {
   nya(i)
 }`)
 	if len(errs) == 0 {
-		t.Fatal("expected error for two-variable form with non-string, got none")
+		t.Fatal("expected error for two-variable form with non-list, got none")
 	}
 }
 

@@ -26,14 +26,14 @@
 //
 // # Operators
 //
-//	+   -   *   /   %          arithmetic
-//	==  !=                     equality
-//	<   >   <=  >=             comparison
-//	&&  ||  !                  logical
-//	|=|                        pipe (chain operations)
-//	..                         range (used in peek arms)
-//	=>                         match arm separator
-//	=                          assignment
+//   - -   *   /   %          arithmetic
+//     ==  !=                     equality
+//     <   >   <=  >=             comparison
+//     &&  ||  !                  logical
+//     |=|                        pipe (chain operations)
+//     ..                         range (used in peek arms)
+//     =>                         match arm separator
+//     =                          assignment
 //
 // # Delimiters
 //

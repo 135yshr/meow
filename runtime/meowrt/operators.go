@@ -10,6 +10,10 @@ func Add(a, b Value) Value {
 		if b, ok := b.(*Int); ok {
 			return NewInt(a.Val + b.Val)
 		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			return NewByte(a.Val + b.Val)
+		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
 			return NewFloat(a.Val + b.Val)
@@ -30,6 +34,10 @@ func Sub(a, b Value) Value {
 		if b, ok := b.(*Int); ok {
 			return NewInt(a.Val - b.Val)
 		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			return NewByte(a.Val - b.Val)
+		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
 			return NewFloat(a.Val - b.Val)
@@ -45,6 +53,10 @@ func Mul(a, b Value) Value {
 	case *Int:
 		if b, ok := b.(*Int); ok {
 			return NewInt(a.Val * b.Val)
+		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			return NewByte(a.Val * b.Val)
 		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
@@ -65,6 +77,13 @@ func Div(a, b Value) Value {
 			}
 			return NewInt(a.Val / b.Val)
 		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			if b.Val == 0 {
+				panic("Hiss! Division by zero, nya~")
+			}
+			return NewByte(a.Val / b.Val)
+		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
 			if b.Val == 0 {
@@ -78,13 +97,21 @@ func Div(a, b Value) Value {
 
 // Mod performs modulo on integers only.
 func Mod(a, b Value) Value {
-	ai, aok := a.(*Int)
-	bi, bok := b.(*Int)
-	if aok && bok {
-		if bi.Val == 0 {
-			panic("Hiss! Division by zero, nya~")
+	if ai, aok := a.(*Int); aok {
+		if bi, bok := b.(*Int); bok {
+			if bi.Val == 0 {
+				panic("Hiss! Division by zero, nya~")
+			}
+			return NewInt(ai.Val % bi.Val)
 		}
-		return NewInt(ai.Val % bi.Val)
+	}
+	if ab, aok := a.(*Byte); aok {
+		if bb, bok := b.(*Byte); bok {
+			if bb.Val == 0 {
+				panic("Hiss! Division by zero, nya~")
+			}
+			return NewByte(ab.Val % bb.Val)
+		}
 	}
 	panic(fmt.Sprintf("Hiss! Cannot modulo %s and %s, nya~", a.Type(), b.Type()))
 }
@@ -111,6 +138,10 @@ func Equal(a, b Value) Value {
 	switch a := a.(type) {
 	case *Int:
 		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val == b.Val)
+		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
 			return NewBool(a.Val == b.Val)
 		}
 	case *Float:
@@ -183,6 +214,10 @@ func LessThan(a, b Value) Value {
 		if b, ok := b.(*Int); ok {
 			return NewBool(a.Val < b.Val)
 		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			return NewBool(a.Val < b.Val)
+		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
 			return NewBool(a.Val < b.Val)
@@ -196,6 +231,10 @@ func GreaterThan(a, b Value) Value {
 	switch a := a.(type) {
 	case *Int:
 		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val > b.Val)
+		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
 			return NewBool(a.Val > b.Val)
 		}
 	case *Float:
@@ -213,6 +252,10 @@ func LessEqual(a, b Value) Value {
 		if b, ok := b.(*Int); ok {
 			return NewBool(a.Val <= b.Val)
 		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
+			return NewBool(a.Val <= b.Val)
+		}
 	case *Float:
 		if b, ok := b.(*Float); ok {
 			return NewBool(a.Val <= b.Val)
@@ -226,6 +269,10 @@ func GreaterEqual(a, b Value) Value {
 	switch a := a.(type) {
 	case *Int:
 		if b, ok := b.(*Int); ok {
+			return NewBool(a.Val >= b.Val)
+		}
+	case *Byte:
+		if b, ok := b.(*Byte); ok {
 			return NewBool(a.Val >= b.Val)
 		}
 	case *Float:

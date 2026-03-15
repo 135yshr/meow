@@ -50,7 +50,7 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 	blankCount := 0
 	lineStart := true
 	var prevMeaningful token.TokenType // prev token type ignoring NEWLINE
-	afterBrace := false               // suppress newlines right after {
+	afterBrace := false                // suppress newlines right after {
 	afterUnaryMinus := false           // suppress space after unary minus
 	inlineBlock := false               // inside an inline lambda body
 	firstToken := true

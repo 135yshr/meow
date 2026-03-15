@@ -23,6 +23,15 @@ func (i *Int) Type() string   { return "Int" }
 func (i *Int) String() string { return fmt.Sprintf("%d", i.Val) }
 func (i *Int) IsTruthy() bool { return i.Val != 0 }
 
+// Byte represents a byte value.
+type Byte struct{ Val byte }
+
+// NewByte creates a new Byte value.
+func NewByte(v byte) *Byte     { return &Byte{Val: v} }
+func (b *Byte) Type() string   { return "Byte" }
+func (b *Byte) String() string { return fmt.Sprintf("%d", b.Val) }
+func (b *Byte) IsTruthy() bool { return b.Val != 0 }
+
 // Float represents a floating-point value.
 type Float struct{ Val float64 }
 
@@ -279,6 +288,17 @@ func AsInt(v Value) int64 {
 	panic(fmt.Sprintf("Hiss! expected int but got %s, nya~", v.Type()))
 }
 
+// AsByte extracts a byte from a Value, panicking with a descriptive message on type mismatch.
+func AsByte(v Value) byte {
+	if b, ok := v.(*Byte); ok {
+		return b.Val
+	}
+	if v == nil {
+		panic("Hiss! expected byte but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected byte but got %s, nya~", v.Type()))
+}
+
 // AsFloat extracts a float64 from a Value, panicking with a descriptive message on type mismatch.
 func AsFloat(v Value) float64 {
 	if f, ok := v.(*Float); ok {
@@ -299,6 +319,17 @@ func AsString(v Value) string {
 		panic("Hiss! expected string but got nil, nya~")
 	}
 	panic(fmt.Sprintf("Hiss! expected string but got %s, nya~", v.Type()))
+}
+
+// AsList extracts a *List from a Value, panicking with a descriptive message on type mismatch.
+func AsList(v Value) *List {
+	if l, ok := v.(*List); ok {
+		return l
+	}
+	if v == nil {
+		panic("Hiss! expected list but got nil, nya~")
+	}
+	panic(fmt.Sprintf("Hiss! expected list but got %s, nya~", v.Type()))
 }
 
 // AsBool extracts a bool from a Value, panicking with a descriptive message on type mismatch.

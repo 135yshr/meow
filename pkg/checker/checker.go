@@ -18,7 +18,7 @@ type TypeInfo struct {
 	CollarTypes map[string]types.CollarType
 	TrickTypes  map[string]types.TrickType
 	LearnImpls  map[string]map[string]types.FuncType // typeName → methodName → FuncType
-	ImportNames map[string]string                     // effective name → package path
+	ImportNames map[string]string                    // effective name → package path
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -281,6 +281,8 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 		switch t.Name {
 		case "int":
 			return types.IntType{}
+		case "byte":
+			return types.ByteType{}
 		case "float":
 			return types.FloatType{}
 		case "string":
@@ -473,10 +475,10 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	c.currentReturnType = prevReturnType
 }
 
-// isPrimitiveType reports whether t is a simple scalar type (int, float, string, bool, nil).
+// isPrimitiveType reports whether t is a simple scalar type (int, byte, float, string, bool, nil).
 func isPrimitiveType(t types.Type) bool {
 	switch t.(type) {
-	case types.IntType, types.FloatType, types.StringType, types.BoolType, types.NilType:
+	case types.IntType, types.ByteType, types.FloatType, types.StringType, types.BoolType, types.NilType:
 		return true
 	default:
 		return false
@@ -567,21 +569,24 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 		}
 	}
 	endType := types.Unwrap(c.inferExpr(s.End))
-	isStringRange := false
+	isListRange := false
 	if !types.IsAny(endType) {
-		if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-			isStringRange = true
+		if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
+			isListRange = true
+		} else if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
+			c.addError(s.Token.Pos, "Cannot iterate over string directly, use to_runes() to convert first")
 		} else if _, ok := endType.(types.IntType); !ok {
-			c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
+			c.addError(s.Token.Pos, "Range end must be int or list, got %s", endType)
 		}
 	}
-	if s.IndexVar != "" && !isStringRange {
-		c.addError(s.Token.Pos, "Two-variable form is only allowed for string iteration")
+	if s.IndexVar != "" && !isListRange {
+		c.addError(s.Token.Pos, "Two-variable form is only allowed for list iteration")
 	}
 	c.pushScope()
-	if isStringRange {
-		c.define(s.Var, types.StringType{})
-		c.info.VarTypes[s.Var] = types.StringType{}
+	if isListRange {
+		elemType := endType.(types.ListType).Elem
+		c.define(s.Var, elemType)
+		c.info.VarTypes[s.Var] = elemType
 		if s.IndexVar != "" {
 			c.define(s.IndexVar, types.IntType{})
 			c.info.VarTypes[s.IndexVar] = types.IntType{}
@@ -762,7 +767,7 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 	case token.PLUS:
 		if uleft.Equals(uright) {
 			switch uleft.(type) {
-			case types.IntType, types.FloatType, types.StringType:
+			case types.IntType, types.ByteType, types.FloatType, types.StringType:
 				return left
 			}
 		}
@@ -779,8 +784,9 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 
 	case token.PERCENT:
 		if uleft.Equals(uright) {
-			if _, ok := uleft.(types.IntType); ok {
-				return types.IntType{}
+			switch uleft.(type) {
+			case types.IntType, types.ByteType:
+				return left
 			}
 		}
 		c.addError(e.Token.Pos, "Cannot modulo %s and %s", left, right)
@@ -829,7 +835,9 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 		case "to_string":
 			return types.StringType{}
 		case "to_bytes":
-			return types.AnyType{}
+			return types.ListType{Elem: types.ByteType{}}
+		case "to_runes":
+			return types.ListType{Elem: types.StringType{}}
 		case "is_furball":
 			return types.BoolType{}
 		case "len":

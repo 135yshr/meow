@@ -9,37 +9,44 @@ type Type interface {
 // IntType represents the int type.
 type IntType struct{}
 
-func (IntType) String() string    { return "int" }
+func (IntType) String() string     { return "int" }
 func (IntType) Equals(t Type) bool { _, ok := Unwrap(t).(IntType); return ok }
+
+// ByteType represents the byte type. At runtime, bytes are stored as Int (int64)
+// but the type system distinguishes them for type safety.
+type ByteType struct{}
+
+func (ByteType) String() string     { return "byte" }
+func (ByteType) Equals(t Type) bool { _, ok := Unwrap(t).(ByteType); return ok }
 
 // FloatType represents the float type.
 type FloatType struct{}
 
-func (FloatType) String() string    { return "float" }
+func (FloatType) String() string     { return "float" }
 func (FloatType) Equals(t Type) bool { _, ok := Unwrap(t).(FloatType); return ok }
 
 // StringType represents the string type.
 type StringType struct{}
 
-func (StringType) String() string    { return "string" }
+func (StringType) String() string     { return "string" }
 func (StringType) Equals(t Type) bool { _, ok := Unwrap(t).(StringType); return ok }
 
 // BoolType represents the bool type.
 type BoolType struct{}
 
-func (BoolType) String() string    { return "bool" }
+func (BoolType) String() string     { return "bool" }
 func (BoolType) Equals(t Type) bool { _, ok := Unwrap(t).(BoolType); return ok }
 
 // NilType represents the nil type.
 type NilType struct{}
 
-func (NilType) String() string    { return "nil" }
+func (NilType) String() string     { return "nil" }
 func (NilType) Equals(t Type) bool { _, ok := Unwrap(t).(NilType); return ok }
 
 // FurballType represents an error (Furball) type.
 type FurballType struct{}
 
-func (FurballType) String() string    { return "furball" }
+func (FurballType) String() string     { return "furball" }
 func (FurballType) Equals(t Type) bool { _, ok := Unwrap(t).(FurballType); return ok }
 
 // AnyType is an internal fallback type for built-in operations whose types
@@ -48,7 +55,7 @@ func (FurballType) Equals(t Type) bool { _, ok := Unwrap(t).(FurballType); retur
 // type system.
 type AnyType struct{}
 
-func (AnyType) String() string    { return "any" }
+func (AnyType) String() string     { return "any" }
 func (AnyType) Equals(t Type) bool { _, ok := t.(AnyType); return ok }
 
 // ListType represents a list type with element type.
@@ -178,10 +185,10 @@ func IsAny(t Type) bool {
 	return ok
 }
 
-// IsNumeric reports whether t is IntType or FloatType.
+// IsNumeric reports whether t is IntType, ByteType, or FloatType.
 func IsNumeric(t Type) bool {
 	switch t.(type) {
-	case IntType, FloatType:
+	case IntType, ByteType, FloatType:
 		return true
 	}
 	return false

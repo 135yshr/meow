@@ -14,26 +14,25 @@ import (
 
 // Generator produces Go source code from a Meow AST.
 type Generator struct {
-	funcs         []string
-	topLevel      []string
-	indent        int
-	imports       map[string]string // meow pkg name → Go import path
-	testMode      bool
-	testFuncs     []string // names of test_ prefixed functions
-	catwalkFuncs  []string // names of catwalk_ prefixed functions
-	catwalkOutput CatwalkOutput
-	mutations     map[ast.Expr][]mutation.MutationEntry
-	coverEnabled  bool
-	coverFilename string
-	coverBlocks   []coverBlock
-	typeInfo      *checker.TypeInfo
+	funcs             []string
+	topLevel          []string
+	imports           map[string]string // meow pkg name → Go import path
+	testMode          bool
+	testFuncs         []string // names of test_ prefixed functions
+	catwalkFuncs      []string // names of catwalk_ prefixed functions
+	catwalkOutput     CatwalkOutput
+	mutations         map[ast.Expr][]mutation.MutationEntry
+	coverEnabled      bool
+	coverFilename     string
+	coverBlocks       []coverBlock
+	typeInfo          *checker.TypeInfo
 	currentReturnType types.Type // return type of the function currently being generated
-	kittyDefs     map[string]*ast.KittyStmt
-	collarDefs    map[string]*ast.CollarStmt
-	learnDefs     []*ast.LearnStmt
-	inLearnMethod  bool              // true when generating a learn method body
-	aliasToPackage map[string]string // alias → real package name
-	packageToAlias map[string]string // real package name → alias
+	kittyDefs         map[string]*ast.KittyStmt
+	collarDefs        map[string]*ast.CollarStmt
+	learnDefs         []*ast.LearnStmt
+	inLearnMethod     bool              // true when generating a learn method body
+	aliasToPackage    map[string]string // alias → real package name
+	packageToAlias    map[string]string // real package name → alias
 }
 
 type coverBlock struct {
@@ -402,6 +401,8 @@ func goTypeString(t types.Type) string {
 	switch t := t.(type) {
 	case types.IntType:
 		return "int64"
+	case types.ByteType:
+		return "byte"
 	case types.FloatType:
 		return "float64"
 	case types.StringType:
@@ -494,8 +495,8 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	if endType != nil {
 		endType = types.Unwrap(endType)
 	}
-	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-		return g.genTypedStringRange(s)
+	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
+		return g.genListRange(s)
 	}
 	var b strings.Builder
 	cmp := "<"
@@ -522,29 +523,6 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 			startExpr, cmp, g.boxValue(s.End))
 		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
-	}
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genTypedStmt(stmt))
-		b.WriteString("\n")
-	}
-	b.WriteString("}")
-	return b.String()
-}
-
-func (g *Generator) genTypedStringRange(s *ast.RangeStmt) string {
-	var b strings.Builder
-	if s.IndexVar != "" {
-		fmt.Fprintf(&b, "for __idx, __r := range []rune(%s) {\n",
-			g.genTypedExpr(s.End))
-		fmt.Fprintf(&b, "\t%s := int64(__idx)\n", s.IndexVar)
-		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
-	} else {
-		fmt.Fprintf(&b, "for _, __r := range []rune(%s) {\n",
-			g.genTypedExpr(s.End))
-		fmt.Fprintf(&b, "\tvar %s string = string(__r)\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
@@ -618,6 +596,8 @@ func (g *Generator) boxNative(name string, t types.Type) string {
 	switch types.Unwrap(t).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", name)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewByte(%s)", name)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", name)
 	case types.StringType:
@@ -747,14 +727,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
-	case "to_string", "to_int", "to_float", "to_bytes", "is_furball", "gag", "len",
+	case "to_string", "to_int", "to_float", "to_bytes", "to_runes", "is_furball", "gag", "len",
 		"head", "tail", "append", "lick", "picky", "curl":
 		builtinNames := map[string]string{
 			"to_string":  "ToString",
 			"to_int":     "ToInt",
 			"to_float":   "ToFloat",
 			"to_bytes":   "ToBytes",
-			"is_furball":  "IsFurball",
+			"to_runes":   "ToRunes",
+			"is_furball": "IsFurball",
 			"gag":        "Gag",
 			"len":        "Len",
 			"head":       "Head",
@@ -769,7 +750,7 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"to_string":  types.StringType{},
 			"to_int":     types.IntType{},
 			"to_float":   types.FloatType{},
-			"is_furball":  types.BoolType{},
+			"is_furball": types.BoolType{},
 			"len":        types.IntType{},
 		}
 		args := make([]string, len(e.Args))
@@ -820,6 +801,8 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 	switch types.Unwrap(t).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", typed)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewByte(%s)", typed)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", typed)
 	case types.StringType:
@@ -835,7 +818,7 @@ func (g *Generator) boxValue(expr ast.Expr) string {
 // ListType, FurballType, and AnyType are NOT native types; they use meow.Value.
 func isNativeType(t types.Type) bool {
 	switch t.(type) {
-	case types.IntType, types.FloatType, types.StringType, types.BoolType:
+	case types.IntType, types.ByteType, types.FloatType, types.StringType, types.BoolType:
 		return true
 	case types.AliasType:
 		return isNativeType(types.Unwrap(t))
@@ -870,6 +853,8 @@ func unboxToNative(boxedExpr string, targetType types.Type) string {
 	switch types.Unwrap(targetType).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.AsInt(%s)", boxedExpr)
+	case types.ByteType:
+		return fmt.Sprintf("meow.AsByte(%s)", boxedExpr)
 	case types.FloatType:
 		return fmt.Sprintf("meow.AsFloat(%s)", boxedExpr)
 	case types.StringType:
@@ -885,6 +870,8 @@ func boxNativeCall(call string, retType types.Type) string {
 	switch types.Unwrap(retType).(type) {
 	case types.IntType:
 		return fmt.Sprintf("meow.NewInt(%s)", call)
+	case types.ByteType:
+		return fmt.Sprintf("meow.NewByte(%s)", call)
 	case types.FloatType:
 		return fmt.Sprintf("meow.NewFloat(%s)", call)
 	case types.StringType:
@@ -1035,8 +1022,8 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	if endType != nil {
 		endType = types.Unwrap(endType)
 	}
-	if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-		return g.genStringRange(s)
+	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
+		return g.genListRange(s)
 	}
 	var b strings.Builder
 	cmp := "<"
@@ -1059,20 +1046,18 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	return b.String()
 }
 
-func (g *Generator) genStringRange(s *ast.RangeStmt) string {
+func (g *Generator) genListRange(s *ast.RangeStmt) string {
 	var b strings.Builder
+	fmt.Fprintf(&b, "for __idx, __elem := range meow.AsList(%s).Items {\n",
+		g.genExpr(s.End))
 	if s.IndexVar != "" {
-		fmt.Fprintf(&b, "for __idx, __r := range []rune(meow.AsString(%s)) {\n",
-			g.genExpr(s.End))
 		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(int64(__idx))\n", s.IndexVar)
-		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n\t_ = %s\n", s.IndexVar, s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n", s.IndexVar)
 	} else {
-		fmt.Fprintf(&b, "for _, __r := range []rune(meow.AsString(%s)) {\n",
-			g.genExpr(s.End))
-		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewString(string(__r))\n", s.Var)
-		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
+		b.WriteString("\t_ = __idx\n")
 	}
+	fmt.Fprintf(&b, "\tvar %s meow.Value = __elem\n", s.Var)
+	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
@@ -1234,6 +1219,8 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToString(%s)", argStr)
 		case "to_bytes":
 			return fmt.Sprintf("meow.ToBytes(%s)", argStr)
+		case "to_runes":
+			return fmt.Sprintf("meow.ToRunes(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
 		case "is_furball":
