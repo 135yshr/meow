@@ -8,13 +8,13 @@ import (
 
 // Block represents a single instrumented statement.
 type Block struct {
-	FileName    string
-	StartLine   int
-	StartCol    int
-	EndLine     int
-	EndCol      int
-	NumStmt     int
-	Count       int
+	FileName  string
+	StartLine int
+	StartCol  int
+	EndLine   int
+	EndCol    int
+	NumStmt   int
+	Count     int
 }
 
 var blocks []Block

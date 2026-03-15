@@ -18,7 +18,7 @@ type TypeInfo struct {
 	CollarTypes map[string]types.CollarType
 	TrickTypes  map[string]types.TrickType
 	LearnImpls  map[string]map[string]types.FuncType // typeName → methodName → FuncType
-	ImportNames map[string]string                     // effective name → package path
+	ImportNames map[string]string                    // effective name → package path
 }
 
 // NewTypeInfo creates an empty TypeInfo.

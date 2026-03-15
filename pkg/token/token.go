@@ -20,26 +20,26 @@ const (
 	STRING
 
 	// Operators
-	PLUS    // +
-	MINUS   // -
-	STAR    // *
-	SLASH   // /
-	PERCENT // %
-	ASSIGN  // =
-	EQ      // ==
-	NEQ     // !=
-	LT      // <
-	GT      // >
-	LTE     // <=
-	GTE     // >=
-	AND     // &&
-	OR      // ||
-	NOT     // !
+	PLUS       // +
+	MINUS      // -
+	STAR       // *
+	SLASH      // /
+	PERCENT    // %
+	ASSIGN     // =
+	EQ         // ==
+	NEQ        // !=
+	LT         // <
+	GT         // >
+	LTE        // <=
+	GTE        // >=
+	AND        // &&
+	OR         // ||
+	NOT        // !
 	PIPE       // |=|
 	TILDEARROW // ~>
 	DOT        // .
 	DOTDOT     // ..
-	ARROW   // =>
+	ARROW      // =>
 
 	// Delimiters
 	LPAREN   // (
