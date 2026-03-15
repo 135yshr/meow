@@ -16,7 +16,6 @@ import (
 type Generator struct {
 	funcs             []string
 	topLevel          []string
-	indent            int
 	imports           map[string]string // meow pkg name → Go import path
 	testMode          bool
 	testFuncs         []string // names of test_ prefixed functions
