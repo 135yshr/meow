@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "24c6e56fcaa1",
+  "session_id": "439a9c5b-68f9-4831-918b-dff81901957d",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T02:29:50.636252Z",
+  "branch": "seo/improve-search-engine-visibility",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "website/content/_index.md",
+    "website/hugo.toml",
+    "website/layouts/_default/baseof.html",
+    "website/layouts/_default/sitemap.xml",
+    "website/layouts/partials/jsonld.html",
+    "website/layouts/robots.txt"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "a240b396627b",
+  "token_usage": {
+    "input_tokens": 23,
+    "cache_creation_tokens": 88457,
+    "cache_read_tokens": 613041,
+    "output_tokens": 6513,
+    "api_call_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T02:29:50.601036Z",
+    "agent_lines": 84,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 84,
+    "agent_percentage": 100
+  }
+}

@@ -1,0 +1,110 @@
+Implement the following plan:
+
+# SEO改善プラン — Meow Programming Language サイト
+
+## Context
+
+サイト `https://135yshr.github.io/meow/` が検索エンジンでトップに表示されない。調査の結果、以下の重大な問題が見つかった。
+
+---
+
+## 発見された問題
+
+### 致命的 (Critical)
+
+1. **`public/` が `localhost:1313` のURLで生成されている**
+   - `sitemap.xml`、OGタグ、全てのURLが `http://localhost:1313/meow/` を指している
+   - 原因: `public/` がローカル開発サーバーで生成され、そのままコミットされている
+   - CI（`hugo.yml`）では `--baseURL` で正しいURLを使っているが、コミット済みの `public/` は開発用
+   - **対策**: `public/` をgitignoreに追加（CIで毎回生成されるため不要）
+
+2. **`robots.txt` にSitemapのURLが記載されていない**
+   - 現在: `User-agent: *` のみ
+   - **対策**: Hugo設定で `robots.txt` テンプレートを追加し `Sitemap:` ディレクティブを含める
+
+3. **構造化データ（JSON-LD）が完全に欠如**
+   - Schema.org の `SoftwareApplication` / `WebSite` / `Organization` 情報なし
+   - Google検索結果でリッチスニペットが表示されない
+   - **対策**: JSON-LD テンプレートを追加
+
+### 重要 (High)
+
+4. **canonical URL が未設定**
+   - 重複コンテンツと判定されるリスク
+   - **対策**: `baseof.html` の `<head>` に `<link rel="canonical">` を追加
+
+5. **Sitemapの優先度が全ページ一律 `0.5`**
+   - ホームページや主要コンテンツの優先度が低すぎる
+   - **対策**: Hugo のカスタム sitemap テンプレートでページ種別ごとに優先度を設定
+
+6. **`home` の outputs に `["HTML"]` のみ指定 → RSS/Sitemap が除外**
+   - `hugo.toml` の `[outputs] home = ["HTML"]` により、トップレベルの RSS と sitemap がホームから生成されない可能性
+   - **対策**: `home = ["HTML", "RSS", "SITEMAP"]` に変更（Hugo はデフォルトでこれらを含むが、明示的にオーバーライドされている）
+
+### 中程度 (Medium)
+
+7. **`_index.md` の front matter に description がない**（トップページ）
+   - `params.description` は設定されているが、コンテンツファイル側にない
+   - **対策**: トップページの `_index.md` に description を追加
+
+8. **Google Analytics の `window.dataLayer` / `gtag` 関数の初期化が不完全**
+   - `gtag('config', ...)` の前に `window.dataLayer` と `gtag` 関数の定義がない
+   - **対策**: 標準的な GA4 スニペットに修正
+
+---
+
+## 修正ファイルと変更内容
+
+### 1. `website/hugo.toml` — outputs修正 + sitemap設定
+- `[outputs] home = ["HTML", "RSS", "SITEMAP"]` に変更
+- sitemap の priority をデフォルト -1（カスタムテンプレートで制御）
+
+### 2. `website/.gitignore` — public/ を無視
+- `public/` を追加（CIで毎回ビルドされるため）
+
+### 3. `website/layouts/_default/baseof.html` — canonical URL + JSON-LD
+- `<link rel="canonical" href="{{ .Permalink }}">` を追加
+- JSON-LD 構造化データ partial を追加
+
+### 4. `website/layouts/partials/jsonld.html` — 新規作成
+- ホームページ: `WebSite` + `SoftwareApplication` スキーマ
+- 記事ページ: `Article` スキーマ（各コンテンツページ用）
+
+### 5. `website/layouts/robots.txt` — カスタムテンプレート
+- `Sitemap: {{ .Site.BaseURL }}sitemap.xml` を含める
+- Hugo は `enableRobotsTXT = true` + テンプレートがあればテンプレートを使用
+
+### 6. `website/layouts/_default/sitemap.xml` — カスタムsitemap
+- ホームページ: priority 1.0
+- セクションページ: priority 0.8
+- コンテンツページ: priority 0.6
+
+### 7. `website/content/_index.md` — description追加
+- front matter に `description` を追加
+
+### 8. `website/layouts/_default/baseof.html` — GA4初期化修正
+- `window.dataLayer` と `gtag` 関数を定義するスクリプトを追加
+
+---
+
+## 検証方法
+
+1. `cd website && hugo --gc --minify` でビルド
+2. 生成された `public/sitemap.xml` のURLが `https://135yshr.github.io/meow/` であることを確認
+3. 生成された `public/robots.txt` に `Sitemap:` が含まれることを確認
+4. 生成された `public/index.html` に以下が含まれることを確認:
+   - `<link rel="canonical">`
+   - `<script type="application/ld+json">`
+   - 正しい meta description
+5. 各ページの `<head>` にcanonical URLがあることを確認
+6. [Google Rich Results Test](https://search.google.com/test/rich-results) で JSON-LD を検証
+7. `hugo server` でローカル確認 → リンク切れや表示崩れがないこと
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/135yshr/.claude/projects/-Users-135yshr-go-src-github-com-135yshr-meow/2d720405-127c-417e-9bf9-e96ba6bb2c5f.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+create pr

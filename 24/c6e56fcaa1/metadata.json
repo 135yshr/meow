@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "24c6e56fcaa1",
+  "strategy": "manual-commit",
+  "branch": "seo/improve-search-engine-visibility",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "website/content/_index.md",
+    "website/hugo.toml",
+    "website/layouts/_default/baseof.html",
+    "website/layouts/_default/sitemap.xml",
+    "website/layouts/partials/jsonld.html",
+    "website/layouts/robots.txt"
+  ],
+  "sessions": [
+    {
+      "metadata": "/24/c6e56fcaa1/0/metadata.json",
+      "transcript": "/24/c6e56fcaa1/0/full.jsonl",
+      "context": "/24/c6e56fcaa1/0/context.md",
+      "content_hash": "/24/c6e56fcaa1/0/content_hash.txt",
+      "prompt": "/24/c6e56fcaa1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 23,
+    "cache_creation_tokens": 88457,
+    "cache_read_tokens": 613041,
+    "output_tokens": 6513,
+    "api_call_count": 19
+  }
+}
