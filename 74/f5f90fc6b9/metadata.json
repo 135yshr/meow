@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "74f5f90fc6b9",
+  "strategy": "manual-commit",
+  "branch": "feat/to-runes-and-list-iteration",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/auto-release.yml",
+    ".github/workflows/goreleaser.yaml",
+    ".github/workflows/slash-release.yaml",
+    ".releaserc.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/74/f5f90fc6b9/0/metadata.json",
+      "transcript": "/74/f5f90fc6b9/0/full.jsonl",
+      "context": "/74/f5f90fc6b9/0/context.md",
+      "content_hash": "/74/f5f90fc6b9/0/content_hash.txt",
+      "prompt": "/74/f5f90fc6b9/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 53444,
+    "cache_read_tokens": 190300,
+    "output_tokens": 3189,
+    "api_call_count": 7
+  }
+}
