@@ -1,0 +1,68 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: auto-release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Record existing tags
+        id: before
+        run: echo "latest=$(git tag -l 'v*' | sort -V | tail -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: "22"
+
+      - name: Install semantic-release plugins
+        run: npm install -g semantic-release@25.0.3 semantic-release-gitmoji@1.6.9 @semantic-release/changelog@6.0.3 @semantic-release/git@10.0.1
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Get new tag
+        id: tag
+        run: |
+          LATEST=$(git tag -l 'v*' | sort -V | tail -1)
+          BEFORE="${{ steps.before.outputs.latest }}"
+          if [ "$LATEST" != "$BEFORE" ]; then
+            echo "new_tag=$LATEST" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Go
+        if: steps.tag.outputs.new_tag != ''
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        if: steps.tag.outputs.new_tag != ''
+        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+          MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}

@@ -67,6 +67,19 @@
           ]
         }
       }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md"],
+        "message": ":bookmark: release: v${nextRelease.version}"
+      }
     ]
   ]
 }
