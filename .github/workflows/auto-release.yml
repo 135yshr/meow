@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: auto-release-main
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -26,7 +30,7 @@ jobs:
           node-version: "22"
 
       - name: Install semantic-release plugins
-        run: npm install -g semantic-release semantic-release-gitmoji @semantic-release/changelog @semantic-release/git
+        run: npm install -g semantic-release@25.0.3 semantic-release-gitmoji@1.6.9 @semantic-release/changelog@6.0.3 @semantic-release/git@10.0.1
 
       - name: Run semantic-release
         env:
