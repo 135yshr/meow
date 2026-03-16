@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "7131ac715393",
+  "session_id": "180017af-4e5d-4f55-a90b-1e94b782d53d",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T00:32:02.365286Z",
+  "branch": "feat/to-runes-and-list-iteration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/auto-release.yml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "18e0382891d0",
+  "checkpoint_transcript_start": 48,
+  "transcript_lines_at_start": 48,
+  "token_usage": {
+    "input_tokens": 555,
+    "cache_creation_tokens": 21926,
+    "cache_read_tokens": 744418,
+    "output_tokens": 3291,
+    "api_call_count": 16
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T00:32:02.264758Z",
+    "agent_lines": 5,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 5,
+    "agent_percentage": 100
+  }
+}
