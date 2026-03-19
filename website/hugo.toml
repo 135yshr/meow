@@ -61,7 +61,7 @@ enableGitInfo = true
     target = "static/playground"
 
 [outputs]
-  home = ["HTML"]
+  home = ["HTML", "RSS", "SITEMAP"]
 
 [minify]
   [minify.tdewolff]
@@ -70,4 +70,4 @@ enableGitInfo = true
 
 [sitemap]
   changefreq = "weekly"
-  priority = 0.5
+  priority = -1
