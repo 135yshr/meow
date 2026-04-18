@@ -327,7 +327,7 @@ pre code {
 .code-dot.green { background: #27c93f; }
 
 .code-filename {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-family: var(--font-mono);
   font-size: 0.8rem;
   margin-left: 0.5rem;
@@ -513,7 +513,7 @@ pre code {
 }
 
 .btn-playground {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.8rem;
   font-family: var(--font-sans);
   cursor: pointer;
@@ -676,7 +676,7 @@ pre code {
   padding-top: 1.5rem;
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* ── Documentation Layout ── */

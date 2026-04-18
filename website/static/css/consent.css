@@ -52,7 +52,7 @@
 }
 
 #meow-consent-accept {
-  background: var(--consent-accept-bg, #6c63ff);
+  background: var(--consent-accept-bg, #5b52e0);
   color: var(--consent-accept-fg, #fff);
 }
 
