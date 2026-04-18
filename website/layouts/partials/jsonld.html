@@ -43,7 +43,7 @@
       "position": 1,
       "name": "Home",
       "item": "{{ .Site.BaseURL }}"
-    }{{ if .Parent }}{{ if not .Parent.IsHome }},
+    }{{ if and .Parent (not .Parent.IsHome) }},
     {
       "@type": "ListItem",
       "position": 2,
@@ -53,20 +53,12 @@
     {
       "@type": "ListItem",
       "position": 3,
-      "name": "{{ .Title }}",
-      "item": "{{ .Permalink }}"
+      "name": "{{ .Title }}"
     }{{ else }},
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "{{ .Title }}",
-      "item": "{{ .Permalink }}"
-    }{{ end }}{{ else }},
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "{{ .Title }}",
-      "item": "{{ .Permalink }}"
+      "name": "{{ .Title }}"
     }{{ end }}
   ]
 }
@@ -74,7 +66,7 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  {{ if and (eq .Section "blog") (ne .Kind "section") }}"@type": "BlogPosting",{{ else }}"@type": "Article",{{ end }}
+  {{ if and (eq .Section "blog") (ne .Kind "section") }}"@type": "BlogPosting",{{ else if eq .Kind "section" }}"@type": "WebPage",{{ else }}"@type": "Article",{{ end }}
   "headline": "{{ .Title }}",
   "description": "{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}",
   "url": "{{ .Permalink }}",
@@ -96,7 +88,7 @@
       "url": "{{ .Site.BaseURL }}favicon.svg"
     }
   },
-  "image": "{{ .Site.BaseURL }}{{ .Site.Params.ogpImage }}"{{ if not .Date.IsZero }},
+  "image": "{{ .Site.BaseURL }}{{ with .Site.Params.ogpImage }}{{ . }}{{ else }}favicon.svg{{ end }}"{{ if not .Date.IsZero }},
   "datePublished": "{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}"{{ end }}{{ if not .Lastmod.IsZero }},
   "dateModified": "{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}"{{ end }}
 }
