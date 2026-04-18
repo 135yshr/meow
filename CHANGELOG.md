@@ -1,3 +1,8 @@
+# [v0.5.9](https://github.com/135yshr/meow/compare/v0.5.8...v0.5.9) (2026-04-18)
+
+## 🐛 Bug Fixes
+- [`ac0510c`](https://github.com/135yshr/meow/commit/ac0510c)  fix: Revert async style.css that caused layout shift (#77) (Issues: [`#77`](https://github.com/135yshr/meow/issues/77) [`#76`](https://github.com/135yshr/meow/issues/76) [`#75`](https://github.com/135yshr/meow/issues/75) [`#76`](https://github.com/135yshr/meow/issues/76))
+
 # [v0.5.8](https://github.com/135yshr/meow/compare/v0.5.7...v0.5.8) (2026-04-18)
 
 # [v0.5.7](https://github.com/135yshr/meow/compare/v0.5.6...v0.5.7) (2026-04-18)
