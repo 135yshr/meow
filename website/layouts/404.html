@@ -1,0 +1,21 @@
+{{ define "main" }}
+<section style="text-align: center; padding: 4rem 1rem;">
+  <div style="font-size: 6rem; line-height: 1;">&#128049;</div>
+  <h1 style="font-size: 2.5rem; margin-top: 1rem; color: var(--color-primary);">404</h1>
+  <p style="font-size: 1.25rem; color: var(--color-text-secondary); margin-top: 0.5rem;">
+    Hiss! This page wandered off and got lost.
+  </p>
+  <p style="margin-top: 2rem;">
+    <a href="{{ "/" | relURL }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--color-primary); color: var(--color-text-inverse); border-radius: var(--radius); text-decoration: none; font-weight: 600;">Back to Home</a>
+  </p>
+  <nav style="margin-top: 2rem;">
+    <p style="color: var(--color-text-secondary); margin-bottom: 0.5rem;">Or try one of these:</p>
+    <ul style="list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;">
+      <li><a href="{{ "learn/" | relURL }}">Learn</a></li>
+      <li><a href="{{ "doc/" | relURL }}">Docs</a></li>
+      <li><a href="{{ "cookbook/" | relURL }}">Cookbook</a></li>
+      <li><a href="{{ "playground/" | relURL }}">Playground</a></li>
+    </ul>
+  </nav>
+</section>
+{{ end }}

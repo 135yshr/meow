@@ -1,6 +1,6 @@
 ---
 title: "Blog"
-description: "News and updates from the Meow project"
+description: "News, release notes, and updates from the Meow programming language project"
 ---
 
 Latest news, release notes, and articles about the Meow programming language.

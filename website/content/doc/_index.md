@@ -1,6 +1,6 @@
 ---
 title: "Documentation"
-description: "Meow language documentation"
+description: "Meow programming language documentation — language specification, standard library reference, quick reference card, and compiler internals"
 ---
 
 Comprehensive documentation for the Meow programming language.
