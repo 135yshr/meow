@@ -9,11 +9,21 @@
   {{ partial "ogp.html" . }}
   {{ partial "jsonld.html" . }}
   <link rel="icon" href="{{ "favicon.svg" | relURL }}" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
-  <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+  <style>
+    :root{--color-primary:#6c5ce7;--color-primary-light:#a29bfe;--color-bg:#fff;--color-bg-hero:#1a1a2e;--color-text:#2d3436;--color-text-inverse:#fff;--color-border:#dfe6e9;--font-sans:system-ui,-apple-system,"Segoe UI","Noto Sans","Helvetica Neue",Arial,sans-serif;--font-mono:ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,monospace;--radius:8px;--container-width:1200px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font-sans);font-size:16px;line-height:1.6;color:var(--color-text);background:var(--color-bg)}
+    .container{max-width:var(--container-width);margin:0 auto;padding:0 1.5rem}
+    .site-header{position:sticky;top:0;z-index:100;background:var(--color-bg);border-bottom:1px solid var(--color-border)}
+    .nav-container{display:flex;align-items:center;height:3.5rem;gap:2rem}
+    .nav-logo{display:flex;align-items:center;gap:.5rem;font-weight:700;font-size:1.2rem;color:var(--color-text);text-decoration:none}
+    .nav-links{display:flex;list-style:none;gap:.25rem;flex:1}
+    .hero{background:var(--color-bg-hero);color:var(--color-text-inverse);padding:4rem 0 5rem;overflow:hidden}
+    .hero-content{display:grid;grid-template-columns:1fr 1.1fr;gap:3rem;align-items:center}
+    .hero h1{font-size:3.5rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.5rem}
+  </style>
+  <link rel="stylesheet" href="{{ "css/style.css" | relURL }}" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="{{ "css/style.css" | relURL }}"></noscript>
   {{ if hugo.IsProduction }}
     <link rel="stylesheet" href="{{ "css/consent.css" | relURL }}" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="{{ "css/consent.css" | relURL }}"></noscript>
