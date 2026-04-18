@@ -1,6 +1,6 @@
 ---
 title: "Community"
-description: "Join the Meow community"
+description: "Join the Meow programming language community — contribute on GitHub, report issues, and collaborate with other developers"
 ---
 
 Meow is an open-source project. Get involved!

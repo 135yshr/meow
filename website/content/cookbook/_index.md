@@ -1,6 +1,6 @@
 ---
 title: "Cookbook"
-description: "Practical recipes and patterns for Meow"
+description: "Practical recipes and code patterns for the Meow programming language — file I/O, HTTP requests, error handling, and more"
 ---
 
 Task-based recipes for common programming patterns in Meow. Each recipe is a complete, runnable `.nyan` program.
