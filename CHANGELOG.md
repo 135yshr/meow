@@ -1,3 +1,5 @@
+# [v0.5.10](https://github.com/135yshr/meow/compare/v0.5.9...v0.5.10) (2026-04-21)
+
 # [v0.5.9](https://github.com/135yshr/meow/compare/v0.5.8...v0.5.9) (2026-04-18)
 
 ## 🐛 Bug Fixes
