@@ -1,10 +1,10 @@
 ---
-title: "Effective Meow"
-description: "Idiomatic patterns and conventions for writing clean Meow code"
+title: "Effective Meow Programming Language: Idiomatic Patterns and Conventions"
+description: "Idiomatic patterns and conventions for writing clean, consistent Meow Programming Language code — naming, placeholders, and .nyan style."
 weight: 2
 ---
 
-Idiomatic patterns and conventions for writing clean, consistent Meow code.
+Idiomatic patterns and conventions for writing clean, consistent code in the Meow Programming Language.
 
 ## Placeholder Names
 

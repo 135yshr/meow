@@ -1,10 +1,10 @@
 ---
-title: "Release Notes"
-description: "Summary of features and changes by release"
+title: "Meow Programming Language Release Notes"
+description: "Summary of features and changes in each Meow Programming Language release, organized from newest to oldest."
 weight: 1
 ---
 
-A summary of features and changes by release, organized from newest to oldest.
+A summary of features and changes in each Meow Programming Language release, organized from newest to oldest.
 
 ---
 

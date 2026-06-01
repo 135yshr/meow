@@ -1,10 +1,10 @@
 ---
-title: "Contributing"
-description: "How to contribute to the Meow project"
+title: "Contributing to the Meow Programming Language"
+description: "How to contribute to the Meow Programming Language project — environment setup, build commands, testing, and the pull-request workflow."
 weight: 1
 ---
 
-Thank you for your interest in contributing to the Meow programming language! This guide covers everything you need to know to get started.
+Thank you for your interest in contributing to the Meow Programming Language! This guide covers everything you need to know to get started.
 
 ## Development Environment Setup
 

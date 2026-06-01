@@ -1,9 +1,9 @@
 ---
-title: "Cookbook"
-description: "Practical recipes and code patterns for the Meow programming language — file I/O, HTTP requests, error handling, and more"
+title: "Meow Programming Language Cookbook: Practical .nyan Examples"
+description: "Practical Meow Programming Language examples for writing .nyan programs — file I/O, HTTP requests, error handling, pipes, and common patterns."
 ---
 
-Task-based recipes for common programming patterns in Meow. Each recipe is a complete, runnable `.nyan` program.
+Task-based recipes for common programming patterns in the Meow Programming Language. Each recipe is a complete, runnable `.nyan` program.
 
 ## 1. Read a File and Process Each Line
 

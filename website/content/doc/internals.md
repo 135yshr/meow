@@ -1,10 +1,10 @@
 ---
-title: "Compiler Internals"
-description: "Architecture of the Meow compiler pipeline"
+title: "Meow Programming Language Compiler Internals"
+description: "Architecture of the Meow Programming Language compiler pipeline — lexer, parser, checker, codegen, and the path from .nyan to a native binary."
 weight: 4
 ---
 
-This document describes the internal architecture of the Meow compiler for contributors who want to understand or modify the compilation pipeline.
+This document describes the internal architecture of the Meow Programming Language compiler for contributors who want to understand or modify the compilation pipeline.
 
 ## Pipeline Overview
 

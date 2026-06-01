@@ -1,5 +1,5 @@
-{{- $title := .Site.Title -}}
-{{- if not .IsHome -}}
+{{- $title := .Title -}}
+{{- if and (not .IsHome) (not (in .Title .Site.Title)) -}}
   {{- $title = printf "%s - %s" .Title .Site.Title -}}
 {{- end -}}
 

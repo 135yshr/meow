@@ -1,10 +1,10 @@
 ---
-title: "Meow vs Go"
-description: "Side-by-side reference for Go developers learning Meow"
+title: "Meow Programming Language vs Go: Side-by-Side Reference"
+description: "A side-by-side reference for Go developers learning the Meow Programming Language — syntax, types, control flow, and the transpile-to-Go pipeline."
 weight: 3
 ---
 
-A side-by-side reference for Go developers learning Meow. Meow transpiles to Go, so many concepts map directly.
+A side-by-side reference for Go developers learning the Meow Programming Language. Meow transpiles to Go, so many concepts map directly.
 
 ## Syntax Comparison
 

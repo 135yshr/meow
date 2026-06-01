@@ -1,10 +1,10 @@
 ---
-title: "Language Specification"
-description: "Formal definition of Meow syntax and semantics"
+title: "Meow Programming Language Specification: Syntax, Types, Functions, and Pattern Matching"
+description: "The official Meow Programming Language specification covering .nyan syntax, types, functions, control flow, pattern matching, and standard behavior."
 weight: 1
 ---
 
-This document defines the syntax and semantics of the Meow programming language.
+This document defines the syntax and semantics of the Meow Programming Language.
 
 Meow is a cat-themed programming language that transpiles to Go. Source files use the `.nyan` extension and are encoded in UTF-8.
 

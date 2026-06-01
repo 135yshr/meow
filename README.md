@@ -38,7 +38,13 @@
 
 ---
 
-**Meow** is a cat-themed functional programming language that transpiles `.nyan` files into Go source code. It's a joke language — but one that actually works. Write real programs with cat words, compile them to native binaries, and run them at full speed.
+# Meow Programming Language
+
+**Meow Programming Language** (also known as **Meow Language**) is a cat-themed functional programming language that transpiles `.nyan` files into Go source code. It's a joke language — but one that actually works. Write real programs with cat words, compile them to native binaries, and run them at full speed.
+
+- Official website: <https://135yshr.github.io/meow/>
+- Documentation: <https://135yshr.github.io/meow/doc/>
+- Tutorial: <https://135yshr.github.io/meow/learn/tutorial/>
 
 ```
 nyan name = "Tama"
