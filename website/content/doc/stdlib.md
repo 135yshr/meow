@@ -1,10 +1,10 @@
 ---
-title: "Standard Library"
-description: "Built-in packages and functions reference"
+title: "Meow Programming Language Standard Library"
+description: "Reference for built-in functions and standard library packages in the Meow Programming Language — file I/O, HTTP, conversions, and more."
 weight: 2
 ---
 
-This document describes all built-in functions and standard library packages available in Meow.
+This document describes all built-in functions and standard library packages available in the Meow Programming Language.
 
 ## Built-in Functions (no `nab` required)
 

@@ -1,10 +1,10 @@
 ---
-title: "Quick Reference"
-description: "Compact keyword and operator reference card"
+title: "Meow Programming Language Quick Reference"
+description: "A compact reference card for the Meow Programming Language — all keywords, operators, and .nyan syntax at a glance."
 weight: 3
 ---
 
-A complete reference of all keywords, operators, and syntax in the Meow language.
+A complete reference of all keywords, operators, and syntax in the Meow Programming Language.
 
 ## Keywords
 

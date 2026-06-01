@@ -9,8 +9,9 @@ enableGitInfo = true
     ID = "G-ER6J1C357P"
 
 [params]
-  description = "The purrfect cat-themed programming language that transpiles to Go"
+  description = "Meow Programming Language is a cat-themed functional programming language that transpiles .nyan files to Go and compiles to native binaries."
   tagline = "The purrfect functional programming language"
+  brandName = "Meow Programming Language"
   githubRepo = "https://github.com/135yshr/meow"
   goPackage = "https://pkg.go.dev/github.com/135yshr/meow"
   ogpImage = "images/ogp.png"

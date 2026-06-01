@@ -1,10 +1,10 @@
 ---
-title: "Tutorial"
-description: "A step-by-step guide to learning the Meow programming language"
+title: "Meow Programming Language Tutorial: Learn .nyan Syntax from Hello World"
+description: "Learn the Meow Programming Language step by step — variables, functions, pattern matching, pipes, and error handling with runnable .nyan examples."
 weight: 1
 ---
 
-A step-by-step guide to learning the Meow programming language. Each section builds on the previous one and includes runnable examples.
+A step-by-step guide to learning the Meow Programming Language. Each section builds on the previous one and includes runnable `.nyan` examples.
 
 ## Prerequisites
 
