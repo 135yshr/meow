@@ -1,3 +1,8 @@
+# [v0.6.0](https://github.com/135yshr/meow/compare/v0.5.11...v0.6.0) (2026-06-01)
+
+## ✨ New Features
+- [`0f7afd1`](https://github.com/135yshr/meow/commit/0f7afd1)  feat: Canonicalize &quot;Meow Programming Language&quot; name across site (#84) (Issues: [`#84`](https://github.com/135yshr/meow/issues/84))
+
 # [v0.5.11](https://github.com/135yshr/meow/compare/v0.5.10...v0.5.11) (2026-06-01)
 
 # [v0.5.10](https://github.com/135yshr/meow/compare/v0.5.9...v0.5.10) (2026-04-21)
