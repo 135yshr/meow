@@ -1,0 +1,221 @@
+あなたは Hugo / SEO / 静的サイト生成に詳しいエンジニアです。
+
+対象サイトは Hugo で作成されている https://135yshr.github.io/meow/ です。  
+目的は、Google 検索で meow language というキーワードに引っ掛かりやすくすることです。
+
+ただし、闇雲にキーワードを詰め込むのではなく、検索エンジンとユーザーの両方に対して「Meow Language が何であるか」が自然に伝わるように改善してください。
+
+## 目的
+
+現在のサイトでは、Meow や Meow Programming Language という表現はありますが、狙いたい検索語である Meow Language の一貫した使い方が弱い可能性があります。
+
+以下を実現したいです。
+
+- サイト全体で Meow Language を正式名称として扱う
+- トップページの title / H1 / meta description を Meow Language に寄せる
+- Tutorial / Docs / Cookbook などのサブページにも Meow Language を自然に含める
+- 内部リンクのアンカーテキストを Meow Language Tutorial などに改善する
+- Hugo の構成上、問題なく実装できるかを先に調査する
+- 問題がなければ実装する
+- 実装後に、変更内容・確認方法・残課題を報告する
+
+## 進め方
+
+いきなり実装せず、まず以下を調査してください。
+
+### 1. Hugo 構成の調査
+
+以下を確認してください。
+
+- Hugo の設定ファイル  
+  - hugo.toml
+  - config.toml
+  - config.yaml
+  - config/_default/*
+  - など、実際に使われている設定ファイル
+- 使用している theme / layouts
+- title / description / canonical / OGP / Twitter Card の生成箇所
+- トップページの content / layout
+- 各ページの front matter
+- sitemap / robots.txt の生成設定
+- GitHub Pages 向けの baseURL 設定
+- public/ が管理対象か、ビルド成果物か
+
+調査したうえで、どこを修正すべきかを簡潔に説明してください。
+
+### 2. 実装可否の判断
+
+調査の結果、Hugo の構成上問題なく対応できる場合のみ実装してください。
+
+もし以下のような問題がある場合は、実装前に報告してください。
+
+- title / description がテーマ側で固定されていて修正範囲が大きい
+- トップページの H1 がテンプレート側で自動生成されている
+- sitemap / robots.txt が生成されていない、または設定が不明
+- baseURL の設定と公開URLが一致していない
+- 重複ページや canonical の問題がある
+- SEO改善より先に直すべき構成上の問題がある
+
+## 実装してほしい内容
+
+問題がなければ、以下を実装してください。
+
+### A. トップページの改善
+
+トップページでは、Meow Language が正式名称として伝わるようにしてください。
+
+理想イメージ：
+
+html <title>Meow Language - Cat-themed Programming Language that Transpiles to Go</title> 
+
+H1 の理想イメージ：
+
+html <h1>Meow Language</h1> 
+
+冒頭説明の理想イメージ：
+
+text Meow Language is a cat-themed functional programming language that transpiles .nyan files to Go. 
+
+可能であれば、トップページに以下のようなセクションを追加してください。
+
+md ## What is Meow Language?  Meow Language is a cat-themed functional programming language that transpiles to Go. It uses playful keywords such as `nyan`, `meow`, `purr`, and `hiss`, while still compiling to native binaries through Go. 
+
+ただし、既存のデザインや文体と大きくズレないように自然に調整してください。
+
+### B. meta description の改善
+
+トップページの meta description を改善してください。
+
+例：
+
+text Meow Language is a cat-themed functional programming language that transpiles .nyan files to Go and compiles to native binaries. Learn the syntax, install the compiler, and run examples. 
+
+Hugo の front matter / params / partial など、現在の構成に合わせて実装してください。
+
+### C. サブページの title / description 改善
+
+以下のようなページが存在する場合、title / description に Meow Language を自然に含めてください。
+
+例：
+
+md title: "Meow Language Tutorial: Learn .nyan Syntax from Hello World" description: "Learn Meow Language syntax, including variables, functions, pattern matching, pipes, and error handling with .nyan examples." 
+
+md title: "Meow Language Specification: Syntax, Types, Functions, and Pattern Matching" description: "The official Meow Language specification covering .nyan syntax, types, functions, control flow, pattern matching, and standard behavior." 
+
+md title: "Meow Language Cookbook: Practical .nyan Examples" description: "Practical Meow Language examples for writing .nyan programs, using functions, lists, files, HTTP, and common patterns." 
+
+対象ページは、実際の content 配下を確認して判断してください。
+
+### D. 内部リンクのアンカーテキスト改善
+
+ナビゲーション、トップページ内のリンク、フッター、サイドバーなどで、可能な範囲でリンクテキストを改善してください。
+
+例：
+
+text Tutorial 
+
+ではなく、
+
+text Meow Language Tutorial 
+
+または、UI上長すぎる場合は以下のように自然な表現にしてください。
+
+text Learn Meow Language 
+
+対象候補：
+
+- Tutorial
+- Language Spec
+- Standard Library
+- Cookbook
+- Docs
+- GitHub へのリンク
+- 公式サイトトップへのリンク
+
+ただし、ナビゲーションが長くなりすぎてUIが崩れる場合は、無理にすべて変更しないでください。
+
+### E. 構造化データの追加を検討
+
+Hugo の partial として自然に追加できる場合、トップページに SoftwareApplication または SoftwareSourceCode の JSON-LD を追加してください。
+
+例：
+
+json {   "@context": "https://schema.org",   "@type": "SoftwareSourceCode",   "name": "Meow Language",   "description": "Meow Language is a cat-themed functional programming language that transpiles .nyan files to Go.",   "programmingLanguage": "Go",   "codeRepository": "https://github.com/135yshr/meow",   "url": "https://135yshr.github.io/meow/" } 
+
+既存の OGP / SEO partial がある場合は、そこに自然に組み込んでください。  
+難しい場合は無理に実装せず、「追加候補」として報告してください。
+
+### F. sitemap / robots.txt の確認
+
+以下を確認してください。
+
+- sitemap.xml が生成される設定になっているか
+- robots.txt が生成される設定になっているか
+- robots.txt に sitemap のURLを含められるか
+- baseURL が https://135yshr.github.io/meow/ と一致しているか
+
+問題があれば修正してください。
+
+### G. README の改善
+
+可能であれば、GitHub README の冒頭も以下のように Meow Language を正式名称として扱うように修正してください。
+
+例：
+
+md # Meow Language  Meow Language is a cat-themed functional programming language that transpiles to Go.  - Official Website: https://135yshr.github.io/meow/ - Documentation: https://135yshr.github.io/meow/docs/ - Tutorial: https://135yshr.github.io/meow/learn/tutorial/ 
+
+また、GitHub の About / Topics はコードからは修正できない可能性があるため、必要であれば手動対応項目として報告してください。
+
+推奨 Topics：
+
+text meow-language programming-language go transpiler functional-programming compiler cat-themed 
+
+## 注意事項
+
+- Meow Language を不自然に連呼しないでください
+- キーワードスタッフィングは避けてください
+- 既存の文体・デザイン・ブランド感を壊さないでください
+- 日本語ではなく、基本的には既存サイトに合わせて英語で修正してください
+- 既存URLを不用意に変更しないでください
+- URLを変更する場合は、SEO上の影響とリダイレクト可否を必ず説明してください
+- Hugo の build が通ることを確認してください
+- 生成物の public/ がリポジトリ管理対象でない場合は、直接編集しないでください
+
+## 実装後に確認してほしいこと
+
+実装後、以下を確認してください。
+
+bash hugo 
+
+または、リポジトリの実際の手順に合わせてビルドしてください。
+
+可能であれば、ローカルサーバーでも確認してください。
+
+bash hugo server 
+
+確認項目：
+
+- トップページの title が Meow Language を含む
+- トップページの H1 が Meow Language になっている
+- meta description が自然な内容になっている
+- Tutorial / Spec / Cookbook などの title がページ固有になっている
+- OGP / Twitter Card が壊れていない
+- sitemap.xml が生成される
+- robots.txt が生成される
+- 内部リンクが壊れていない
+- レイアウト崩れがない
+- ビルドエラーがない
+
+## 最終報告で出してほしい内容
+
+最後に、以下の形式で報告してください。
+
+md ## 調査結果  - Hugo の構成: - title / description の生成箇所: - sitemap / robots.txt の状態: - 修正可能と判断した理由:  ## 実装内容  - 変更したファイル: - 変更した内容: - SEO上の意図:  ## 確認結果  - 実行したコマンド: - ビルド結果: - 表示確認: - 残っている懸念:  ## 手動対応が必要な項目  - Google Search Console への sitemap 送信 - GitHub About の説明変更 - GitHub Topics の追加 - Zenn / dev.to / Qiita など外部記事からのリンク追加 
+
+## ゴール
+
+最終的に、Google やユーザーから見て、このサイトが
+
+text Meow Language = cat-themed programming language that transpiles to Go 
+
+であることが明確に伝わる状態にしてください。

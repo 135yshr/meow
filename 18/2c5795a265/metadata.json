@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "182c5795a265",
+  "strategy": "manual-commit",
+  "branch": "seo/canonicalize-meow-programming-language",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "website/content/_index.md",
+    "website/content/blog/_index.md",
+    "website/content/blog/release-notes.md",
+    "website/content/community/_index.md",
+    "website/content/community/contributing.md",
+    "website/content/cookbook/_index.md",
+    "website/content/doc/_index.md",
+    "website/content/doc/internals.md",
+    "website/content/doc/reference.md",
+    "website/content/doc/spec.md",
+    "website/content/doc/stdlib.md",
+    "website/content/learn/_index.md",
+    "website/content/learn/effective-meow.md",
+    "website/content/learn/go-comparison.md",
+    "website/content/learn/tutorial.md",
+    "website/hugo.toml",
+    "website/layouts/_default/baseof.html",
+    "website/layouts/index.html",
+    "website/layouts/partials/footer.html",
+    "website/layouts/partials/jsonld.html",
+    "website/layouts/partials/ogp.html",
+    "website/static/css/style.css"
+  ],
+  "sessions": [
+    {
+      "metadata": "/18/2c5795a265/0/metadata.json",
+      "transcript": "/18/2c5795a265/0/full.jsonl",
+      "content_hash": "/18/2c5795a265/0/content_hash.txt",
+      "prompt": "/18/2c5795a265/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 143,
+    "cache_creation_tokens": 370790,
+    "cache_read_tokens": 12281940,
+    "output_tokens": 43413,
+    "api_call_count": 129
+  }
+}
