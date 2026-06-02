@@ -1,0 +1,130 @@
+## 追加対応: GitHub Pages の sitemap.xml Content-Type 問題への対策
+
+対象サイトは GitHub Pages の https://135yshr.github.io/meow/ で公開されています。
+
+GitHub Pages では、sitemap.xml がブラウザ上では表示できても、HTTP レスポンスヘッダーの Content-Type が application/xml ではなく text/html などになり、Google Search Console で「取得できませんでした」「サイトマップを読み込めませんでした」と表示されるケースがあるようです。
+
+そのため、SEO対策として sitemap.xml の生成確認だけでなく、GitHub Pages での配信時の Content-Type 問題も考慮してください。
+
+### 調査してほしいこと
+
+まず、現在の公開サイトに対して以下を確認してください。
+
+bash curl -I https://135yshr.github.io/meow/sitemap.xml curl -I https://135yshr.github.io/meow/robots.txt curl -I https://135yshr.github.io/meow/index.xml 
+
+確認ポイント：
+
+- sitemap.xml が 200 OK で返るか
+- sitemap.xml の Content-Type が application/xml または XML として妥当な値になっているか
+- robots.txt が存在するか
+- robots.txt に sitemap URL が記載されているか
+- Hugo が生成する RSS / Atom feed が存在するか
+- Google Search Console に登録すべき URL がどれか
+
+### 実装してほしい対策
+
+GitHub Pages 側の Content-Type 問題が確認された場合、または Search Console で sitemap が取得できない可能性が高い場合は、以下を実装・検討してください。
+
+### A. HTML sitemap ページを追加する
+
+XML sitemap だけに依存しないよう、全主要ページへのリンクを含む HTML sitemap ページを作成してください。
+
+URL例：
+
+text https://135yshr.github.io/meow/sitemap/ 
+
+または：
+
+text https://135yshr.github.io/meow/sitemap.html 
+
+ページタイトル例：
+
+md title: "Sitemap - Meow Programming Language" description: "Browse all pages of the Meow Programming Language website, including documentation, tutorials, cookbook examples, and references." 
+
+内容例：
+
+md # Sitemap  Browse all pages of the Meow Programming Language website.  ## Main Pages  - Home - Documentation - Tutorial - Cookbook - Language Specification - Standard Library - Quick Reference - GitHub Repository  ## Documentation  - Meow Programming Language Tutorial - Meow Programming Language Specification - Meow Programming Language Standard Library - Meow Programming Language Quick Reference  ## Examples  - Meow Programming Language Cookbook 
+
+実際のリンク先は、現在の Hugo content 配下と生成URLを確認して正しいURLにしてください。
+
+### B. フッターまたはナビゲーションから HTML sitemap にリンクする
+
+HTML sitemap がクローラーから発見されるように、フッターなどからリンクしてください。
+
+例：
+
+html <a href="/meow/sitemap/">Sitemap</a> 
+
+GitHub Pages の baseURL が /meow/ 配下である点に注意してください。
+
+### C. robots.txt は維持・改善する
+
+robots.txt が生成されていない場合は生成してください。
+
+理想例：
+
+txt User-agent: * Allow: /  Sitemap: https://135yshr.github.io/meow/sitemap.xml 
+
+ただし、GitHub Pages の Content-Type 問題がある場合、robots.txt に Sitemap: を書いても Search Console の sitemap 取得エラーが解消しない可能性があります。  
+そのため、robots.txt は補助として扱い、HTML sitemap と内部リンク強化も必ず行ってください。
+
+### D. RSS / index.xml の扱いを確認する
+
+Hugo が index.xml などの RSS feed を生成している場合、Google Search Console に登録可能な代替 sitemap として使えるか確認してください。
+
+確認コマンド：
+
+bash curl -I https://135yshr.github.io/meow/index.xml 
+
+ただし、これも GitHub Pages 側の Content-Type 問題を受ける可能性があるため、実際のレスポンスヘッダーを確認して判断してください。
+
+### E. Text sitemap の追加を検討する
+
+Google は URL を1行ずつ並べた text sitemap もサポートしています。  
+そのため、可能であれば sitemap.txt を生成することも検討してください。
+
+例：
+
+txt https://135yshr.github.io/meow/ https://135yshr.github.io/meow/doc/ https://135yshr.github.io/meow/cookbook/ 
+
+ただし、GitHub Pages で .txt の Content-Type も期待通りにならない可能性があるため、curl -I で確認し、Search Console で利用できそうな場合のみ採用してください。
+
+### F. 根本対応としてホスティング移行・カスタムドメインも検討する
+
+GitHub Pages 側で Content-Type を制御できない場合、根本対応として以下を検討してください。
+
+- Cloudflare Pages に移行する
+- Netlify に移行する
+- Vercel に移行する
+- カスタムドメイン + Cloudflare 経由で配信する
+- Cloudflare Workers / Pages Functions などで sitemap の Content-Type を application/xml に補正する
+
+ただし、今回はまず GitHub Pages のまま対応できる範囲を優先してください。  
+ホスティング移行や Cloudflare 導入は、必要であれば「手動対応が必要な項目」として報告してください。
+
+### G. 実装後の確認項目
+
+実装後、以下を確認してください。
+
+bash hugo curl -I https://135yshr.github.io/meow/sitemap.xml curl -I https://135yshr.github.io/meow/robots.txt curl -I https://135yshr.github.io/meow/sitemap/ 
+
+確認項目：
+
+- Hugo build が成功する
+- sitemap.xml が生成される
+- robots.txt が生成される
+- HTML sitemap ページが生成される
+- HTML sitemap へフッターなどからリンクされている
+- HTML sitemap に主要ページへのリンクが含まれている
+- baseURL が https://135yshr.github.io/meow/ と一致している
+- Search Console で sitemap.xml が失敗しても、内部リンク経由で主要ページを発見できる構造になっている
+
+### H. 最終報告に含めること
+
+最終報告では、以下を必ず記載してください。
+
+md ## GitHub Pages sitemap Content-Type 問題への対応  - sitemap.xml のレスポンスヘッダー: - robots.txt の状態: - HTML sitemap の追加有無: - RSS / index.xml の確認結果: - sitemap.txt の追加可否: - Search Console に登録すべきURL: - GitHub Pages のまま残る懸念: - 根本対応が必要な場合の候補: 
+
+### ゴール
+
+Meow Programming Language のSEO対策として、sitemap.xml だけに依存せず、GitHub Pages の Content-Type 問題があっても Google が主要ページを発見しやすい構造にしてください。
