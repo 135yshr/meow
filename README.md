@@ -45,6 +45,8 @@
 - Official website: <https://135yshr.github.io/meow/>
 - Documentation: <https://135yshr.github.io/meow/doc/>
 - Tutorial: <https://135yshr.github.io/meow/learn/tutorial/>
+- Cookbook: <https://135yshr.github.io/meow/cookbook/>
+- Language Specification: <https://135yshr.github.io/meow/doc/spec/>
 
 ```
 nyan name = "Tama"
