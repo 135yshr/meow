@@ -698,6 +698,28 @@ pre code {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5);
 }
+.footer-meta {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.footer-meta a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+}
+.footer-meta a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.sitemap-page h2 {
+  margin-top: 2rem;
+}
+.sitemap-page .sitemap-desc {
+  color: var(--color-text-secondary);
+}
 
 /* ── Documentation Layout ── */
 .doc-layout {

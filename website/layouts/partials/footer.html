@@ -38,6 +38,13 @@
     </div>
     <div class="footer-bottom">
       <p>&copy; {{ now.Year }} Meow Programming Language. Licensed under MIT.</p>
+      <p class="footer-meta">
+        <a href="{{ "sitemap/" | relURL }}">Sitemap</a>
+        <span aria-hidden="true">·</span>
+        <a href="{{ "sitemap.xml" | relURL }}">XML sitemap</a>
+        <span aria-hidden="true">·</span>
+        <a href="{{ "index.xml" | relURL }}">RSS</a>
+      </p>
     </div>
   </div>
 </footer>
