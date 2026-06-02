@@ -1,3 +1,8 @@
+# [v0.7.0](https://github.com/135yshr/meow/compare/v0.6.0...v0.7.0) (2026-06-02)
+
+## ✨ New Features
+- [`2f2009f`](https://github.com/135yshr/meow/commit/2f2009f)  feat: Add Meow vs MeowLang comparison page
+
 # [v0.6.0](https://github.com/135yshr/meow/compare/v0.5.11...v0.6.0) (2026-06-01)
 
 ## ✨ New Features
