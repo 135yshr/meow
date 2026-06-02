@@ -1,0 +1,47 @@
+{{ define "main" }}
+<div class="doc-layout">
+  <div class="container doc-container">
+    {{ partial "sidebar.html" . }}
+    <article class="doc-content sitemap-page">
+      <h1>{{ .Title }}</h1>
+      {{ .Content }}
+
+      <h2>Main pages</h2>
+      <ul>
+        <li><a href="{{ "" | relURL }}">Home — Meow Programming Language</a></li>
+        <li><a href="{{ "playground/" | relURL }}">Playground</a></li>
+        <li><a href="{{ "meow-programming-language-vs-meowlang/" | relURL }}">Meow vs MeowLang</a></li>
+      </ul>
+
+      {{ $sections := slice "learn" "doc" "cookbook" "blog" "community" }}
+      {{ range $sections }}
+        {{ $section := site.GetPage (printf "/%s" .) }}
+        {{ if $section }}
+          <h2>
+            <a href="{{ $section.RelPermalink }}">{{ $section.Title }}</a>
+          </h2>
+          {{ with $section.Description }}<p>{{ . }}</p>{{ end }}
+          {{ $children := where $section.Pages "Kind" "ne" "404" }}
+          {{ if $children }}
+          <ul>
+            {{ range $children }}
+            <li>
+              <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+              {{ with .Description }} — <span class="sitemap-desc">{{ . }}</span>{{ end }}
+            </li>
+            {{ end }}
+          </ul>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <h2>Feeds &amp; machine-readable indexes</h2>
+      <ul>
+        <li><a href="{{ "sitemap.xml" | relURL }}">XML sitemap (sitemap.xml)</a></li>
+        <li><a href="{{ "index.xml" | relURL }}">RSS feed (index.xml)</a></li>
+        <li><a href="{{ "robots.txt" | relURL }}">robots.txt</a></li>
+      </ul>
+    </article>
+  </div>
+</div>
+{{ end }}
