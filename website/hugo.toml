@@ -6,7 +6,7 @@ enableGitInfo = true
 
 [services]
   [services.googleAnalytics]
-    ID = "G-ER6J1C357P"
+    ID = "G-081QKVSS83"
 
 [params]
   description = "Meow Programming Language is a cat-themed functional programming language that transpiles .nyan files to Go and compiles to native binaries."
