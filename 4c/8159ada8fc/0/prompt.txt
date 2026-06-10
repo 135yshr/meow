@@ -1,0 +1,3 @@
+所有権確認のためにサイトに以下のメタタグを追加してください。
+
+<meta name="google-site-verification" content="REDACTED" />
