@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "8e02fa6d2328",
+  "strategy": "manual-commit",
+  "branch": "chore/custom-domain",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "README.md",
+    "playground/index.html",
+    "website/hugo.toml",
+    "website/static/CNAME"
+  ],
+  "sessions": [
+    {
+      "metadata": "/8e/02fa6d2328/0/metadata.json",
+      "transcript": "/8e/02fa6d2328/0/full.jsonl",
+      "content_hash": "/8e/02fa6d2328/0/content_hash.txt",
+      "prompt": "/8e/02fa6d2328/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 45,
+    "cache_creation_tokens": 188673,
+    "cache_read_tokens": 1083450,
+    "output_tokens": 6098,
+    "api_call_count": 20
+  }
+}
