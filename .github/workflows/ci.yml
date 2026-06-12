@@ -86,7 +86,7 @@ jobs:
         run: |
           output=$(meow run examples/hello.nyan)
           echo "$output"
-          [ "$output" = "Hello, Tama!" ] || exit 1
+          [ "$output" = "Hello, Nyantyu!" ] || exit 1
 
       - name: Run fibonacci.nyan
         run: meow run examples/fibonacci.nyan
