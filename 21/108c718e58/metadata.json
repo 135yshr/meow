@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "21108c718e58",
+  "strategy": "manual-commit",
+  "branch": "update-hello-example",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "examples/hello.nyan"
+  ],
+  "sessions": [
+    {
+      "metadata": "/21/108c718e58/0/metadata.json",
+      "transcript": "/21/108c718e58/0/full.jsonl",
+      "content_hash": "/21/108c718e58/0/content_hash.txt",
+      "prompt": "/21/108c718e58/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 21,
+    "cache_creation_tokens": 4344,
+    "cache_read_tokens": 657611,
+    "output_tokens": 2713,
+    "api_call_count": 11
+  }
+}
