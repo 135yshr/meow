@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "6ec270e2be9f",
+  "strategy": "manual-commit",
+  "branch": "update-hello-example",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "pkg/codegen/codegen.go",
+    "pkg/interpreter/interpreter.go",
+    "runtime/file/file.go",
+    "runtime/file/file_test.go",
+    "runtime/http/http.go",
+    "runtime/http/http_test.go",
+    "runtime/meowrt/builtins.go",
+    "runtime/meowrt/furball.go",
+    "runtime/meowrt/kitty_test.go",
+    "runtime/meowrt/list.go",
+    "runtime/meowrt/operators.go",
+    "runtime/meowrt/operators_test.go",
+    "runtime/meowrt/tricks.go",
+    "runtime/meowrt/value.go",
+    "runtime/meowrt/value_test.go",
+    "runtime/testing/testing.go",
+    "runtime/testing/testing_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6e/c270e2be9f/0/metadata.json",
+      "transcript": "/6e/c270e2be9f/0/full.jsonl",
+      "content_hash": "/6e/c270e2be9f/0/content_hash.txt",
+      "prompt": "/6e/c270e2be9f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 184,
+    "cache_creation_tokens": 329876,
+    "cache_read_tokens": 27666286,
+    "output_tokens": 111406,
+    "api_call_count": 160
+  }
+}
