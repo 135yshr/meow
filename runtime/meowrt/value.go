@@ -386,22 +386,65 @@ func TryAsBool(v Value) (bool, *Furball) {
 	return false, &Furball{Message: fmt.Sprintf("Hiss! expected bool but got %s, nya~", v.Type())}
 }
 
-// AsInt extracts an int64 from a Value. Type mismatch yields the zero value
-// — for use in code paths where a Furball has already been short-circuited
-// by the caller (typed codegen with explicit error handling).
-func AsInt(v Value) int64 { n, _ := TryAsInt(v); return n }
+// AsInt extracts an int64 from a Value. A Furball input panics with the
+// Hiss message so callers that haven't short-circuited can't silently
+// receive a zero value — Gag's deferred recover converts the panic back
+// into a Furball at the typed-path boundary. Non-Furball type mismatch
+// also panics for the same loud-failure reason.
+func AsInt(v Value) int64 {
+	n, f := TryAsInt(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return n
+}
 
-// AsByte extracts a byte from a Value (zero on mismatch).
-func AsByte(v Value) byte { n, _ := TryAsByte(v); return n }
+// AsByte extracts a byte from a Value. Panics on Furball input or type
+// mismatch (see AsInt for the rationale).
+func AsByte(v Value) byte {
+	n, f := TryAsByte(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return n
+}
 
-// AsFloat extracts a float64 from a Value (zero on mismatch).
-func AsFloat(v Value) float64 { n, _ := TryAsFloat(v); return n }
+// AsFloat extracts a float64 from a Value. Panics on Furball input or
+// type mismatch (see AsInt for the rationale).
+func AsFloat(v Value) float64 {
+	n, f := TryAsFloat(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return n
+}
 
-// AsString extracts a string from a Value (empty on mismatch).
-func AsString(v Value) string { s, _ := TryAsString(v); return s }
+// AsString extracts a string from a Value. Panics on Furball input or
+// type mismatch (see AsInt for the rationale).
+func AsString(v Value) string {
+	s, f := TryAsString(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return s
+}
 
-// AsList extracts a *List from a Value (nil on mismatch).
-func AsList(v Value) *List { l, _ := TryAsList(v); return l }
+// AsList extracts a *List from a Value. Panics on Furball input or type
+// mismatch (see AsInt for the rationale).
+func AsList(v Value) *List {
+	l, f := TryAsList(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return l
+}
 
-// AsBool extracts a bool from a Value (false on mismatch).
-func AsBool(v Value) bool { b, _ := TryAsBool(v); return b }
+// AsBool extracts a bool from a Value. Panics on Furball input or type
+// mismatch (see AsInt for the rationale).
+func AsBool(v Value) bool {
+	b, f := TryAsBool(v)
+	if f != nil {
+		panic(f.Message)
+	}
+	return b
+}

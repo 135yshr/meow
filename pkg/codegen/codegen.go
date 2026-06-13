@@ -239,18 +239,18 @@ func (g *Generator) emitTest() string {
 	}
 
 	// Test-mode main wraps top-level work and emits Furball errors before
-	// running test_/catwalk_ functions. Each statement is generated with
-	// short-circuit returns; wrap them in an IIFE that surfaces a Furball.
+	// running test_/catwalk_ functions. RunMain handles both Furball returns
+	// and internal panics so failures land as clean stderr messages.
 	b.WriteString("func main() {\n")
 	if len(g.topLevel) > 0 {
-		b.WriteString("\tmeow.ExitOnFurball(func() meow.Value {\n")
+		b.WriteString("\tmeow.RunMain(func() meow.Value {\n")
 		for _, line := range g.topLevel {
 			b.WriteString("\t\t")
 			b.WriteString(line)
 			b.WriteString("\n")
 		}
 		b.WriteString("\t\treturn meow.NewNil()\n")
-		b.WriteString("\t}())\n")
+		b.WriteString("\t})\n")
 	}
 	for _, name := range g.testFuncs {
 		fmt.Fprintf(&b, "\tmeow_testing.Run(meow.NewString(%q), meow.NewFunc(%q, func(args ...meow.Value) meow.Value {\n", name, name)
@@ -356,7 +356,9 @@ func (g *Generator) emit() string {
 		b.WriteString("\treturn meow.NewNil()\n")
 		b.WriteString("}\n\n")
 		b.WriteString("func main() {\n")
-		b.WriteString("\tmeow.ExitOnFurball(__meow_main())\n")
+		// RunMain handles both Furball returns and internal As*/hiss panics
+		// (from typed paths), producing a clean stderr message + exit 1.
+		b.WriteString("\tmeow.RunMain(__meow_main)\n")
 		b.WriteString("}\n")
 	} else {
 		b.WriteString("func main() {\n")

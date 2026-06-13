@@ -48,3 +48,16 @@ func ExitOnFurball(v Value) {
 		os.Exit(1)
 	}
 }
+
+// RunMain invokes fn (the generated __meow_main) and surfaces any failure
+// — a returned Furball OR an internal panic from typed As*/hiss paths — as
+// a clean stderr message + exit 1, without exposing Go's runtime traceback.
+func RunMain(fn func() Value) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(os.Stderr, r)
+			os.Exit(1)
+		}
+	}()
+	ExitOnFurball(fn())
+}

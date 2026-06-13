@@ -5,8 +5,15 @@ import (
 	"strings"
 )
 
-// Nya prints a value (the Meow print function).
+// Nya prints a value (the Meow print function). If any argument is an
+// unhandled Furball, Nya returns it without printing so the error
+// propagates instead of being stringified and silently swallowed.
 func Nya(args ...Value) Value {
+	for _, a := range args {
+		if f, ok := a.(*Furball); ok && !f.Handled {
+			return f
+		}
+	}
 	parts := make([]string, len(args))
 	for i, v := range args {
 		parts[i] = v.String()

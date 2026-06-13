@@ -105,12 +105,35 @@ func TestTryAsIntFurball(t *testing.T) {
 	}
 }
 
-func TestAsIntMismatchReturnsZero(t *testing.T) {
-	// AsInt is the lossy convenience wrapper used by typed codegen after the
-	// caller has already short-circuited Furball. On mismatch it returns 0.
-	if got := meowrt.AsInt(meowrt.NewString("hello")); got != 0 {
-		t.Errorf("expected 0 on mismatch, got %d", got)
-	}
+func TestAsIntMismatchPanics(t *testing.T) {
+	// AsInt panics on type mismatch (including Furball input) so failures
+	// don't silently turn into zero values — Gag's recover converts the
+	// panic back into a Furball at the typed-path boundary.
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on type mismatch")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "expected int") {
+			t.Errorf("unexpected panic value: %v", r)
+		}
+	}()
+	meowrt.AsInt(meowrt.NewString("hello"))
+}
+
+func TestAsIntFurballPanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on Furball input")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "boom") {
+			t.Errorf("expected Furball message in panic, got %v", r)
+		}
+	}()
+	meowrt.AsInt(&meowrt.Furball{Message: "Hiss! boom, nya~"})
 }
 
 func TestAsFloatSuccess(t *testing.T) {
