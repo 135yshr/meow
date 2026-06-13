@@ -238,11 +238,19 @@ func (g *Generator) emitTest() string {
 		b.WriteString("\n\n")
 	}
 
+	// Test-mode main wraps top-level work and emits Furball errors before
+	// running test_/catwalk_ functions. Each statement is generated with
+	// short-circuit returns; wrap them in an IIFE that surfaces a Furball.
 	b.WriteString("func main() {\n")
-	for _, line := range g.topLevel {
-		b.WriteString("\t")
-		b.WriteString(line)
-		b.WriteString("\n")
+	if len(g.topLevel) > 0 {
+		b.WriteString("\tmeow.ExitOnFurball(func() meow.Value {\n")
+		for _, line := range g.topLevel {
+			b.WriteString("\t\t")
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+		b.WriteString("\t\treturn meow.NewNil()\n")
+		b.WriteString("\t}())\n")
 	}
 	for _, name := range g.testFuncs {
 		fmt.Fprintf(&b, "\tmeow_testing.Run(meow.NewString(%q), meow.NewFunc(%q, func(args ...meow.Value) meow.Value {\n", name, name)
@@ -334,13 +342,31 @@ func (g *Generator) emit() string {
 		b.WriteString("\n\n")
 	}
 
-	b.WriteString("func main() {\n")
-	for _, line := range g.topLevel {
-		b.WriteString("\t")
-		b.WriteString(line)
-		b.WriteString("\n")
+	// Wrap top-level statements in an inner function so the short-circuit
+	// `return __f` pattern (injected by genStmtInner for Furball propagation)
+	// is well-typed. main() then prints any surfaced Furball to stderr and
+	// exits, replacing the old panic-based termination.
+	if len(g.topLevel) > 0 && g.needsMeowImport() {
+		b.WriteString("func __meow_main() meow.Value {\n")
+		for _, line := range g.topLevel {
+			b.WriteString("\t")
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+		b.WriteString("\treturn meow.NewNil()\n")
+		b.WriteString("}\n\n")
+		b.WriteString("func main() {\n")
+		b.WriteString("\tmeow.ExitOnFurball(__meow_main())\n")
+		b.WriteString("}\n")
+	} else {
+		b.WriteString("func main() {\n")
+		for _, line := range g.topLevel {
+			b.WriteString("\t")
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+		b.WriteString("}\n")
 	}
-	b.WriteString("}\n")
 	return b.String()
 }
 
@@ -714,11 +740,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		}
 		return fmt.Sprintf("meow.Nya(%s)", strings.Join(args, ", "))
 	case "hiss":
+		// In typed contexts a function returns a native Go type (int64, etc.)
+		// and cannot return a Furball value. Panic so that `gag`'s deferred
+		// recover converts the failure into a Furball at the boundary —
+		// this is the typed-path bridge to the value-propagation model.
 		args := make([]string, len(e.Args))
 		for i, a := range e.Args {
 			args[i] = g.boxValue(a)
 		}
-		return fmt.Sprintf("meow.Hiss(%s)", strings.Join(args, ", "))
+		return fmt.Sprintf("panic(meow.Hiss(%s).String())", strings.Join(args, ", "))
 	case "judge", "expect", "refuse":
 		g.ensureImport("testing")
 		fn := capitalizeFirst(ident.Name)
@@ -912,14 +942,22 @@ func (g *Generator) genStmt(stmt ast.Stmt) string {
 func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
-		return fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
+		// Bind, then short-circuit if the value is a Furball — the untyped
+		// path's error-propagation point.
+		return fmt.Sprintf(
+			"var %s meow.Value = %s\n\tif __f, __ok := meow.AsFurball(%s); __ok { return __f }",
+			s.Name, g.genExpr(s.Value), s.Name)
 	case *ast.ReturnStmt:
 		if s.Value != nil {
 			return fmt.Sprintf("return %s", g.genExpr(s.Value))
 		}
 		return "return meow.NewNil()"
 	case *ast.ExprStmt:
-		return g.genExpr(s.Expr)
+		// Evaluate the expression. If the result is a Furball (e.g. from
+		// hiss(...) or a failed runtime helper), short-circuit by returning it.
+		return fmt.Sprintf(
+			"if __f, __ok := meow.AsFurball(%s); __ok { return __f }",
+			g.genExpr(s.Expr))
 	case *ast.IfStmt:
 		return g.genIf(s)
 	case *ast.RangeStmt:
@@ -1467,6 +1505,10 @@ func (g *Generator) genPipe(e *ast.PipeExpr) string {
 }
 
 func (g *Generator) genCatch(e *ast.CatchExpr) string {
+	// Left side is wrapped in a thunk so GagOr can both (a) propagate Furball
+	// values from the untyped path, and (b) recover from panics raised by
+	// typed function bodies — without this, evaluating a typed expression
+	// inline would bypass ~>'s recovery.
 	left := g.genExpr(e.Left)
 	right := g.genExpr(e.Right)
 	return fmt.Sprintf(

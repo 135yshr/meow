@@ -1,11 +1,21 @@
 package meowrt
 
 import (
+	"strings"
 	"testing"
 )
 
+func mustKitty(t *testing.T, v Value) *Kitty {
+	t.Helper()
+	k, ok := v.(*Kitty)
+	if !ok {
+		t.Fatalf("expected *Kitty, got %T (%v)", v, v)
+	}
+	return k
+}
+
 func TestNewKitty(t *testing.T) {
-	k := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
 	if k.TypeName != "Cat" {
 		t.Errorf("TypeName = %q, want %q", k.TypeName, "Cat")
 	}
@@ -18,28 +28,25 @@ func TestNewKitty(t *testing.T) {
 }
 
 func TestNewKittyArgCountMismatch(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg, ok := r.(string)
-		if !ok || msg == "" {
-			t.Fatalf("expected string panic, got %v", r)
-		}
-	}()
-	NewKitty("Cat", []string{"name", "age"}, NewString("Tama"))
+	v := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"))
+	f, ok := v.(*Furball)
+	if !ok {
+		t.Fatalf("expected *Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "expects 2 fields but got 1") {
+		t.Errorf("unexpected message: %q", f.Message)
+	}
 }
 
 func TestKittyType(t *testing.T) {
-	k := NewKitty("Dog", []string{"breed"}, NewString("Shiba"))
+	k := mustKitty(t, NewKitty("Dog", []string{"breed"}, NewString("Shiba")))
 	if k.Type() != "Dog" {
 		t.Errorf("Type() = %q, want %q", k.Type(), "Dog")
 	}
 }
 
 func TestKittyString(t *testing.T) {
-	k := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
 	want := "Cat{name: Tama, age: 3}"
 	if k.String() != want {
 		t.Errorf("String() = %q, want %q", k.String(), want)
@@ -47,14 +54,14 @@ func TestKittyString(t *testing.T) {
 }
 
 func TestKittyIsTruthy(t *testing.T) {
-	k := NewKitty("Cat", []string{"name"}, NewString("Tama"))
+	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Tama")))
 	if !k.IsTruthy() {
 		t.Error("IsTruthy() = false, want true")
 	}
 }
 
 func TestKittyGetField(t *testing.T) {
-	k := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
 	if v := k.GetField("name"); v.String() != "Tama" {
 		t.Errorf("GetField(name) = %q, want %q", v.String(), "Tama")
 	}
@@ -63,15 +70,16 @@ func TestKittyGetField(t *testing.T) {
 	}
 }
 
-func TestKittyGetFieldPanics(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	k := NewKitty("Cat", []string{"name"}, NewString("Tama"))
-	k.GetField("unknown")
+func TestKittyGetFieldMissingReturnsFurball(t *testing.T) {
+	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Tama")))
+	v := k.GetField("unknown")
+	f, ok := v.(*Furball)
+	if !ok {
+		t.Fatalf("expected *Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "has no field unknown") {
+		t.Errorf("unexpected message: %q", f.Message)
+	}
 }
 
 func TestKittyEqual(t *testing.T) {

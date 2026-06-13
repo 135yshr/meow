@@ -36,37 +36,34 @@ func TestJudgeTruthyInt(t *testing.T) {
 
 func TestJudgeFail(t *testing.T) {
 	setup(t)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowtest.Judge(meowrt.NewBool(false))
+	v := meowtest.Judge(meowrt.NewBool(false))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestJudgeFailWithMessage(t *testing.T) {
 	setup(t)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowtest.Judge(meowrt.NewBool(false), meowrt.NewString("custom message"))
+	v := meowtest.Judge(meowrt.NewBool(false), meowrt.NewString("custom message"))
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "custom message") {
+		t.Errorf("expected custom message in Furball, got %q", f.Message)
+	}
 }
 
 func TestJudgeNoArgs(t *testing.T) {
 	setup(t)
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg := fmt.Sprintf("%v", r)
-		if !strings.Contains(msg, "Hiss!") {
-			t.Errorf("expected Hiss! panic, got: %s", msg)
-		}
-	}()
-	meowtest.Judge()
+	v := meowtest.Judge()
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "Hiss!") {
+		t.Errorf("expected Hiss! in Furball, got: %s", f.Message)
+	}
 }
 
 func TestExpectPass(t *testing.T) {
@@ -87,37 +84,34 @@ func TestExpectPassString(t *testing.T) {
 
 func TestExpectFail(t *testing.T) {
 	setup(t)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowtest.Expect(meowrt.NewInt(1), meowrt.NewInt(2))
+	v := meowtest.Expect(meowrt.NewInt(1), meowrt.NewInt(2))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestExpectFailWithMessage(t *testing.T) {
 	setup(t)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowtest.Expect(meowrt.NewInt(1), meowrt.NewInt(2), meowrt.NewString("values differ"))
+	v := meowtest.Expect(meowrt.NewInt(1), meowrt.NewInt(2), meowrt.NewString("values differ"))
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "values differ") {
+		t.Errorf("expected custom message, got %q", f.Message)
+	}
 }
 
 func TestExpectNoArgs(t *testing.T) {
 	setup(t)
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg := fmt.Sprintf("%v", r)
-		if !strings.Contains(msg, "Hiss!") {
-			t.Errorf("expected Hiss! panic, got: %s", msg)
-		}
-	}()
-	meowtest.Expect(meowrt.NewInt(1))
+	v := meowtest.Expect(meowrt.NewInt(1))
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "Hiss!") {
+		t.Errorf("expected Hiss! in Furball, got: %s", f.Message)
+	}
 }
 
 func TestRefusePass(t *testing.T) {
@@ -138,12 +132,10 @@ func TestRefusePassNil(t *testing.T) {
 
 func TestRefuseFail(t *testing.T) {
 	setup(t)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowtest.Refuse(meowrt.NewBool(true))
+	v := meowtest.Refuse(meowrt.NewBool(true))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestRunPass(t *testing.T) {
@@ -163,8 +155,13 @@ func TestRunPass(t *testing.T) {
 
 func TestRunFailAssertion(t *testing.T) {
 	buf, _ := setup(t)
+	// In the new model, an assertion returns a Furball that the surrounding
+	// (generated) function would short-circuit-return. The hand-written test
+	// fn mirrors that by returning the assertion's Furball directly.
 	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
-		meowtest.Judge(meowrt.NewBool(false))
+		if f, ok := meowtest.Judge(meowrt.NewBool(false)).(*meowrt.Furball); ok {
+			return f
+		}
 		return meowrt.NewNil()
 	})
 	result := meowtest.Run(meowrt.NewString("test_fail"), fn)
@@ -233,7 +230,9 @@ func TestReportWithFailures(t *testing.T) {
 		return meowrt.NewNil()
 	})
 	failFn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
-		meowtest.Judge(meowrt.NewBool(false))
+		if f, ok := meowtest.Judge(meowrt.NewBool(false)).(*meowrt.Furball); ok {
+			return f
+		}
 		return meowrt.NewNil()
 	})
 	meowtest.Run(meowrt.NewString("test_pass"), passFn)
@@ -250,17 +249,14 @@ func TestReportWithFailures(t *testing.T) {
 
 func TestRunBadArgs(t *testing.T) {
 	setup(t)
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg := fmt.Sprintf("%v", r)
-		if !strings.Contains(msg, "Hiss!") {
-			t.Errorf("expected Hiss! panic, got: %s", msg)
-		}
-	}()
-	meowtest.Run(meowrt.NewInt(1), meowrt.NewInt(2))
+	v := meowtest.Run(meowrt.NewInt(1), meowrt.NewInt(2))
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "Hiss!") {
+		t.Errorf("expected Hiss! in Furball, got: %s", f.Message)
+	}
 }
 
 func TestCatwalkPass(t *testing.T) {

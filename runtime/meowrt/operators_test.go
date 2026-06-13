@@ -5,22 +5,19 @@ import (
 	"testing"
 )
 
-func expectPanic(t *testing.T, msg string, fn func()) {
+// expectFurball asserts that fn returns a Furball whose Message contains msg.
+// Replaces the previous expectPanic helper after the panic-to-Furball
+// migration: operators now return *Furball values instead of panicking.
+func expectFurball(t *testing.T, msg string, fn func() Value) {
 	t.Helper()
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatalf("expected panic containing %q, but no panic occurred", msg)
-		}
-		s, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(s, msg) {
-			t.Fatalf("panic %q does not contain %q", s, msg)
-		}
-	}()
-	fn()
+	v := fn()
+	f, ok := v.(*Furball)
+	if !ok {
+		t.Fatalf("expected *Furball containing %q, got %T (%v)", msg, v, v)
+	}
+	if !strings.Contains(f.Message, msg) {
+		t.Fatalf("Furball %q does not contain %q", f.Message, msg)
+	}
 }
 
 // --- Add ---
@@ -46,22 +43,16 @@ func TestAddStringString(t *testing.T) {
 	}
 }
 
-func TestAddIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot add", func() {
-		Add(NewInt(1), NewFloat(2.0))
-	})
+func TestAddIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot add", func() Value { return Add(NewInt(1), NewFloat(2.0)) })
 }
 
-func TestAddIntString_Panics(t *testing.T) {
-	expectPanic(t, "Cannot add", func() {
-		Add(NewInt(1), NewString("hello"))
-	})
+func TestAddIntString_Furball(t *testing.T) {
+	expectFurball(t, "Cannot add", func() Value { return Add(NewInt(1), NewString("hello")) })
 }
 
-func TestAddStringInt_Panics(t *testing.T) {
-	expectPanic(t, "Cannot add", func() {
-		Add(NewString("hello"), NewInt(1))
-	})
+func TestAddStringInt_Furball(t *testing.T) {
+	expectFurball(t, "Cannot add", func() Value { return Add(NewString("hello"), NewInt(1)) })
 }
 
 // --- Sub ---
@@ -80,16 +71,12 @@ func TestSubFloatFloat(t *testing.T) {
 	}
 }
 
-func TestSubIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot subtract", func() {
-		Sub(NewInt(1), NewFloat(2.0))
-	})
+func TestSubIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot subtract", func() Value { return Sub(NewInt(1), NewFloat(2.0)) })
 }
 
-func TestSubStringString_Panics(t *testing.T) {
-	expectPanic(t, "Cannot subtract", func() {
-		Sub(NewString("a"), NewString("b"))
-	})
+func TestSubStringString_Furball(t *testing.T) {
+	expectFurball(t, "Cannot subtract", func() Value { return Sub(NewString("a"), NewString("b")) })
 }
 
 // --- Mul ---
@@ -108,10 +95,8 @@ func TestMulFloatFloat(t *testing.T) {
 	}
 }
 
-func TestMulIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot multiply", func() {
-		Mul(NewInt(1), NewFloat(2.0))
-	})
+func TestMulIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot multiply", func() Value { return Mul(NewInt(1), NewFloat(2.0)) })
 }
 
 // --- Div ---
@@ -130,22 +115,16 @@ func TestDivFloatFloat(t *testing.T) {
 	}
 }
 
-func TestDivIntByZero_Panics(t *testing.T) {
-	expectPanic(t, "Division by zero", func() {
-		Div(NewInt(1), NewInt(0))
-	})
+func TestDivIntByZero_Furball(t *testing.T) {
+	expectFurball(t, "Division by zero", func() Value { return Div(NewInt(1), NewInt(0)) })
 }
 
-func TestDivFloatByZero_Panics(t *testing.T) {
-	expectPanic(t, "Division by zero", func() {
-		Div(NewFloat(1.0), NewFloat(0.0))
-	})
+func TestDivFloatByZero_Furball(t *testing.T) {
+	expectFurball(t, "Division by zero", func() Value { return Div(NewFloat(1.0), NewFloat(0.0)) })
 }
 
-func TestDivIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot divide", func() {
-		Div(NewInt(1), NewFloat(2.0))
-	})
+func TestDivIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot divide", func() Value { return Div(NewInt(1), NewFloat(2.0)) })
 }
 
 // --- Mod ---
@@ -157,16 +136,12 @@ func TestModIntInt(t *testing.T) {
 	}
 }
 
-func TestModByZero_Panics(t *testing.T) {
-	expectPanic(t, "Division by zero", func() {
-		Mod(NewInt(10), NewInt(0))
-	})
+func TestModByZero_Furball(t *testing.T) {
+	expectFurball(t, "Division by zero", func() Value { return Mod(NewInt(10), NewInt(0)) })
 }
 
-func TestModFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot modulo", func() {
-		Mod(NewFloat(10.0), NewFloat(3.0))
-	})
+func TestModFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot modulo", func() Value { return Mod(NewFloat(10.0), NewFloat(3.0)) })
 }
 
 // --- Equal ---
@@ -203,16 +178,12 @@ func TestEqualNilNil(t *testing.T) {
 	}
 }
 
-func TestEqualIntString_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		Equal(NewInt(1), NewString("1"))
-	})
+func TestEqualIntString_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return Equal(NewInt(1), NewString("1")) })
 }
 
-func TestEqualIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		Equal(NewInt(1), NewFloat(1.0))
-	})
+func TestEqualIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return Equal(NewInt(1), NewFloat(1.0)) })
 }
 
 // --- NotEqual ---
@@ -240,10 +211,8 @@ func TestLessThanFloatFloat(t *testing.T) {
 	}
 }
 
-func TestLessThanIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		LessThan(NewInt(1), NewFloat(2.0))
-	})
+func TestLessThanIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return LessThan(NewInt(1), NewFloat(2.0)) })
 }
 
 func TestGreaterThanIntInt(t *testing.T) {
@@ -267,20 +236,14 @@ func TestGreaterEqualIntInt(t *testing.T) {
 	}
 }
 
-func TestGreaterThanIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		GreaterThan(NewInt(1), NewFloat(2.0))
-	})
+func TestGreaterThanIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return GreaterThan(NewInt(1), NewFloat(2.0)) })
 }
 
-func TestLessEqualIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		LessEqual(NewInt(1), NewFloat(2.0))
-	})
+func TestLessEqualIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return LessEqual(NewInt(1), NewFloat(2.0)) })
 }
 
-func TestGreaterEqualIntFloat_Panics(t *testing.T) {
-	expectPanic(t, "Cannot compare", func() {
-		GreaterEqual(NewInt(1), NewFloat(2.0))
-	})
+func TestGreaterEqualIntFloat_Furball(t *testing.T) {
+	expectFurball(t, "Cannot compare", func() Value { return GreaterEqual(NewInt(1), NewFloat(2.0)) })
 }

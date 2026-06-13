@@ -1,6 +1,9 @@
 package meowrt
 
-import "iter"
+import (
+	"fmt"
+	"iter"
+)
 
 // Iter returns an iterator over the list items.
 func (l *List) Iter() iter.Seq[Value] {
@@ -13,30 +16,69 @@ func (l *List) Iter() iter.Seq[Value] {
 	}
 }
 
+// requireList returns the value as *List, or a Furball if it's not a list.
+// If the value is itself a Furball, that Furball is returned for propagation.
+func requireList(name string, v Value) (*List, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return nil, f
+	}
+	l, ok := v.(*List)
+	if !ok {
+		return nil, &Furball{Message: fmt.Sprintf("Hiss! %s requires a List, got %s, nya~", name, v.Type())}
+	}
+	return l, nil
+}
+
+// requireFunc returns the value as *Func, or a Furball if it's not callable.
+func requireFunc(name string, v Value) (*Func, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return nil, f
+	}
+	fn, ok := v.(*Func)
+	if !ok {
+		return nil, &Furball{Message: fmt.Sprintf("Hiss! %s requires a Func, got %s, nya~", name, v.Type())}
+	}
+	return fn, nil
+}
+
 // Lick maps a function over a list (like map).
 func Lick(lst Value, fn Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! lick requires a List, nya~")
+	l, fb := requireList("lick", lst)
+	if fb != nil {
+		return fb
 	}
-	f := fn.(*Func)
+	f, fb := requireFunc("lick", fn)
+	if fb != nil {
+		return fb
+	}
 	result := make([]Value, 0, l.Len())
 	for v := range l.Iter() {
-		result = append(result, f.Call(v))
+		r := f.Call(v)
+		if rf, ok := r.(*Furball); ok {
+			return rf
+		}
+		result = append(result, r)
 	}
 	return NewList(result...)
 }
 
 // Picky filters a list (like filter).
 func Picky(lst Value, fn Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! picky requires a List, nya~")
+	l, fb := requireList("picky", lst)
+	if fb != nil {
+		return fb
 	}
-	f := fn.(*Func)
+	f, fb := requireFunc("picky", fn)
+	if fb != nil {
+		return fb
+	}
 	result := make([]Value, 0)
 	for v := range l.Iter() {
-		if f.Call(v).IsTruthy() {
+		r := f.Call(v)
+		if rf, ok := r.(*Furball); ok {
+			return rf
+		}
+		if r.IsTruthy() {
 			result = append(result, v)
 		}
 	}
@@ -45,23 +87,35 @@ func Picky(lst Value, fn Value) Value {
 
 // Curl reduces a list (like fold/reduce).
 func Curl(lst Value, init Value, fn Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! curl requires a List, nya~")
+	l, fb := requireList("curl", lst)
+	if fb != nil {
+		return fb
 	}
-	f := fn.(*Func)
+	if f, ok := init.(*Furball); ok {
+		return f
+	}
+	f, fb := requireFunc("curl", fn)
+	if fb != nil {
+		return fb
+	}
 	acc := init
 	for v := range l.Iter() {
 		acc = f.Call(acc, v)
+		if af, ok := acc.(*Furball); ok {
+			return af
+		}
 	}
 	return acc
 }
 
 // Append appends a value to a list, returning a new list.
 func Append(lst Value, v Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! append requires a List, nya~")
+	l, fb := requireList("append", lst)
+	if fb != nil {
+		return fb
+	}
+	if f, ok := v.(*Furball); ok {
+		return f
 	}
 	items := make([]Value, len(l.Items)+1)
 	copy(items, l.Items)
@@ -71,9 +125,9 @@ func Append(lst Value, v Value) Value {
 
 // Head returns the first element of a list.
 func Head(lst Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! head requires a List, nya~")
+	l, fb := requireList("head", lst)
+	if fb != nil {
+		return fb
 	}
 	if l.Len() == 0 {
 		return NewNil()
@@ -83,9 +137,9 @@ func Head(lst Value) Value {
 
 // Tail returns all elements except the first.
 func Tail(lst Value) Value {
-	l, ok := lst.(*List)
-	if !ok {
-		panic("Hiss! tail requires a List, nya~")
+	l, fb := requireList("tail", lst)
+	if fb != nil {
+		return fb
 	}
 	if l.Len() <= 1 {
 		return NewList()

@@ -9,10 +9,19 @@ import (
 	"github.com/135yshr/meow/runtime/meowrt"
 )
 
-// testFailure is a panic value used by test assertions.
-// Distinct from Hiss! panics so Run can differentiate.
+// testFailure was previously used as a panic sentinel for assertion failures.
+// After the panic-to-Furball migration, assertions return *meowrt.Furball
+// values that propagate via the codegen's short-circuit. The type is kept
+// for any remaining recover() compatibility but is no longer raised.
 type testFailure struct {
 	message string
+}
+
+// assertionFailure constructs a Furball that represents a test assertion
+// failure. Generated code's statement-level short-circuit returns it from
+// the enclosing test function, where Run inspects it.
+func assertionFailure(msg string) meowrt.Value {
+	return &meowrt.Furball{Message: msg}
 }
 
 type testResult struct {
@@ -42,27 +51,36 @@ func Reset(w io.Writer, exit func(int)) {
 	}
 }
 
-// Judge asserts that a condition is truthy.
-// Usage: judge(condition) or judge(condition, "message")
+// Judge asserts that a condition is truthy. On failure it returns a Furball
+// whose propagation through the enclosing test function signals the failure
+// to Run/Catwalk. Returns NewNil on success.
 func Judge(args ...meowrt.Value) meowrt.Value {
 	if len(args) < 1 {
-		panic("Hiss! judge expects at least 1 argument, nya~")
+		return &meowrt.Furball{Message: "Hiss! judge expects at least 1 argument, nya~"}
+	}
+	if f, ok := args[0].(*meowrt.Furball); ok && !f.Handled {
+		return f
 	}
 	if !args[0].IsTruthy() {
 		msg := "assertion failed: expected truthy value"
 		if len(args) >= 2 {
 			msg = args[1].String()
 		}
-		panic(testFailure{message: msg})
+		return assertionFailure(msg)
 	}
 	return meowrt.NewNil()
 }
 
 // Expect asserts that two values are equal (by String representation).
-// Usage: expect(actual, expected) or expect(actual, expected, "message")
 func Expect(args ...meowrt.Value) meowrt.Value {
 	if len(args) < 2 {
-		panic("Hiss! expect expects at least 2 arguments, nya~")
+		return &meowrt.Furball{Message: "Hiss! expect expects at least 2 arguments, nya~"}
+	}
+	if f, ok := args[0].(*meowrt.Furball); ok && !f.Handled {
+		return f
+	}
+	if f, ok := args[1].(*meowrt.Furball); ok && !f.Handled {
+		return f
 	}
 	actual := args[0]
 	expected := args[1]
@@ -71,40 +89,43 @@ func Expect(args ...meowrt.Value) meowrt.Value {
 		if len(args) >= 3 {
 			msg = fmt.Sprintf("%s: expected %s, got %s", args[2].String(), expected.String(), actual.String())
 		}
-		panic(testFailure{message: msg})
+		return assertionFailure(msg)
 	}
 	return meowrt.NewNil()
 }
 
 // Refuse asserts that a condition is falsy.
-// Usage: refuse(condition) or refuse(condition, "message")
 func Refuse(args ...meowrt.Value) meowrt.Value {
 	if len(args) < 1 {
-		panic("Hiss! refuse expects at least 1 argument, nya~")
+		return &meowrt.Furball{Message: "Hiss! refuse expects at least 1 argument, nya~"}
+	}
+	if f, ok := args[0].(*meowrt.Furball); ok && !f.Handled {
+		return f
 	}
 	if args[0].IsTruthy() {
 		msg := "assertion failed: expected falsy value"
 		if len(args) >= 2 {
 			msg = args[1].String()
 		}
-		panic(testFailure{message: msg})
+		return assertionFailure(msg)
 	}
 	return meowrt.NewNil()
 }
 
-// Run executes a named test function, catching panics, and records the result.
-// Usage: run("test name", fn)
+// Run executes a named test function, recording the result.
+// A returned *Furball (from a failed assertion that propagated via short-circuit)
+// or any panic is treated as a failure.
 func Run(args ...meowrt.Value) meowrt.Value {
 	if len(args) < 2 {
-		panic("Hiss! run expects 2 arguments (name, fn), nya~")
+		return &meowrt.Furball{Message: "Hiss! run expects 2 arguments (name, fn), nya~"}
 	}
 	name, ok := args[0].(*meowrt.String)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! run expects a String name, got %s, nya~", args[0].Type()))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! run expects a String name, got %s, nya~", args[0].Type())}
 	}
 	fn, ok := args[1].(*meowrt.Func)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! run expects a Func, got %s, nya~", args[1].Type()))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! run expects a Func, got %s, nya~", args[1].Type())}
 	}
 
 	passed := true
@@ -120,7 +141,11 @@ func Run(args ...meowrt.Value) meowrt.Value {
 				}
 			}
 		}()
-		fn.Call()
+		ret := fn.Call()
+		if f, ok := ret.(*meowrt.Furball); ok {
+			passed = false
+			msg = f.Message
+		}
 	}()
 
 	status := "PASS"
@@ -137,32 +162,31 @@ func Run(args ...meowrt.Value) meowrt.Value {
 	return meowrt.NewBool(passed)
 }
 
-// Catwalk executes a named function, captures its stdout output, and compares
-// it with the expected output string. This is the Meow equivalent of Go's
-// Example tests with // Output: comments.
-// Usage: Catwalk(name, fn, expected)
+// Catwalk executes a named function, captures stdout, and compares it with
+// the expected output. A Furball return (from a failed assertion) or a panic
+// inside the function counts as a failure.
 func Catwalk(args ...meowrt.Value) meowrt.Value {
 	if len(args) < 3 {
-		panic("Hiss! catwalk expects 3 arguments (name, fn, expected), nya~")
+		return &meowrt.Furball{Message: "Hiss! catwalk expects 3 arguments (name, fn, expected), nya~"}
 	}
 	name, ok := args[0].(*meowrt.String)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! catwalk expects a String name, got %s, nya~", args[0].Type()))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! catwalk expects a String name, got %s, nya~", args[0].Type())}
 	}
 	fn, ok := args[1].(*meowrt.Func)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! catwalk expects a Func, got %s, nya~", args[1].Type()))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! catwalk expects a Func, got %s, nya~", args[1].Type())}
 	}
 	expected, ok := args[2].(*meowrt.String)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! catwalk expects a String expected, got %s, nya~", args[2].Type()))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! catwalk expects a String expected, got %s, nya~", args[2].Type())}
 	}
 
 	// Capture stdout using os.Pipe.
 	oldStdout := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! cannot create pipe, nya~: %v", err))
+		return &meowrt.Furball{Message: fmt.Sprintf("Hiss! cannot create pipe, nya~: %v", err)}
 	}
 	os.Stdout = w
 
@@ -187,7 +211,11 @@ func Catwalk(args ...meowrt.Value) meowrt.Value {
 				}
 			}
 		}()
-		fn.Call()
+		ret := fn.Call()
+		if f, ok := ret.(*meowrt.Furball); ok {
+			passed = false
+			msg = f.Message
+		}
 	}()
 
 	// Close writer and restore stdout.

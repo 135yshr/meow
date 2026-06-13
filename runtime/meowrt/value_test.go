@@ -95,21 +95,22 @@ func TestAsIntSuccess(t *testing.T) {
 	}
 }
 
-func TestAsIntPanic(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "expected int") {
-			t.Errorf("unexpected panic message: %q", msg)
-		}
-	}()
-	meowrt.AsInt(meowrt.NewString("hello"))
+func TestTryAsIntFurball(t *testing.T) {
+	_, f := meowrt.TryAsInt(meowrt.NewString("hello"))
+	if f == nil {
+		t.Fatal("expected Furball, got nil")
+	}
+	if !strings.Contains(f.Message, "Hiss!") || !strings.Contains(f.Message, "expected int") {
+		t.Errorf("unexpected message: %q", f.Message)
+	}
+}
+
+func TestAsIntMismatchReturnsZero(t *testing.T) {
+	// AsInt is the lossy convenience wrapper used by typed codegen after the
+	// caller has already short-circuited Furball. On mismatch it returns 0.
+	if got := meowrt.AsInt(meowrt.NewString("hello")); got != 0 {
+		t.Errorf("expected 0 on mismatch, got %d", got)
+	}
 }
 
 func TestAsFloatSuccess(t *testing.T) {
@@ -134,19 +135,11 @@ func TestAsBoolSuccess(t *testing.T) {
 }
 
 func TestToJSONUnsupportedType(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "Func") {
-			t.Errorf("expected Hiss error about Func, got %q", msg)
-		}
-	}()
+	// Unsupported types now serialize to a JSON-encoded Hiss error message
+	// instead of panicking. This keeps ToJSON total over Value.
 	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value { return meowrt.NewNil() })
-	meowrt.ToJSON(fn)
+	got := meowrt.ToJSON(fn)
+	if !strings.Contains(got, "Hiss!") || !strings.Contains(got, "Func") {
+		t.Errorf("expected JSON-quoted Hiss error about Func, got %q", got)
+	}
 }

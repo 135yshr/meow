@@ -10,6 +10,15 @@ import (
 	"github.com/135yshr/meow/runtime/meowrt"
 )
 
+// propagateFurball panics with the Furball's message if v is an unhandled
+// Furball, mirroring the codegen short-circuit. RunSafe's deferred recover
+// surfaces this as the program's error result.
+func propagateFurball(v meowrt.Value) {
+	if f, ok := v.(*meowrt.Furball); ok && !f.Handled {
+		panic(f.Message)
+	}
+}
+
 // returnSignal is used to implement bring (return) via panic/recover.
 type returnSignal struct {
 	Value meowrt.Value
@@ -118,9 +127,10 @@ func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		val := interp.evalExpr(s.Value, env)
+		propagateFurball(val)
 		env.Define(s.Name, val)
 	case *ast.ExprStmt:
-		interp.evalExpr(s.Expr, env)
+		propagateFurball(interp.evalExpr(s.Expr, env))
 	case *ast.ReturnStmt:
 		var val meowrt.Value
 		if s.Value != nil {

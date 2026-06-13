@@ -80,10 +80,11 @@ type Func struct {
 
 // NewFunc creates a new Func value with the given name and implementation.
 // The function is variadic (Arity -1) and will not be auto-curried.
-// fn must not be nil; passing nil will panic.
+// Passing a nil fn is a programmer error (not a runtime Meow error),
+// so it still panics — this is internal API contract, not Meow-level semantics.
 func NewFunc(name string, fn func(args ...Value) Value) *Func {
 	if fn == nil {
-		panic("Hiss! fn must not be nil, nya~")
+		panic("meowrt: NewFunc called with nil fn (internal contract violation)")
 	}
 	return &Func{Name: name, Fn: fn, Arity: -1}
 }
@@ -91,9 +92,10 @@ func NewFunc(name string, fn func(args ...Value) Value) *Func {
 // NewFuncWithArity creates a new Func value with a fixed arity.
 // When called with fewer arguments than arity, the function is automatically
 // partially applied (curried).
+// Passing a nil fn is a programmer error (internal contract violation).
 func NewFuncWithArity(name string, arity int, fn func(args ...Value) Value) *Func {
 	if fn == nil {
-		panic("Hiss! fn must not be nil, nya~")
+		panic("meowrt: NewFuncWithArity called with nil fn (internal contract violation)")
 	}
 	return &Func{Name: name, Fn: fn, Arity: arity}
 }
@@ -124,8 +126,18 @@ func (f *Func) Call(args ...Value) Value {
 	return f.Fn(args...)
 }
 
-// Furball represents an error value caught by Gag.
-type Furball struct{ Message string }
+// Furball represents an error value. Errors raised by hiss(), failed runtime
+// helpers, and propagated values all use *Furball.
+//
+// Handled marks a Furball that has been intentionally surfaced to user code
+// via gag/~> — such Furballs are still reported by is_furball but do NOT
+// trigger codegen's automatic propagation short-circuit. This is the bridge
+// that lets user code inspect a caught error as a plain value without the
+// surrounding statement immediately re-propagating it.
+type Furball struct {
+	Message string
+	Handled bool
+}
 
 func (e *Furball) Type() string   { return "Furball" }
 func (e *Furball) String() string { return e.Message }
@@ -157,11 +169,11 @@ func (l *List) Len() int {
 	return len(l.Items)
 }
 
-// Get returns the item at the given index.
-// It panics if index is out of range.
+// Get returns the item at the given index. Returns a Furball if the index
+// is out of range, propagated as a value through the runtime.
 func (l *List) Get(index int) Value {
 	if index < 0 || index >= len(l.Items) {
-		panic(fmt.Sprintf("Hiss! Index %d out of range, nya~", index))
+		return &Furball{Message: fmt.Sprintf("Hiss! Index %d out of range, nya~", index)}
 	}
 	return l.Items[index]
 }
@@ -173,10 +185,15 @@ type Kitty struct {
 	Fields     map[string]Value
 }
 
-// NewKitty creates a new Kitty value. Panics if argument count does not match field count.
-func NewKitty(typeName string, fieldNames []string, args ...Value) *Kitty {
+// NewKitty creates a new Kitty value, returning a Value that is either
+// the constructed Kitty or a Furball if the argument count does not match
+// the field count (or if any argument is itself a Furball).
+func NewKitty(typeName string, fieldNames []string, args ...Value) Value {
+	if f := propagate(args...); f != nil {
+		return f
+	}
 	if len(args) != len(fieldNames) {
-		panic(fmt.Sprintf("Hiss! %s expects %d fields but got %d, nya~", typeName, len(fieldNames), len(args)))
+		return &Furball{Message: fmt.Sprintf("Hiss! %s expects %d fields but got %d, nya~", typeName, len(fieldNames), len(args))}
 	}
 	fields := make(map[string]Value, len(fieldNames))
 	for i, name := range fieldNames {
@@ -195,11 +212,12 @@ func (k *Kitty) String() string {
 	return k.TypeName + "{" + strings.Join(parts, ", ") + "}"
 }
 
-// GetField returns the value of a field by name. Panics if the field does not exist.
+// GetField returns the value of a field by name. Returns a Furball if the
+// field does not exist.
 func (k *Kitty) GetField(name string) Value {
 	v, ok := k.Fields[name]
 	if !ok {
-		panic(fmt.Sprintf("Hiss! %s has no field %s, nya~", k.TypeName, name))
+		return &Furball{Message: fmt.Sprintf("Hiss! %s has no field %s, nya~", k.TypeName, name)}
 	}
 	return v
 }
@@ -231,6 +249,9 @@ func (m *Map) Get(key string) (Value, bool) {
 }
 
 // ToJSON serializes a Value to its JSON string representation.
+// On failure (unsupported type or Furball input) it returns the JSON-encoded
+// error message string, prefixed with the Hiss marker. Callers that need to
+// distinguish errors from valid JSON should use ToJSONValue.
 func ToJSON(v Value) string {
 	switch val := v.(type) {
 	case *String:
@@ -272,73 +293,115 @@ func ToJSON(v Value) string {
 			parts[i] = string(kb) + ":" + ToJSON(val.Fields[name])
 		}
 		return "{" + strings.Join(parts, ",") + "}"
+	case *Furball:
+		b, _ := json.Marshal(val.Message)
+		return string(b)
 	default:
-		panic(fmt.Sprintf("Hiss! cannot serialize %s to JSON, nya~", v.Type()))
+		b, _ := json.Marshal(fmt.Sprintf("Hiss! cannot serialize %s to JSON, nya~", v.Type()))
+		return string(b)
 	}
 }
 
-// AsInt extracts an int64 from a Value, panicking with a descriptive message on type mismatch.
-func AsInt(v Value) int64 {
+// TryAsInt extracts an int64 from a Value, returning a Furball on type mismatch.
+func TryAsInt(v Value) (int64, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return 0, f
+	}
 	if i, ok := v.(*Int); ok {
-		return i.Val
+		return i.Val, nil
 	}
 	if v == nil {
-		panic("Hiss! expected int but got nil, nya~")
+		return 0, &Furball{Message: "Hiss! expected int but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected int but got %s, nya~", v.Type()))
+	return 0, &Furball{Message: fmt.Sprintf("Hiss! expected int but got %s, nya~", v.Type())}
 }
 
-// AsByte extracts a byte from a Value, panicking with a descriptive message on type mismatch.
-func AsByte(v Value) byte {
+// TryAsByte extracts a byte from a Value, returning a Furball on type mismatch.
+func TryAsByte(v Value) (byte, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return 0, f
+	}
 	if b, ok := v.(*Byte); ok {
-		return b.Val
+		return b.Val, nil
 	}
 	if v == nil {
-		panic("Hiss! expected byte but got nil, nya~")
+		return 0, &Furball{Message: "Hiss! expected byte but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected byte but got %s, nya~", v.Type()))
+	return 0, &Furball{Message: fmt.Sprintf("Hiss! expected byte but got %s, nya~", v.Type())}
 }
 
-// AsFloat extracts a float64 from a Value, panicking with a descriptive message on type mismatch.
-func AsFloat(v Value) float64 {
+// TryAsFloat extracts a float64 from a Value, returning a Furball on type mismatch.
+func TryAsFloat(v Value) (float64, *Furball) {
+	if fb, ok := v.(*Furball); ok {
+		return 0, fb
+	}
 	if f, ok := v.(*Float); ok {
-		return f.Val
+		return f.Val, nil
 	}
 	if v == nil {
-		panic("Hiss! expected float but got nil, nya~")
+		return 0, &Furball{Message: "Hiss! expected float but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected float but got %s, nya~", v.Type()))
+	return 0, &Furball{Message: fmt.Sprintf("Hiss! expected float but got %s, nya~", v.Type())}
 }
 
-// AsString extracts a string from a Value, panicking with a descriptive message on type mismatch.
-func AsString(v Value) string {
+// TryAsString extracts a string from a Value, returning a Furball on type mismatch.
+func TryAsString(v Value) (string, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return "", f
+	}
 	if s, ok := v.(*String); ok {
-		return s.Val
+		return s.Val, nil
 	}
 	if v == nil {
-		panic("Hiss! expected string but got nil, nya~")
+		return "", &Furball{Message: "Hiss! expected string but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected string but got %s, nya~", v.Type()))
+	return "", &Furball{Message: fmt.Sprintf("Hiss! expected string but got %s, nya~", v.Type())}
 }
 
-// AsList extracts a *List from a Value, panicking with a descriptive message on type mismatch.
-func AsList(v Value) *List {
+// TryAsList extracts a *List from a Value, returning a Furball on type mismatch.
+func TryAsList(v Value) (*List, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return nil, f
+	}
 	if l, ok := v.(*List); ok {
-		return l
+		return l, nil
 	}
 	if v == nil {
-		panic("Hiss! expected list but got nil, nya~")
+		return nil, &Furball{Message: "Hiss! expected list but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected list but got %s, nya~", v.Type()))
+	return nil, &Furball{Message: fmt.Sprintf("Hiss! expected list but got %s, nya~", v.Type())}
 }
 
-// AsBool extracts a bool from a Value, panicking with a descriptive message on type mismatch.
-func AsBool(v Value) bool {
+// TryAsBool extracts a bool from a Value, returning a Furball on type mismatch.
+func TryAsBool(v Value) (bool, *Furball) {
+	if f, ok := v.(*Furball); ok {
+		return false, f
+	}
 	if b, ok := v.(*Bool); ok {
-		return b.Val
+		return b.Val, nil
 	}
 	if v == nil {
-		panic("Hiss! expected bool but got nil, nya~")
+		return false, &Furball{Message: "Hiss! expected bool but got nil, nya~"}
 	}
-	panic(fmt.Sprintf("Hiss! expected bool but got %s, nya~", v.Type()))
+	return false, &Furball{Message: fmt.Sprintf("Hiss! expected bool but got %s, nya~", v.Type())}
 }
+
+// AsInt extracts an int64 from a Value. Type mismatch yields the zero value
+// — for use in code paths where a Furball has already been short-circuited
+// by the caller (typed codegen with explicit error handling).
+func AsInt(v Value) int64 { n, _ := TryAsInt(v); return n }
+
+// AsByte extracts a byte from a Value (zero on mismatch).
+func AsByte(v Value) byte { n, _ := TryAsByte(v); return n }
+
+// AsFloat extracts a float64 from a Value (zero on mismatch).
+func AsFloat(v Value) float64 { n, _ := TryAsFloat(v); return n }
+
+// AsString extracts a string from a Value (empty on mismatch).
+func AsString(v Value) string { s, _ := TryAsString(v); return s }
+
+// AsList extracts a *List from a Value (nil on mismatch).
+func AsList(v Value) *List { l, _ := TryAsList(v); return l }
+
+// AsBool extracts a bool from a Value (false on mismatch).
+func AsBool(v Value) bool { b, _ := TryAsBool(v); return b }
