@@ -1,0 +1,5 @@
+catwalk_example_test.nyan は、どのような結果が表示されてばいいのでしょうか？
+
+---
+
+https://github.com/135yshr/meow/pull/92 の指摘を確認してください
