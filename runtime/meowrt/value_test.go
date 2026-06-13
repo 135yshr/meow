@@ -95,21 +95,45 @@ func TestAsIntSuccess(t *testing.T) {
 	}
 }
 
-func TestAsIntPanic(t *testing.T) {
+func TestTryAsIntFurball(t *testing.T) {
+	_, f := meowrt.TryAsInt(meowrt.NewString("hello"))
+	if f == nil {
+		t.Fatal("expected Furball, got nil")
+	}
+	if !strings.Contains(f.Message, "Hiss!") || !strings.Contains(f.Message, "expected int") {
+		t.Errorf("unexpected message: %q", f.Message)
+	}
+}
+
+func TestAsIntMismatchPanics(t *testing.T) {
+	// AsInt panics on type mismatch (including Furball input) so failures
+	// don't silently turn into zero values — Gag's recover converts the
+	// panic back into a Furball at the typed-path boundary.
 	defer func() {
 		r := recover()
 		if r == nil {
-			t.Fatal("expected panic")
+			t.Fatal("expected panic on type mismatch")
 		}
 		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "expected int") {
-			t.Errorf("unexpected panic message: %q", msg)
+		if !ok || !strings.Contains(msg, "expected int") {
+			t.Errorf("unexpected panic value: %v", r)
 		}
 	}()
 	meowrt.AsInt(meowrt.NewString("hello"))
+}
+
+func TestAsIntFurballPanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic on Furball input")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "boom") {
+			t.Errorf("expected Furball message in panic, got %v", r)
+		}
+	}()
+	meowrt.AsInt(&meowrt.Furball{Message: "Hiss! boom, nya~"})
 }
 
 func TestAsFloatSuccess(t *testing.T) {
@@ -134,19 +158,11 @@ func TestAsBoolSuccess(t *testing.T) {
 }
 
 func TestToJSONUnsupportedType(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "Hiss!") || !strings.Contains(msg, "Func") {
-			t.Errorf("expected Hiss error about Func, got %q", msg)
-		}
-	}()
+	// Unsupported types now serialize to a JSON-encoded Hiss error message
+	// instead of panicking. This keeps ToJSON total over Value.
 	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value { return meowrt.NewNil() })
-	meowrt.ToJSON(fn)
+	got := meowrt.ToJSON(fn)
+	if !strings.Contains(got, "Hiss!") || !strings.Contains(got, "Func") {
+		t.Errorf("expected JSON-quoted Hiss error about Func, got %q", got)
+	}
 }

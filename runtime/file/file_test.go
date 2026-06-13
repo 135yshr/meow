@@ -42,23 +42,17 @@ func TestSnoopCRLF(t *testing.T) {
 }
 
 func TestSnoopNotFound(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	file.Snoop(meowrt.NewString("/nonexistent/path.txt"))
+	v := file.Snoop(meowrt.NewString("/nonexistent/path.txt"))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestSnoopNonString(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	file.Snoop(meowrt.NewInt(42))
+	v := file.Snoop(meowrt.NewInt(42))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestStalk(t *testing.T) {
@@ -104,21 +98,15 @@ func TestStalkEmpty(t *testing.T) {
 }
 
 func TestStalkNotFound(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	file.Stalk(meowrt.NewString("/nonexistent/path.txt"))
+	v := file.Stalk(meowrt.NewString("/nonexistent/path.txt"))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestStalkNonString(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	file.Stalk(meowrt.NewInt(42))
+	v := file.Stalk(meowrt.NewInt(42))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }

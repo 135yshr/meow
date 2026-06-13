@@ -82,26 +82,20 @@ func TestPounce(t *testing.T) {
 }
 
 func TestPounceConnectionRefused(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
 	srv := newTestServer()
 	url := srv.URL
 	srv.Close() // ensure connection refused
-	meowhttp.Pounce(meowrt.NewString(url + "/get"))
+	v := meowhttp.Pounce(meowrt.NewString(url + "/get"))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestPounceNonString(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowhttp.Pounce(meowrt.NewInt(42))
+	v := meowhttp.Pounce(meowrt.NewInt(42))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestTossStringBody(t *testing.T) {
@@ -146,13 +140,10 @@ func TestTossStringBodyWithHeaders(t *testing.T) {
 }
 
 func TestTossWrongArgCount(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowhttp.Toss(meowrt.NewString("http://example.com"))
+	v := meowhttp.Toss(meowrt.NewString("http://example.com"))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestKnead(t *testing.T) {
@@ -190,13 +181,10 @@ func TestSwat(t *testing.T) {
 }
 
 func TestSwatNonString(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowhttp.Swat(meowrt.NewInt(42))
+	v := meowhttp.Swat(meowrt.NewInt(42))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestProwl(t *testing.T) {
@@ -214,13 +202,10 @@ func TestProwl(t *testing.T) {
 }
 
 func TestProwlNonString(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-	}()
-	meowhttp.Prowl(meowrt.NewInt(42))
+	v := meowhttp.Prowl(meowrt.NewInt(42))
+	if _, ok := v.(*meowrt.Furball); !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
 }
 
 func TestPounceWithOptions(t *testing.T) {
@@ -241,49 +226,35 @@ func TestPounceWithOptions(t *testing.T) {
 }
 
 func TestNonPositiveMaxBodyBytes(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic for non-positive maxBodyBytes")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "maxBodyBytes must be positive") {
-			t.Errorf("expected maxBodyBytes validation error, got %q", msg)
-		}
-	}()
-
 	opts := meowrt.NewMap(map[string]meowrt.Value{
 		"maxBodyBytes": meowrt.NewInt(0),
 	})
-	meowhttp.Pounce(meowrt.NewString("http://localhost/get"), opts)
+	v := meowhttp.Pounce(meowrt.NewString("http://localhost/get"), opts)
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "maxBodyBytes must be positive") {
+		t.Errorf("expected maxBodyBytes validation error, got %q", f.Message)
+	}
 }
 
 func TestPounceExceedsMaxBodyBytes(t *testing.T) {
 	srv := newTestServer()
 	defer srv.Close()
 
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic for body exceeding maxBodyBytes")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("expected string panic, got %T", r)
-		}
-		if !strings.Contains(msg, "exceeds") {
-			t.Errorf("expected truncation error, got %q", msg)
-		}
-	}()
-
 	opts := meowrt.NewMap(map[string]meowrt.Value{
 		"maxBodyBytes": meowrt.NewInt(16),
 	})
 	// /large returns 2048 bytes, limit is 16
-	meowhttp.Pounce(meowrt.NewString(srv.URL+"/large"), opts)
+	v := meowhttp.Pounce(meowrt.NewString(srv.URL+"/large"), opts)
+	f, ok := v.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected Furball, got %T", v)
+	}
+	if !strings.Contains(f.Message, "exceeds") {
+		t.Errorf("expected truncation error, got %q", f.Message)
+	}
 }
 
 func TestTossWithOptions(t *testing.T) {

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,49 +23,56 @@ type options struct {
 	headers      map[string]string
 }
 
-func parseOptions(args []meowrt.Value, requiredArgs int) ([]meowrt.Value, options) {
+func parseOptions(args []meowrt.Value, requiredArgs int) ([]meowrt.Value, options, error) {
 	opts := options{maxBodyBytes: defaultMaxBodyBytes}
 	if len(args) > requiredArgs {
 		if m, ok := args[len(args)-1].(*meowrt.Map); ok {
-			opts = extractOptions(m)
-			return args[:len(args)-1], opts
+			o, err := extractOptions(m)
+			if err != nil {
+				return nil, opts, err
+			}
+			return args[:len(args)-1], o, nil
 		}
 	}
-	return args, opts
+	return args, opts, nil
 }
 
-// expectString extracts a Go string from a meowrt.Value or panics with a type error.
-func expectString(funcName string, v meowrt.Value) string {
+// expectString extracts a Go string from a meowrt.Value, returning an error on
+// type mismatch instead of panicking.
+func expectString(funcName string, v meowrt.Value) (string, error) {
 	if v == nil {
-		panic(fmt.Sprintf("Hiss! %s expects a String, got <nil>, nya~", funcName))
+		return "", fmt.Errorf("%s expects a String, got <nil>", funcName)
+	}
+	if f, ok := v.(*meowrt.Furball); ok {
+		return "", errors.New(f.Message)
 	}
 	s, ok := v.(*meowrt.String)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! %s expects a String, got %s, nya~", funcName, v.Type()))
+		return "", fmt.Errorf("%s expects a String, got %s", funcName, v.Type())
 	}
-	return s.Val
+	return s.Val, nil
 }
 
-// readResponse reads the response body (up to limit bytes) and returns it as a meowrt.String.
-// It panics if the body exceeds the limit.
-func readResponse(resp *http.Response, limit int64) meowrt.Value {
+// readResponse reads the response body (up to limit bytes) and returns it as a
+// meowrt.String, or an error if the body exceeds the limit / I/O fails.
+func readResponse(resp *http.Response, limit int64) (meowrt.Value, error) {
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+		return nil, err
 	}
 	if int64(len(body)) > limit {
-		panic(fmt.Sprintf("Hiss! response body exceeds %d bytes, nya~", limit))
+		return nil, fmt.Errorf("response body exceeds %d bytes", limit)
 	}
-	return meowrt.NewString(string(body))
+	return meowrt.NewString(string(body)), nil
 }
 
 // extractOptions reads option fields from a Map value.
-func extractOptions(m *meowrt.Map) options {
+func extractOptions(m *meowrt.Map) (options, error) {
 	opts := options{maxBodyBytes: defaultMaxBodyBytes}
 	if v, found := m.Get("maxBodyBytes"); found {
 		if n, ok := v.(*meowrt.Int); ok {
 			if n.Val <= 0 {
-				panic(fmt.Sprintf("Hiss! maxBodyBytes must be positive, got %d, nya~", n.Val))
+				return opts, fmt.Errorf("maxBodyBytes must be positive, got %d", n.Val)
 			}
 			opts.maxBodyBytes = n.Val
 		}
@@ -79,7 +87,7 @@ func extractOptions(m *meowrt.Map) options {
 			}
 		}
 	}
-	return opts
+	return opts, nil
 }
 
 // newRequest creates an http.Request with the default User-Agent set.
@@ -99,6 +107,21 @@ func applyHeaders(req *http.Request, opts options) {
 	}
 }
 
+// furball wraps an error as a Meow Furball value with the "Hiss! ... nya~" form.
+func furball(err error) meowrt.Value {
+	return &meowrt.Furball{Message: "Hiss! " + err.Error() + ", nya~"}
+}
+
+// firstFurball returns the first Furball value among args, or nil.
+func firstFurball(args []meowrt.Value) meowrt.Value {
+	for _, a := range args {
+		if f, ok := a.(*meowrt.Furball); ok {
+			return f
+		}
+	}
+	return nil
+}
+
 // doWithBody performs an HTTP request with a body (POST/PUT).
 // Supported argument patterns:
 //
@@ -107,11 +130,17 @@ func applyHeaders(req *http.Request, opts options) {
 //	(url, mapBody, opts) → JSON body, ct=application/json, headers can override
 //	(url, strBody, opts) → string body, Content-Type via headers
 func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
+	if f := firstFurball(args); f != nil {
+		return f
+	}
 	if len(args) < 2 || len(args) > 3 {
-		panic(fmt.Sprintf("Hiss! %s expects 2-3 arguments, got %d, nya~", funcName, len(args)))
+		return furball(fmt.Errorf("%s expects 2-3 arguments, got %d", funcName, len(args)))
 	}
 
-	u := expectString(funcName, args[0])
+	u, err := expectString(funcName, args[0])
+	if err != nil {
+		return furball(err)
+	}
 
 	var body string
 	var ct string
@@ -124,20 +153,24 @@ func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
 	case *meowrt.String:
 		body = b.Val
 	default:
-		panic(fmt.Sprintf("Hiss! %s: body must be String or Map, got %s, nya~", funcName, args[1].Type()))
+		return furball(fmt.Errorf("%s: body must be String or Map, got %s", funcName, args[1].Type()))
 	}
 
 	if len(args) == 3 {
 		optsMap, ok := args[2].(*meowrt.Map)
 		if !ok {
-			panic(fmt.Sprintf("Hiss! %s: 3rd argument must be Map, got %s, nya~", funcName, args[2].Type()))
+			return furball(fmt.Errorf("%s: 3rd argument must be Map, got %s", funcName, args[2].Type()))
 		}
-		opts = extractOptions(optsMap)
+		o, oerr := extractOptions(optsMap)
+		if oerr != nil {
+			return furball(oerr)
+		}
+		opts = o
 	}
 
 	req, err := newRequest(method, u, strings.NewReader(body))
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+		return furball(err)
 	}
 	if ct != "" {
 		req.Header.Set("Content-Type", ct)
@@ -146,80 +179,71 @@ func doWithBody(funcName, method string, args []meowrt.Value) meowrt.Value {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+		return furball(err)
 	}
 	defer resp.Body.Close()
-	return readResponse(resp, opts.maxBodyBytes)
+	v, err := readResponse(resp, opts.maxBodyBytes)
+	if err != nil {
+		return furball(err)
+	}
+	return v
 }
 
-// Pounce performs an HTTP GET request and returns the response body as a String.
-func Pounce(args ...meowrt.Value) meowrt.Value {
-	posArgs, opts := parseOptions(args, 1)
-	if len(posArgs) != 1 {
-		panic(fmt.Sprintf("Hiss! pounce expects 1 argument (url), got %d, nya~", len(posArgs)))
+// doSimple handles the common GET/DELETE/OPTIONS pattern: single URL argument
+// plus optional headers/options map.
+func doSimple(funcName, method string, args []meowrt.Value) meowrt.Value {
+	if f := firstFurball(args); f != nil {
+		return f
 	}
-	u := expectString("pounce", posArgs[0])
-	req, err := newRequest("GET", u, nil)
+	posArgs, opts, err := parseOptions(args, 1)
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+		return furball(err)
+	}
+	if len(posArgs) != 1 {
+		return furball(fmt.Errorf("%s expects 1 argument (url), got %d", funcName, len(posArgs)))
+	}
+	u, err := expectString(funcName, posArgs[0])
+	if err != nil {
+		return furball(err)
+	}
+	req, err := newRequest(method, u, nil)
+	if err != nil {
+		return furball(err)
 	}
 	applyHeaders(req, opts)
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
+		return furball(err)
 	}
 	defer resp.Body.Close()
-	return readResponse(resp, opts.maxBodyBytes)
+	v, err := readResponse(resp, opts.maxBodyBytes)
+	if err != nil {
+		return furball(err)
+	}
+	return v
+}
+
+// Pounce performs an HTTP GET request and returns the response body as a String.
+func Pounce(args ...meowrt.Value) meowrt.Value {
+	return doSimple("pounce", "GET", args)
 }
 
 // Toss performs an HTTP POST request.
-// Arguments: url, body [, options].
 func Toss(args ...meowrt.Value) meowrt.Value {
 	return doWithBody("toss", "POST", args)
 }
 
 // Knead performs an HTTP PUT request.
-// Arguments: url, body [, options].
 func Knead(args ...meowrt.Value) meowrt.Value {
 	return doWithBody("knead", "PUT", args)
 }
 
 // Swat performs an HTTP DELETE request and returns the response body as a String.
 func Swat(args ...meowrt.Value) meowrt.Value {
-	posArgs, opts := parseOptions(args, 1)
-	if len(posArgs) != 1 {
-		panic(fmt.Sprintf("Hiss! swat expects 1 argument (url), got %d, nya~", len(posArgs)))
-	}
-	u := expectString("swat", posArgs[0])
-	req, err := newRequest("DELETE", u, nil)
-	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
-	}
-	applyHeaders(req, opts)
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
-	}
-	defer resp.Body.Close()
-	return readResponse(resp, opts.maxBodyBytes)
+	return doSimple("swat", "DELETE", args)
 }
 
 // Prowl performs an HTTP OPTIONS request and returns the response body as a String.
 func Prowl(args ...meowrt.Value) meowrt.Value {
-	posArgs, opts := parseOptions(args, 1)
-	if len(posArgs) != 1 {
-		panic(fmt.Sprintf("Hiss! prowl expects 1 argument (url), got %d, nya~", len(posArgs)))
-	}
-	u := expectString("prowl", posArgs[0])
-	req, err := newRequest("OPTIONS", u, nil)
-	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
-	}
-	applyHeaders(req, opts)
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(fmt.Sprintf("Hiss! %s, nya~", err))
-	}
-	defer resp.Body.Close()
-	return readResponse(resp, opts.maxBodyBytes)
+	return doSimple("prowl", "OPTIONS", args)
 }

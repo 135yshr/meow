@@ -40,17 +40,24 @@ func ClearMethods() {
 }
 
 // DispatchMethod calls a method on a value by looking up the method registry.
+// Errors propagate as Furball values.
 func DispatchMethod(obj Value, methodName string, args ...Value) Value {
+	if f, ok := obj.(*Furball); ok {
+		return f
+	}
+	if f := propagate(args...); f != nil {
+		return f
+	}
 	typeName := ""
 	if k, ok := obj.(*Kitty); ok {
 		typeName = k.TypeName
 	}
 	if typeName == "" {
-		panic(fmt.Sprintf("Hiss! cannot call method %s on non-kitty value, nya~", methodName))
+		return &Furball{Message: fmt.Sprintf("Hiss! cannot call method %s on non-kitty value, nya~", methodName)}
 	}
 	fn, ok := LookupMethod(typeName, methodName)
 	if !ok {
-		panic(fmt.Sprintf("Hiss! no method %s for type %s, nya~", methodName, typeName))
+		return &Furball{Message: fmt.Sprintf("Hiss! no method %s for type %s, nya~", methodName, typeName)}
 	}
 	allArgs := make([]Value, 0, len(args)+1)
 	allArgs = append(allArgs, obj)
