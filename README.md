@@ -40,13 +40,18 @@
 
 # Meow Programming Language
 
-**Meow Programming Language** (also known as **Meow Language**) is a cat-themed functional programming language that transpiles `.nyan` files into Go source code. It's a joke language — but one that actually works. Write real programs with cat words, compile them to native binaries, and run them at full speed.
+**Meow Programming Language** (also known as **Meow Language**) is a cat-themed
+functional programming language that transpiles `.nyan` files into Go source
+code. It's a joke language — but one that actually works. Write real programs
+with cat words, compile them to native binaries, and run them at full speed.
 
-- Official website: <https://meow.oreha.dev/>
-- Documentation: <https://meow.oreha.dev/doc/>
-- Tutorial: <https://meow.oreha.dev/learn/tutorial/>
-- Cookbook: <https://meow.oreha.dev/cookbook/>
-- Language Specification: <https://meow.oreha.dev/doc/spec/>
+- Official Meow Programming Language website: <https://meow.oreha.dev/>
+- Meow Programming Language Documentation: <https://meow.oreha.dev/doc/>
+- Meow Programming Language Tutorial: <https://meow.oreha.dev/learn/tutorial/>
+- Meow Programming Language Cookbook: <https://meow.oreha.dev/cookbook/>
+- Meow Programming Language Specification: <https://meow.oreha.dev/doc/spec/>
+- Meow Programming Language Playground: <https://meow.oreha.dev/playground/>
+- Meow Programming Language vs MeowLang: <https://meow.oreha.dev/meow-programming-language-vs-meowlang/>
 
 ```
 nyan name = "Tama"

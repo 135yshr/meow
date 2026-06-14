@@ -83,5 +83,5 @@ suit you better.
 - [Read the Meow Programming Language Specification]({{< relref "doc/spec.md" >}})
 - [Browse the Meow Programming Language Standard Library]({{< relref "doc/stdlib.md" >}})
 - [Try `.nyan` examples in the Cookbook]({{< relref "cookbook/_index.md" >}})
-- [Run code in the Playground](/meow/playground/)
+- [Run code in the Playground](/playground/)
 - [Source code on GitHub](https://github.com/135yshr/meow)
