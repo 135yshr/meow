@@ -46,6 +46,46 @@
   "url": {{ .Site.BaseURL | jsonify | safeJS }}
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the Meow Programming Language?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Meow Programming Language is a cat-themed functional programming language that transpiles .nyan source files into Go source code, which is then compiled to a native binary by the Go toolchain."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What file extension does the Meow Programming Language use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Meow Programming Language source files use the .nyan extension and are encoded in UTF-8."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is the Meow Programming Language different from MeowLang and other cat-themed languages?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Meow Programming Language transpiles .nyan files to Go source and compiles to a native binary through the Go toolchain. Other projects named MeowLang or similar are typically esoteric or toy interpreters and are not affiliated with this project."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where can I try the Meow Programming Language online?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You can try the Meow Programming Language in the browser-based Playground at https://meow.oreha.dev/playground/, which runs a WebAssembly build of the Meow compiler."
+      }
+    }
+  ]
+}
+</script>
 {{ else }}
 <script type="application/ld+json">
 {

@@ -14,4 +14,9 @@
     <priority>{{ if eq .Kind "section" }}0.8{{ else }}0.6{{ end }}</priority>
   </url>
   {{ end }}
+  <url>
+    <loc>{{ .Site.BaseURL }}playground/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
