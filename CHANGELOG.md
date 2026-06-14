@@ -1,3 +1,8 @@
+# [v0.8.0](https://github.com/135yshr/meow/compare/v0.7.5...v0.8.0) (2026-06-14)
+
+## ✨ New Features
+- [`d87bea8`](https://github.com/135yshr/meow/commit/d87bea8)  feat: improve SEO for Meow Programming Language (#93) (Issues: [`#93`](https://github.com/135yshr/meow/issues/93))
+
 # [v0.7.5](https://github.com/135yshr/meow/compare/v0.7.4...v0.7.5) (2026-06-13)
 
 # [v0.7.4](https://github.com/135yshr/meow/compare/v0.7.3...v0.7.4) (2026-06-10)
