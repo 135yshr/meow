@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "53280fa48bf2",
+  "strategy": "manual-commit",
+  "branch": "feat/seo-improvements",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "README.md",
+    "playground/index.html",
+    "website/content/meow-programming-language-vs-meowlang.md",
+    "website/layouts/_default/baseof.html",
+    "website/layouts/_default/sitemap.xml",
+    "website/layouts/partials/jsonld.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/53/280fa48bf2/0/metadata.json",
+      "transcript": "/53/280fa48bf2/0/full.jsonl",
+      "content_hash": "/53/280fa48bf2/0/content_hash.txt",
+      "prompt": "/53/280fa48bf2/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 680,
+    "cache_creation_tokens": 183052,
+    "cache_read_tokens": 3507891,
+    "output_tokens": 24428,
+    "api_call_count": 35
+  }
+}
