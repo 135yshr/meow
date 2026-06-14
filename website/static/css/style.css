@@ -580,6 +580,57 @@ pre code {
   border-radius: 0;
 }
 
+/* ── FAQ ── */
+.faq {
+  padding: 5rem 0;
+  background: var(--bg-alt, #fafafa);
+}
+
+.faq h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 3rem;
+}
+
+.faq .container {
+  max-width: 820px;
+}
+
+.faq-item {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.05rem;
+  list-style: none;
+  outline: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.faq-item[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.faq-item p {
+  margin: 0.75rem 0 0;
+  line-height: 1.7;
+}
+
 /* ── Quickstart ── */
 .quickstart {
   padding: 5rem 0;
