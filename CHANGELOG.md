@@ -1,3 +1,5 @@
+# [v0.8.1](https://github.com/135yshr/meow/compare/v0.8.0...v0.8.1) (2026-06-27)
+
 # [v0.8.0](https://github.com/135yshr/meow/compare/v0.7.5...v0.8.0) (2026-06-14)
 
 ## ✨ New Features
