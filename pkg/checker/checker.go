@@ -550,8 +550,14 @@ func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
 		}
 	case *ast.ExprStmt:
 		c.checkPurityExpr(fnName, s.Expr)
+	case *ast.FuncStmt:
+		// A function defined inside a trill body must itself be pure — its
+		// calls are not tracked as top-level functions, so walk its body
+		// directly rather than trusting it.
+		for _, b := range s.Body {
+			c.checkPurityStmt(fnName, b)
+		}
 	}
-	// Nested FuncStmt nodes carry their own purity and are not descended into.
 }
 
 func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
@@ -600,8 +606,24 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 			c.checkPurityExpr(fnName, v)
 		}
 	case *ast.MemberExpr:
+		// Reading a member of an imported package as a value (not a call) is
+		// still an impure reference and must be rejected.
+		if pkg, ok := c.importPackageMember(e); ok {
+			c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, pkg)
+		}
 		c.checkPurityExpr(fnName, e.Object)
 	}
+}
+
+// importPackageMember reports whether m accesses a member of an imported
+// package (e.g. file.snoop), returning the package name when it does.
+func (c *Checker) importPackageMember(m *ast.MemberExpr) (string, bool) {
+	if obj, ok := m.Object.(*ast.Ident); ok {
+		if _, isImport := c.info.ImportNames[obj.Name]; isImport {
+			return obj.Name, true
+		}
+	}
+	return "", false
 }
 
 func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
@@ -622,10 +644,14 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 			}
 		}
 	case *ast.MemberExpr:
-		if obj, ok := fn.Object.(*ast.Ident); ok {
-			if _, isImport := c.info.ImportNames[obj.Name]; isImport {
-				c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, obj.Name)
-			}
+		// A member call is either an imported-package call (file.snoop(...)) or
+		// a groom method call (c.show()). Neither can be verified pure in step 1
+		// — groom methods are plain meow functions and may perform I/O — so both
+		// are rejected to preserve the transitive purity guarantee.
+		if pkg, ok := c.importPackageMember(fn); ok {
+			c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, pkg)
+		} else {
+			c.addError(e.Token.Pos, "pure function %s must not call method %s", fnName, fn.Member)
 		}
 		// walk the object expression regardless (e.g. self.field.method())
 		c.checkPurityExpr(fnName, fn.Object)

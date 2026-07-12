@@ -142,9 +142,14 @@ func (p *Parser) parseFuncStmt() *ast.FuncStmt {
 }
 
 func (p *Parser) parsePureFuncStmt() *ast.FuncStmt {
-	p.advance() // consume trill
+	trillTok := p.advance() // consume trill
 	if p.cur.Type != token.MEOW {
+		// Don't hand a non-meow token to parseFuncStmt: it would parse from the
+		// wrong position and cascade errors. Report once and return a stub; the
+		// trill token is already consumed, so the caller's loop makes progress
+		// by re-parsing the current token as its own statement.
 		p.errs = append(p.errs, newError(p.cur.Pos, "expected meow after trill but got %v", p.cur.Type))
+		return &ast.FuncStmt{Token: trillTok, Pure: true}
 	}
 	fn := p.parseFuncStmt()
 	fn.Pure = true
