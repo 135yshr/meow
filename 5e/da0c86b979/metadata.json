@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.8.1",
+  "checkpoint_id": "5eda0c86b979",
+  "strategy": "manual-commit",
+  "branch": "chore/unify-placeholder-names",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "README.md",
+    "docs/tutorial.md",
+    "examples/catwalk_example_test.nyan",
+    "examples/gradual_typing.nyan",
+    "examples/http_example.nyan",
+    "pkg/codegen/catwalk_test.go",
+    "pkg/codegen/codegen_test.go",
+    "pkg/interpreter/interpreter_test.go",
+    "pkg/lexer/lexer_test.go",
+    "pkg/parser/parser_test.go",
+    "runtime/http/http_test.go",
+    "runtime/meowrt/kitty_test.go",
+    "runtime/meowrt/value_test.go",
+    "runtime/testing/testing_test.go",
+    "testdata/catwalk_test.nyan",
+    "testdata/function_test.nyan",
+    "testdata/hello.golden",
+    "testdata/hello.nyan",
+    "testdata/list_test.nyan",
+    "testdata/map_test.nyan",
+    "testdata/string_test.nyan",
+    "website/content/learn/tutorial.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/5e/da0c86b979/0/metadata.json",
+      "transcript": "/5e/da0c86b979/0/full.jsonl",
+      "compact_transcript": "/5e/da0c86b979/0/transcript.jsonl",
+      "content_hash": "/5e/da0c86b979/0/content_hash.txt",
+      "prompt": "/5e/da0c86b979/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17798,
+    "cache_creation_tokens": 112743,
+    "cache_read_tokens": 1022129,
+    "output_tokens": 7378,
+    "api_call_count": 21
+  }
+}
