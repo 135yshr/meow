@@ -120,5 +120,34 @@ nyan email = Email("tama@meow.cat")
 
 nya("User ID:", id.value)
 nya("Email:", email.value)`
+    },
+    {
+        name: "Pure Functions (Trill)",
+        code: `# trill marks a function as pure. Its body may only call other trill
+# functions and side-effect-free builtins (len, lick, to_string, ...).
+# Impure calls (nya, hiss, imported packages, non-trill functions) are
+# rejected at compile time.
+
+trill meow inc(a int) int {
+    bring a + 1
+}
+
+# Pure functions may call other pure functions and pure builtins.
+trill meow bump_all(xs litter) litter {
+    bring lick(xs, paw(x int) { inc(x) })
+}
+
+trill meow area(width int, height int) int {
+    bring width * height
+}
+
+nya("Bumped:", bump_all([1, 2, 3]))
+nya("Area:", area(4, 5))
+
+# Uncomment to see the checker reject an impure call:
+# trill meow noisy(a int) int {
+#     nya(a)
+#     bring a
+# }`
     }
 ];

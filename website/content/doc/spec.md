@@ -42,13 +42,14 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 19 identifiers are reserved as keywords:
+The following 25 identifiers are reserved as keywords:
 
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
 curl      peek      hiss      nab       flaunt
-catnap    yarn      hairball  kitty
+catnap    yarn      hairball  kitty     breed
+collar    pose      groom     self      trill
 ```
 
 ### Type Keywords
@@ -134,13 +135,57 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | `litter` | Ordered collection of values | `[1, 2, 3]` |
 | Map | String-keyed dictionary | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
+| `breed` | Type alias (transparent) | `breed Nickname = string` |
+| `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
+| `pose` | Interface (method signatures) | `pose Showable { meow show() string }` |
+
+### Type Alias (breed)
+
+A `breed` declaration creates a transparent alias for an existing type. The alias is fully interchangeable with the original type in all operations.
+
+```ebnf
+BreedStmt = "breed" identifier "=" TypeExpr newline .
+```
+
+```meow
+breed Nickname = string
+nyan name Nickname = "Nyantyu"   # string and Nickname are interchangeable
+nya(name + " chan")              # string operations work directly
+```
+
+`breed` is a compile-time construct only — it leaves no trace in the generated code.
+
+### Newtype (collar)
+
+A `collar` declaration creates a distinct new type that wraps an existing type. Values must be constructed explicitly, and the inner value is accessed via `.value`.
+
+```ebnf
+CollarStmt = "collar" identifier "=" TypeExpr newline .
+```
+
+```meow
+collar UserId = int
+nyan id = UserId(42)       # constructor wraps the value
+nya(id.value)              # .value unwraps it => 42
+nya(id)                    # => UserId{value: 42}
+```
+
+Two `collar` types with the same underlying type are distinct:
+
+```meow
+collar Temperature = int
+collar Humidity = int
+nyan temp = Temperature(72)
+nyan humid = Humidity(72)
+# temp != humid — different collar types are never equal
+```
 
 ### Type Annotations
 
 Type annotations are optional but recommended. They appear after identifiers:
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" .
+TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
 ```
 
 Variable declaration with type:
@@ -237,7 +282,7 @@ Accesses a list element by zero-based index.
 MemberExpr = Expr "." identifier .
 ```
 
-Accesses a field on a `kitty` instance, or calls a function in an imported package.
+Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
 
 ### Pipe Expression
 
@@ -312,7 +357,7 @@ Rebinds an existing variable to a new value.
 ### Function Declaration
 
 ```ebnf
-FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
+FuncStmt = [ "trill" ] "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 Block    = "{" { Stmt } "}" .
 ```
 
@@ -323,6 +368,18 @@ meow greet(name string) string {
   bring "Hello, " + name + "!"
 }
 ```
+
+#### Pure Functions (trill)
+
+Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`). Calling `nya`, `hiss`, `gag`, an imported-package member, or a non-`trill` user function is a compile error. Lambda bodies are scanned recursively, so an impure lambda passed to `lick`/`picky`/`curl` is also rejected.
+
+```meow
+trill meow add(a int, b int) int {
+  bring a + b
+}
+```
+
+**Known limitation (step 1):** passing a non-pure function as a bare value (without calling it) is not yet detected.
 
 ### Return Statement
 
@@ -397,6 +454,73 @@ kitty Point {
 nyan p = Point(3, 7)
 nya(p.x)   # => 3
 ```
+
+### Breed Statement
+
+```ebnf
+BreedStmt = "breed" identifier "=" TypeExpr newline .
+```
+
+Declares a type alias. See [Type Alias (breed)](#type-alias-breed) above.
+
+### Collar Statement
+
+```ebnf
+CollarStmt = "collar" identifier "=" TypeExpr newline .
+```
+
+Declares a newtype wrapper. See [Newtype (collar)](#newtype-collar) above.
+
+### Pose Statement
+
+```ebnf
+PoseStmt   = "pose" identifier "{" { PoseMethod } "}" .
+PoseMethod = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] newline .
+```
+
+Defines an interface — a named set of method signatures. Types structurally satisfy a pose if they have all required methods with matching signatures.
+
+```meow
+pose Showable {
+    meow show() string
+}
+```
+
+A `pose` is a compile-time construct used for structural type checking. It does not generate runtime code.
+
+### Groom Statement
+
+```ebnf
+GroomStmt = "groom" identifier "{" { FuncStmt } "}" .
+```
+
+Adds methods to an existing `kitty` or `collar` type. Each method is a `meow` function that receives the instance as `self` implicitly.
+
+```meow
+kitty Cat { name: string, age: int }
+
+groom Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+nyan c = Cat("Nyantyu", 3)
+nya(c.show())       # => Nyantyu (age 3)
+```
+
+The `self` keyword refers to the instance the method is called on. For `kitty` types, `self.field` accesses fields. For `collar` types, `self.value` accesses the wrapped value.
+
+### Self Expression
+
+```ebnf
+SelfExpr = "self" .
+```
+
+Refers to the current instance within a `groom` block. Only valid inside method bodies defined by `groom`.
 
 ### Expression Statement
 

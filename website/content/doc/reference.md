@@ -31,6 +31,12 @@ A complete reference of all keywords, operators, and syntax in the Meow Programm
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
 | `catnap` | Nil (represents no value) | `nyan nothing = catnap` |
 | `kitty` | Struct (composite type) definition | `kitty Cat { name: string }` |
+| `breed` | Type alias (transparent) | `breed Nickname = string` |
+| `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
+| `pose` | Interface definition | `pose Showable { meow show() string }` |
+| `groom` | Add methods to a type | `groom Cat { meow show() string { ... } }` |
+| `self` | Instance reference in methods | `self.name` |
+| `trill` | Pure-function modifier (opt-in purity check) | `trill meow add(a int, b int) int { bring a + b }` |
 
 ## Type Keywords
 
@@ -181,6 +187,30 @@ meow add(a int, b int) int {
 nya(add(1, 2))   # => 3
 ```
 
+### Pure Functions (Trill)
+
+Prefix a function with `trill` to opt into a purity check. Inside a `trill`
+function, the body may only call:
+
+- other `trill` functions, and
+- side-effect-free builtins: arithmetic/comparison operators, `len`, `to_int`,
+  `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`,
+  `append`, `lick`, `picky`, `curl`.
+
+Any other call is a compile error: impure builtins (`nya`, `hiss`, `gag`),
+imported-package members (e.g. `http.pounce(...)`), and non-`trill` user
+functions are all rejected. Higher-order calls are allowed, but lambda bodies
+are scanned recursively, so an impure lambda passed to `lick` is still caught.
+
+```meow
+trill meow add(a int, b int) int {
+  bring a + b
+}
+```
+
+**Known limitation (step 1):** passing a non-pure function as a bare value
+(without calling it) is not detected yet.
+
 ### Struct (Kitty) Definition
 
 ```meow
@@ -196,6 +226,43 @@ nya(nyantyu.age)        # => 3
 ```
 
 Fields are defined with `name: type` syntax. Instances are created by calling the type name as a constructor. Fields are accessed with `.` notation.
+
+### Type Alias (Breed)
+
+```meow
+breed Nickname = string
+breed Score = int
+
+nyan name Nickname = "Nyantyu"
+nya(name + " chan")   # => Nyantyu chan — fully compatible with string
+```
+
+`breed` creates a transparent alias. The alias and the original type are interchangeable in all contexts including arithmetic, comparisons, and function calls. `breed` is erased at compile time — no runtime cost.
+
+### Newtype (Collar)
+
+```meow
+collar UserId = int
+collar Email = string
+
+nyan id = UserId(42)
+nyan email = Email("nyantyu@meow.cat")
+
+nya(id)           # => UserId{value: 42}
+nya(id.value)     # => 42
+nya(email.value)  # => nyantyu@meow.cat
+```
+
+`collar` creates a distinct wrapper type. Values are constructed with `TypeName(value)` and unwrapped with `.value`. Different collar types with the same underlying type are **not** interchangeable:
+
+```meow
+collar Celsius = int
+collar Fahrenheit = int
+
+nyan c = Celsius(100)
+nyan f = Fahrenheit(212)
+# c != f — different collar types are never equal
+```
 
 ### Conditionals
 
@@ -376,16 +443,70 @@ Available packages: `file`, `http`, `testing`. See [stdlib.md](stdlib.md) for de
 
 ### Member Access
 
-The `.` operator accesses fields on `kitty` instances and functions on imported packages:
+The `.` operator accesses fields on `kitty` instances, calls methods defined by `groom`, and calls functions on imported packages:
 
 ```meow
 # Kitty field access
 nyan nyantyu = Cat("Nyantyu", 3)
 nya(nyantyu.name)   # => Nyantyu
 
+# Method call (defined by groom)
+nya(nyantyu.show())  # => Nyantyu (age 3)
+
 # Package function call
 nab "http"
 http.pounce("https://example.com") |=| nya
+```
+
+### Interface (Pose)
+
+Define an interface with `pose` — a named set of method signatures:
+
+```meow
+pose Showable {
+    meow show() string
+}
+```
+
+A type structurally satisfies a `pose` if it has all required methods with matching signatures. No explicit declaration is needed (structural typing).
+
+### Methods (Groom)
+
+Add methods to a `kitty` or `collar` type with `groom`:
+
+```meow
+kitty Cat {
+  name: string,
+  age: int
+}
+
+groom Cat {
+    meow show() string {
+        bring self.name + " (age " + to_string(self.age) + ")"
+    }
+    meow is_kitten() bool {
+        bring self.age < 1
+    }
+}
+
+nyan c = Cat("Nyantyu", 3)
+nya(c.show())       # => Nyantyu (age 3)
+nya(c.is_kitten())  # => hairball
+```
+
+`self` refers to the instance the method is called on. For `kitty` types, use `self.field` to access fields. For `collar` types, use `self.value` to access the wrapped value:
+
+```meow
+collar Label = string
+
+groom Label {
+    meow display() string {
+        bring "[ " + self.value + " ]"
+    }
+}
+
+nyan tag = Label("important")
+nya(tag.display())   # => [ important ]
 ```
 
 ### Testing
