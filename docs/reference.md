@@ -32,6 +32,7 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `pose` | Interface definition | `pose Showable { meow show() string }` |
 | `groom` | Add methods to a type | `groom Cat { meow show() string { ... } }` |
 | `self` | Instance reference in methods | `self.name` |
+| `trill` | Pure-function modifier (opt-in purity check) | `trill meow add(a int, b int) int { bring a + b }` |
 
 ## Type Keywords
 
@@ -181,6 +182,30 @@ meow add(a int, b int) int {
 
 nya(add(1, 2))   # => 3
 ```
+
+### Pure Functions (Trill)
+
+Prefix a function with `trill` to opt into a purity check. Inside a `trill`
+function, the body may only call:
+
+- other `trill` functions, and
+- side-effect-free builtins: arithmetic/comparison operators, `len`, `to_int`,
+  `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`,
+  `append`, `lick`, `picky`, `curl`.
+
+Any other call is a compile error: impure builtins (`nya`, `hiss`, `gag`),
+imported-package members (e.g. `http.pounce(...)`), and non-`trill` user
+functions are all rejected. Higher-order calls are allowed, but lambda bodies
+are scanned recursively, so an impure lambda passed to `lick` is still caught.
+
+```meow
+trill meow add(a int, b int) int {
+  bring a + b
+}
+```
+
+**Known limitation (step 1):** passing a non-pure function as a bare value
+(without calling it) is not detected yet.
 
 ### Struct (Kitty) Definition
 

@@ -920,3 +920,103 @@ meow test_fn() {
 		t.Fatalf("unexpected errors: block-level var should not collide: %v", errs)
 	}
 }
+
+func TestPureFuncCallsImpureBuiltin(t *testing.T) {
+	_, errs := check(t, `
+trill meow noisy(a int) int {
+  nya(a)
+  bring a
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for trill function calling nya, got none")
+	}
+}
+
+func TestPureFuncCallsHiss(t *testing.T) {
+	_, errs := check(t, `
+trill meow boom(a int) int {
+  bring hiss("bad")
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for trill function calling hiss, got none")
+	}
+}
+
+func TestPureFuncCallsGag(t *testing.T) {
+	_, errs := check(t, `
+trill meow recover(a int) int {
+  bring gag(a)
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for trill function calling gag, got none")
+	}
+}
+
+func TestPureFuncCallsNonPureFunc(t *testing.T) {
+	_, errs := check(t, `
+meow helper(a int) int {
+  bring a + 1
+}
+trill meow user(a int) int {
+  bring helper(a)
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for trill function calling non-pure function, got none")
+	}
+}
+
+func TestPureFuncCallsImportedPackage(t *testing.T) {
+	_, errs := check(t, `
+nab "http"
+trill meow grab(url string) furball {
+  bring http.pounce(url)
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for trill function using imported package, got none")
+	}
+}
+
+func TestPureFuncPassesImpureLambdaToLick(t *testing.T) {
+	_, errs := check(t, `
+trill meow shout(xs litter) litter {
+  bring lick(xs, paw(x int) { nya(x) })
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected error for impure lambda passed to lick, got none")
+	}
+}
+
+func TestPureFuncCallsPureFuncAndBuiltins(t *testing.T) {
+	_, errs := check(t, `
+trill meow inc(a int) int {
+  bring a + 1
+}
+trill meow twice(a int) int {
+  bring inc(inc(a))
+}
+trill meow sized(xs litter) int {
+  bring len(xs)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for pure trill functions: %v", errs)
+	}
+}
+
+func TestPureFuncFullyPure(t *testing.T) {
+	_, errs := check(t, `
+trill meow square(a int) int {
+  nyan r = a * a
+  bring r
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for fully pure trill function: %v", errs)
+	}
+}

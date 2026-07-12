@@ -1,0 +1,39 @@
+# Pure function example (trill modifier)
+# `trill` marks a function as pure: its body may only call other trill
+# functions and side-effect-free builtins (len, to_int, head, lick, ...).
+# The checker rejects any impure call at compile time.
+
+# A pure building block.
+trill meow inc(a int) int {
+  bring a + 1
+}
+
+# Pure functions may call other pure functions and pure builtins.
+trill meow bump_all(xs litter) litter {
+  bring lick(xs, paw(x int) { inc(x) })
+}
+
+# Pure arithmetic only.
+trill meow area(width int, height int) int {
+  nyan value = width * height
+  bring value
+}
+
+nyan sizes = [1, 2, 3]
+nya(bump_all(sizes))          # => [2, 3, 4]
+nya(area(4, 5))               # => 20
+
+# --- Violations (uncomment to see the checker complain) ---
+#
+# trill meow noisy(a int) int {
+#   nya(a)                    # Hiss! pure function noisy must not call impure builtin nya
+#   bring a
+# }
+#
+# meow helper(a int) int { bring a + 1 }
+# trill meow user(a int) int {
+#   bring helper(a)           # Hiss! pure function user must not call non-pure function helper
+# }
+#
+# Known limitation (step 1): passing an impure function as a bare value
+# (without calling it) is not detected yet.
