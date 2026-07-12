@@ -1,4 +1,4 @@
-nyan name = "Tama"
+nyan name = "Nyantyu"
 meow greet(who string) string {
   bring "Hello, " + who + "!"
 }

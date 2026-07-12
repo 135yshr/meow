@@ -9,14 +9,14 @@ import (
 
 func TestExtractCatwalkSingleLine(t *testing.T) {
 	src := `meow catwalk_hello() {
-  nya("Hello, Tama!")
+  nya("Hello, Nyantyu!")
   # Output:
-  # Hello, Tama!
+  # Hello, Nyantyu!
 }`
 	l := lexer.New(src, "test.nyan")
 	co := codegen.ExtractCatwalkOutputs(l.Tokens())
 
-	want := "Hello, Tama!\n"
+	want := "Hello, Nyantyu!\n"
 	if got, ok := co["catwalk_hello"]; !ok {
 		t.Fatal("catwalk_hello not found")
 	} else if got != want {

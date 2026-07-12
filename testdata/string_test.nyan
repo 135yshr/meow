@@ -13,9 +13,9 @@ meow test_string_equality() {
 }
 
 meow test_string_in_variable() {
-  nyan name = "Tama"
+  nyan name = "Nyantyu"
   nyan greeting = "Hello, " + name + "!"
-  expect(greeting, "Hello, Tama!")
+  expect(greeting, "Hello, Nyantyu!")
 }
 
 meow test_string_with_numbers() {

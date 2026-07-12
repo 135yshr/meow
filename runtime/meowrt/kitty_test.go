@@ -15,12 +15,12 @@ func mustKitty(t *testing.T, v Value) *Kitty {
 }
 
 func TestNewKitty(t *testing.T) {
-	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3)))
 	if k.TypeName != "Cat" {
 		t.Errorf("TypeName = %q, want %q", k.TypeName, "Cat")
 	}
-	if k.Fields["name"].String() != "Tama" {
-		t.Errorf("name = %q, want %q", k.Fields["name"].String(), "Tama")
+	if k.Fields["name"].String() != "Nyantyu" {
+		t.Errorf("name = %q, want %q", k.Fields["name"].String(), "Nyantyu")
 	}
 	if k.Fields["age"].(*Int).Val != 3 {
 		t.Errorf("age = %d, want %d", k.Fields["age"].(*Int).Val, 3)
@@ -28,7 +28,7 @@ func TestNewKitty(t *testing.T) {
 }
 
 func TestNewKittyArgCountMismatch(t *testing.T) {
-	v := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"))
+	v := NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"))
 	f, ok := v.(*Furball)
 	if !ok {
 		t.Fatalf("expected *Furball, got %T", v)
@@ -46,24 +46,24 @@ func TestKittyType(t *testing.T) {
 }
 
 func TestKittyString(t *testing.T) {
-	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
-	want := "Cat{name: Tama, age: 3}"
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3)))
+	want := "Cat{name: Nyantyu, age: 3}"
 	if k.String() != want {
 		t.Errorf("String() = %q, want %q", k.String(), want)
 	}
 }
 
 func TestKittyIsTruthy(t *testing.T) {
-	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Tama")))
+	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Nyantyu")))
 	if !k.IsTruthy() {
 		t.Error("IsTruthy() = false, want true")
 	}
 }
 
 func TestKittyGetField(t *testing.T) {
-	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3)))
-	if v := k.GetField("name"); v.String() != "Tama" {
-		t.Errorf("GetField(name) = %q, want %q", v.String(), "Tama")
+	k := mustKitty(t, NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3)))
+	if v := k.GetField("name"); v.String() != "Nyantyu" {
+		t.Errorf("GetField(name) = %q, want %q", v.String(), "Nyantyu")
 	}
 	if v := k.GetField("age").(*Int); v.Val != 3 {
 		t.Errorf("GetField(age) = %d, want %d", v.Val, 3)
@@ -71,7 +71,7 @@ func TestKittyGetField(t *testing.T) {
 }
 
 func TestKittyGetFieldMissingReturnsFurball(t *testing.T) {
-	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Tama")))
+	k := mustKitty(t, NewKitty("Cat", []string{"name"}, NewString("Nyantyu")))
 	v := k.GetField("unknown")
 	f, ok := v.(*Furball)
 	if !ok {
@@ -83,9 +83,9 @@ func TestKittyGetFieldMissingReturnsFurball(t *testing.T) {
 }
 
 func TestKittyEqual(t *testing.T) {
-	a := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
-	b := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
-	c := NewKitty("Cat", []string{"name", "age"}, NewString("Mike"), NewInt(5))
+	a := NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3))
+	b := NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3))
+	c := NewKitty("Cat", []string{"name", "age"}, NewString("Tyako"), NewInt(5))
 
 	if eq := Equal(a, b).(*Bool); !eq.Val {
 		t.Error("Equal(a, b) = false, want true")
@@ -96,8 +96,8 @@ func TestKittyEqual(t *testing.T) {
 }
 
 func TestKittyToJSON(t *testing.T) {
-	k := NewKitty("Cat", []string{"name", "age"}, NewString("Tama"), NewInt(3))
-	want := `{"name":"Tama","age":3}`
+	k := NewKitty("Cat", []string{"name", "age"}, NewString("Nyantyu"), NewInt(3))
+	want := `{"name":"Nyantyu","age":3}`
 	if got := ToJSON(k); got != want {
 		t.Errorf("ToJSON() = %q, want %q", got, want)
 	}

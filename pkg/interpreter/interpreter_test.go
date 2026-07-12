@@ -486,11 +486,11 @@ kitty Nyantyu {
     name: string
     age: int
 }
-nyan c = Nyantyu("Tama", 3)
+nyan c = Nyantyu("Nyantyu", 3)
 nya(c.name)
 nya(c.age)
 `)
-	expected := "Tama\n3\n"
+	expected := "Nyantyu\n3\n"
 	if got != expected {
 		t.Errorf("got %q, want %q", got, expected)
 	}
@@ -520,10 +520,10 @@ groom Nyantyu {
     }
 }
 
-nyan c = Nyantyu("Tama", 3)
+nyan c = Nyantyu("Nyantyu", 3)
 nya(c.greet())
 `)
-	if strings.TrimSpace(got) != "I am Tama" {
+	if strings.TrimSpace(got) != "I am Nyantyu" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -626,11 +626,11 @@ purr i (1..15) {
 
 func TestMapLiteral(t *testing.T) {
 	got := runMeow(t, `
-nyan m = {"name": "Tama", "color": "white"}
+nyan m = {"name": "Nyantyu", "color": "white"}
 nya(m["name"])
 nya(m["color"])
 `)
-	expected := "Tama\nwhite\n"
+	expected := "Nyantyu\nwhite\n"
 	if got != expected {
 		t.Errorf("got %q, want %q", got, expected)
 	}

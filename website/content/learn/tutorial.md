@@ -220,9 +220,9 @@ nya(sum)   # => 15
 ### Building lists
 
 ```meow
-nyan cats = ["Nyantyu", "Tyako", "Tyomusuke"]
-nyan more_cats = append(cats, "Tama")
-nya(more_cats)   # => [Nyantyu, Tyako, Tyomusuke, Tama]
+nyan cats = ["Nyantyu", "Tyako"]
+nyan more_cats = append(cats, "Tyomusuke")
+nya(more_cats)   # => [Nyantyu, Tyako, Tyomusuke]
 ```
 
 ## 6. Lambdas and Pipes
