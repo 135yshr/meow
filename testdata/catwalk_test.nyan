@@ -1,7 +1,7 @@
 meow catwalk_hello() {
-  nya("Hello, Tama!")
+  nya("Hello, Nyantyu!")
   # Output:
-  # Hello, Tama!
+  # Hello, Nyantyu!
 }
 
 meow catwalk_arithmetic() {

@@ -262,13 +262,13 @@ func TestRunBadArgs(t *testing.T) {
 func TestCatwalkPass(t *testing.T) {
 	buf, _ := setup(t)
 	fn := meowrt.NewFunc("test", func(args ...meowrt.Value) meowrt.Value {
-		fmt.Print("Hello, Tama!\n")
+		fmt.Print("Hello, Nyantyu!\n")
 		return meowrt.NewNil()
 	})
 	result := meowtest.Catwalk(
 		meowrt.NewString("catwalk_hello"),
 		fn,
-		meowrt.NewString("Hello, Tama!\n"),
+		meowrt.NewString("Hello, Nyantyu!\n"),
 	)
 	b, ok := result.(*meowrt.Bool)
 	if !ok || !b.Val {

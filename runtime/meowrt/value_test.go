@@ -62,12 +62,12 @@ func TestToJSONList(t *testing.T) {
 
 func TestToJSONMap(t *testing.T) {
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Tama"),
+		"name": meowrt.NewString("Nyantyu"),
 		"age":  meowrt.NewInt(3),
 	})
 	got := meowrt.ToJSON(m)
 	// Keys are sorted alphabetically
-	expected := `{"age":3,"name":"Tama"}`
+	expected := `{"age":3,"name":"Nyantyu"}`
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
@@ -76,13 +76,13 @@ func TestToJSONMap(t *testing.T) {
 func TestToJSONNestedMapList(t *testing.T) {
 	m := meowrt.NewMap(map[string]meowrt.Value{
 		"cats": meowrt.NewList(
-			meowrt.NewString("Tama"),
-			meowrt.NewString("Mochi"),
+			meowrt.NewString("Nyantyu"),
+			meowrt.NewString("Tyako"),
 		),
 		"count": meowrt.NewInt(2),
 	})
 	got := meowrt.ToJSON(m)
-	expected := `{"cats":["Tama","Mochi"],"count":2}`
+	expected := `{"cats":["Nyantyu","Tyako"],"count":2}`
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}

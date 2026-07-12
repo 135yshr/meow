@@ -29,9 +29,9 @@ func generate(t *testing.T, input string) string {
 }
 
 func TestHelloWorld(t *testing.T) {
-	code := generate(t, `nyan name = "Tama"
+	code := generate(t, `nyan name = "Nyantyu"
 nya(name)`)
-	if !strings.Contains(code, `meow.NewString("Tama")`) {
+	if !strings.Contains(code, `meow.NewString("Nyantyu")`) {
 		t.Error("expected meow.NewString")
 	}
 	if !strings.Contains(code, `meow.Nya(name)`) {
@@ -43,7 +43,7 @@ func TestFuncGen(t *testing.T) {
 	code := generate(t, `meow greet(who) {
   bring "Hello, " + who + "!"
 }
-nyan name = "Tama"
+nyan name = "Nyantyu"
 nya(greet(name))`)
 	if !strings.Contains(code, "func greet(who meow.Value) meow.Value") {
 		t.Error("expected function declaration")

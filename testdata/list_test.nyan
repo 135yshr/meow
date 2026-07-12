@@ -16,8 +16,8 @@ meow test_single_element_list() {
 }
 
 meow test_string_list() {
-  nyan names = ["tama", "mochi", "sora"]
-  expect(names, ["tama", "mochi", "sora"])
+  nyan names = ["nyantyu", "tyako", "tyomusuke"]
+  expect(names, ["nyantyu", "tyako", "tyomusuke"])
 }
 
 meow test_map_operation() {

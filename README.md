@@ -54,7 +54,7 @@ with cat words, compile them to native binaries, and run them at full speed.
 - Meow Programming Language vs MeowLang: <https://meow.oreha.dev/meow-programming-language-vs-meowlang/>
 
 ```
-nyan name = "Tama"
+nyan name = "Nyantyu"
 meow greet(who) {
   bring "Hello, " + who + "!"
 }
@@ -63,7 +63,7 @@ nya(greet(name))
 
 ```
 $ meow run hello.nyan
-Hello, Tama!
+Hello, Nyantyu!
 ```
 
 ## Features
@@ -111,7 +111,7 @@ go install github.com/135yshr/meow@latest
 Create `hello.nyan`:
 
 ```
-nyan name = "Tama"
+nyan name = "Nyantyu"
 nya("Hello, " + name + "!")
 ```
 
@@ -119,7 +119,7 @@ Run it:
 
 ```bash
 meow run hello.nyan
-# => Hello, Tama!
+# => Hello, Nyantyu!
 ```
 
 Or build a binary:

@@ -330,7 +330,7 @@ func TestPipeToBareHiss(t *testing.T) {
 }
 
 func TestMapLit(t *testing.T) {
-	prog := parse(t, `nyan m = {"name": "Tama", "age": 3}`)
+	prog := parse(t, `nyan m = {"name": "Nyantyu", "age": 3}`)
 	v := prog.Stmts[0].(*ast.VarStmt)
 	m, ok := v.Value.(*ast.MapLit)
 	if !ok {

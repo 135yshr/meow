@@ -122,7 +122,7 @@ func TestTossStringBodyWithHeaders(t *testing.T) {
 
 	result := meowhttp.Toss(
 		meowrt.NewString(srv.URL+"/post"),
-		meowrt.NewString(`{"name":"Tama"}`),
+		meowrt.NewString(`{"name":"Nyantyu"}`),
 		meowrt.NewMap(map[string]meowrt.Value{
 			"headers": meowrt.NewMap(map[string]meowrt.Value{
 				"Content-Type": meowrt.NewString("application/json"),
@@ -133,7 +133,7 @@ func TestTossStringBodyWithHeaders(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:application/json:{"name":"Tama"}`
+	expected := `toss:application/json:{"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -153,14 +153,14 @@ func TestKnead(t *testing.T) {
 	result := meowhttp.Knead(
 		meowrt.NewString(srv.URL+"/put"),
 		meowrt.NewMap(map[string]meowrt.Value{
-			"name": meowrt.NewString("Mochi"),
+			"name": meowrt.NewString("Tyako"),
 		}),
 	)
 	s, ok := result.(*meowrt.String)
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `knead:application/json:{"name":"Mochi"}`
+	expected := `knead:application/json:{"name":"Tyako"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -269,14 +269,14 @@ func TestTossWithOptions(t *testing.T) {
 	})
 	result := meowhttp.Toss(
 		meowrt.NewString(srv.URL+"/post"),
-		meowrt.NewString(`{"name":"Tama"}`),
+		meowrt.NewString(`{"name":"Nyantyu"}`),
 		opts,
 	)
 	s, ok := result.(*meowrt.String)
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:application/json:{"name":"Tama"}`
+	expected := `toss:application/json:{"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -287,14 +287,14 @@ func TestTossMapBody(t *testing.T) {
 	defer srv.Close()
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Tama"),
+		"name": meowrt.NewString("Nyantyu"),
 	})
 	result := meowhttp.Toss(meowrt.NewString(srv.URL+"/post"), m)
 	s, ok := result.(*meowrt.String)
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:application/json:{"name":"Tama"}`
+	expected := `toss:application/json:{"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -305,7 +305,7 @@ func TestTossMapBodyWithContentTypeOverride(t *testing.T) {
 	defer srv.Close()
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Tama"),
+		"name": meowrt.NewString("Nyantyu"),
 	})
 	result := meowhttp.Toss(
 		meowrt.NewString(srv.URL+"/post"),
@@ -320,7 +320,7 @@ func TestTossMapBodyWithContentTypeOverride(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:text/plain:{"name":"Tama"}`
+	expected := `toss:text/plain:{"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -331,7 +331,7 @@ func TestTossMapBodyWithOptions(t *testing.T) {
 	defer srv.Close()
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Tama"),
+		"name": meowrt.NewString("Nyantyu"),
 	})
 	opts := meowrt.NewMap(map[string]meowrt.Value{
 		"maxBodyBytes": meowrt.NewInt(4096),
@@ -341,7 +341,7 @@ func TestTossMapBodyWithOptions(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:application/json:{"name":"Tama"}`
+	expected := `toss:application/json:{"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -352,14 +352,14 @@ func TestKneadMapBody(t *testing.T) {
 	defer srv.Close()
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Mochi"),
+		"name": meowrt.NewString("Tyako"),
 	})
 	result := meowhttp.Knead(meowrt.NewString(srv.URL+"/put"), m)
 	s, ok := result.(*meowrt.String)
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `knead:application/json:{"name":"Mochi"}`
+	expected := `knead:application/json:{"name":"Tyako"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -371,8 +371,8 @@ func TestTossNestedMapBody(t *testing.T) {
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
 		"cats": meowrt.NewList(
-			meowrt.NewString("Tama"),
-			meowrt.NewString("Mochi"),
+			meowrt.NewString("Nyantyu"),
+			meowrt.NewString("Tyako"),
 		),
 		"count": meowrt.NewInt(2),
 	})
@@ -381,7 +381,7 @@ func TestTossNestedMapBody(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `toss:application/json:{"cats":["Tama","Mochi"],"count":2}`
+	expected := `toss:application/json:{"cats":["Nyantyu","Tyako"],"count":2}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}
@@ -498,7 +498,7 @@ func TestTossMapBodyWithHeaders(t *testing.T) {
 	defer headerSrv.Close()
 
 	m := meowrt.NewMap(map[string]meowrt.Value{
-		"name": meowrt.NewString("Tama"),
+		"name": meowrt.NewString("Nyantyu"),
 	})
 	opts := meowrt.NewMap(map[string]meowrt.Value{
 		"headers": meowrt.NewMap(map[string]meowrt.Value{
@@ -510,7 +510,7 @@ func TestTossMapBodyWithHeaders(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected String, got %T", result)
 	}
-	expected := `auth=Bearer post-token,ct=application/json,body={"name":"Tama"}`
+	expected := `auth=Bearer post-token,ct=application/json,body={"name":"Nyantyu"}`
 	if s.Val != expected {
 		t.Errorf("expected %q, got %q", expected, s.Val)
 	}

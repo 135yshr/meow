@@ -5,12 +5,12 @@ http.pounce("https://httpbin.org/get") |=| nya
 
 # POST request — toss Map body (auto JSON + Content-Type: application/json)
 http.toss("https://httpbin.org/post", {
-  "name": "Tama"
+  "name": "Nyantyu"
 }) |=| nya
 
 # PUT request — knead Map body into place
 http.knead("https://httpbin.org/put", {
-  "name": "Mochi"
+  "name": "Tyako"
 }) |=| nya
 
 # DELETE request — swat a resource away
@@ -35,7 +35,7 @@ nya(auth_res)
 
 # POST with Map body + options (max body size)
 nyan post_res = http.toss("https://httpbin.org/post", {
-  "name": "Tama"
+  "name": "Nyantyu"
 }, {
   "maxBodyBytes": 4194304
 })
@@ -43,7 +43,7 @@ nya(post_res)
 
 # POST with Map body + headers (Content-Type override)
 http.toss("https://httpbin.org/post", {
-  "name": "Tama"
+  "name": "Nyantyu"
 }, {
   "headers": {
     "Content-Type": "text/plain", "Authorization": "Bearer token"
@@ -62,5 +62,5 @@ http.toss("https://httpbin.org/post", "raw data") |=| nya
 
 # PUT with Map body
 http.knead("https://httpbin.org/put", {
-  "name": "Mochi"
+  "name": "Tyako"
 }) |=| nya

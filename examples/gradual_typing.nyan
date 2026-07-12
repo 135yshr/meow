@@ -8,7 +8,7 @@ meow greet(name string) string {
 
 nyan x int = 10
 nyan y int = 20
-nyan message = greet("Tama")
+nyan message = greet("Nyantyu")
 
 nya(add(x, y))
 nya(message)

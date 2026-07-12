@@ -2,7 +2,7 @@
 
 meow test_map_creation() {
   nyan cat = {
-    "name": "Tama", "age": 3
+    "name": "Nyantyu", "age": 3
   }
   judge(cat)
 }

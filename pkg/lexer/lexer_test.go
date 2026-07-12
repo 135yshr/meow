@@ -90,7 +90,7 @@ func TestLiterals(t *testing.T) {
 }
 
 func TestHelloWorld(t *testing.T) {
-	input := `nyan name = "Tama"
+	input := `nyan name = "Nyantyu"
 nya(name)`
 	l := lexer.New(input, "hello.nyan")
 	tokens := collect(l)
