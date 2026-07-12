@@ -87,6 +87,9 @@ const (
 	TYPE_BOOL    // bool
 	TYPE_FURBALL // furball
 	TYPE_LITTER  // litter
+
+	// Function modifiers
+	TRILL // trill (pure-function modifier)
 	keywordsEnd
 )
 
@@ -122,6 +125,7 @@ var keywords = map[string]TokenType{
 	"bool":     TYPE_BOOL,
 	"furball":  TYPE_FURBALL,
 	"litter":   TYPE_LITTER,
+	"trill":    TRILL,
 }
 
 // LookupIdent returns the token type for a given identifier.

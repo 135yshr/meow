@@ -51,13 +51,15 @@ type Checker struct {
 	info              *TypeInfo
 	errors            []*TypeError
 	scopes            []map[string]types.Type
-	currentReturnType types.Type // return type of the function currently being checked
+	currentReturnType types.Type      // return type of the function currently being checked
+	pureFuncs         map[string]bool // names of functions declared with the trill modifier
 }
 
 // New creates a new Checker.
 func New() *Checker {
 	c := &Checker{
-		info: NewTypeInfo(),
+		info:      NewTypeInfo(),
+		pureFuncs: make(map[string]bool),
 	}
 	c.pushScope()
 	return c
@@ -127,6 +129,9 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 			ft := c.funcSignatureType(fn)
 			c.info.FuncTypes[fn.Name] = ft
 			c.define(fn.Name, ft)
+			if fn.Pure {
+				c.pureFuncs[fn.Name] = true
+			}
 		}
 	}
 
@@ -473,6 +478,204 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	c.popScope()
 
 	c.currentReturnType = prevReturnType
+
+	// Purity check for trill functions: the body may only call other trill
+	// functions and side-effect-free builtins.
+	if fn.Pure {
+		c.checkPurity(fn)
+	}
+}
+
+// impureBuiltins are builtins that perform I/O or control-flow side effects
+// and are therefore forbidden inside a trill (pure) function body.
+var impureBuiltins = map[string]bool{
+	"nya":  true, // print / I/O
+	"hiss": true, // panic / throw
+	"gag":  true, // recover
+}
+
+// pureBuiltins are builtins with no side effects, allowed inside trill bodies.
+// Arithmetic/comparison operators are expressions, not calls, so they are
+// always allowed and need not be listed here.
+var pureBuiltins = map[string]bool{
+	"len":        true,
+	"to_int":     true,
+	"to_float":   true,
+	"to_string":  true,
+	"to_bytes":   true,
+	"to_runes":   true,
+	"is_furball": true,
+	"head":       true,
+	"tail":       true,
+	"append":     true,
+	"lick":       true,
+	"picky":      true,
+	"curl":       true,
+}
+
+// checkPurity walks the body of a trill function and reports any call that
+// would introduce a side effect. See §1 of the design notes for the rules:
+// only other trill functions and side-effect-free builtins may be called.
+func (c *Checker) checkPurity(fn *ast.FuncStmt) {
+	for _, stmt := range fn.Body {
+		c.checkPurityStmt(fn.Name, stmt)
+	}
+}
+
+func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
+	switch s := stmt.(type) {
+	case *ast.VarStmt:
+		c.checkPurityExpr(fnName, s.Value)
+	case *ast.ReturnStmt:
+		if s.Value != nil {
+			c.checkPurityExpr(fnName, s.Value)
+		}
+	case *ast.IfStmt:
+		c.checkPurityExpr(fnName, s.Condition)
+		for _, b := range s.Body {
+			c.checkPurityStmt(fnName, b)
+		}
+		for _, b := range s.ElseBody {
+			c.checkPurityStmt(fnName, b)
+		}
+	case *ast.RangeStmt:
+		if s.Start != nil {
+			c.checkPurityExpr(fnName, s.Start)
+		}
+		if s.End != nil {
+			c.checkPurityExpr(fnName, s.End)
+		}
+		for _, b := range s.Body {
+			c.checkPurityStmt(fnName, b)
+		}
+	case *ast.ExprStmt:
+		c.checkPurityExpr(fnName, s.Expr)
+	case *ast.FuncStmt:
+		// A function defined inside a trill body must itself be pure — its
+		// calls are not tracked as top-level functions, so walk its body
+		// directly rather than trusting it.
+		for _, b := range s.Body {
+			c.checkPurityStmt(fnName, b)
+		}
+	case *ast.LearnStmt:
+		// A groom block nested in a trill body: walk every method body so an
+		// impure method (nya/hiss/...) defined there is caught, mirroring the
+		// nested-function case above.
+		for i := range s.Methods {
+			for _, b := range s.Methods[i].Body {
+				c.checkPurityStmt(fnName, b)
+			}
+		}
+	case *ast.FetchStmt, *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt:
+		// Declaration statements carry no runtime value expressions, so there
+		// is nothing to walk. Listed explicitly so a newly added statement kind
+		// is not silently skipped without consideration.
+	}
+}
+
+func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
+	switch e := expr.(type) {
+	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.BoolLit, *ast.NilLit, *ast.Ident, *ast.SelfExpr:
+		// leaves: nothing to walk
+	case *ast.UnaryExpr:
+		c.checkPurityExpr(fnName, e.Right)
+	case *ast.BinaryExpr:
+		c.checkPurityExpr(fnName, e.Left)
+		c.checkPurityExpr(fnName, e.Right)
+	case *ast.CallExpr:
+		c.checkPurityCall(fnName, e)
+	case *ast.LambdaExpr:
+		c.checkPurityExpr(fnName, e.Body)
+	case *ast.ListLit:
+		for _, item := range e.Items {
+			c.checkPurityExpr(fnName, item)
+		}
+	case *ast.IndexExpr:
+		c.checkPurityExpr(fnName, e.Left)
+		c.checkPurityExpr(fnName, e.Index)
+	case *ast.PipeExpr:
+		c.checkPurityExpr(fnName, e.Left)
+		c.checkPurityExpr(fnName, e.Right)
+	case *ast.CatchExpr:
+		c.checkPurityExpr(fnName, e.Left)
+		c.checkPurityExpr(fnName, e.Right)
+	case *ast.MatchExpr:
+		c.checkPurityExpr(fnName, e.Subject)
+		for _, arm := range e.Arms {
+			switch p := arm.Pattern.(type) {
+			case *ast.LiteralPattern:
+				c.checkPurityExpr(fnName, p.Value)
+			case *ast.RangePattern:
+				c.checkPurityExpr(fnName, p.Low)
+				c.checkPurityExpr(fnName, p.High)
+			}
+			c.checkPurityExpr(fnName, arm.Body)
+		}
+	case *ast.MapLit:
+		for _, k := range e.Keys {
+			c.checkPurityExpr(fnName, k)
+		}
+		for _, v := range e.Vals {
+			c.checkPurityExpr(fnName, v)
+		}
+	case *ast.MemberExpr:
+		// Reading a member of an imported package as a value (not a call) is
+		// still an impure reference and must be rejected.
+		if pkg, ok := c.importPackageMember(e); ok {
+			c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, pkg)
+		}
+		c.checkPurityExpr(fnName, e.Object)
+	}
+}
+
+// importPackageMember reports whether m accesses a member of an imported
+// package (e.g. file.snoop), returning the package name when it does.
+func (c *Checker) importPackageMember(m *ast.MemberExpr) (string, bool) {
+	if obj, ok := m.Object.(*ast.Ident); ok {
+		if _, isImport := c.info.ImportNames[obj.Name]; isImport {
+			return obj.Name, true
+		}
+	}
+	return "", false
+}
+
+func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
+	switch fn := e.Fn.(type) {
+	case *ast.Ident:
+		name := fn.Name
+		switch {
+		case impureBuiltins[name]:
+			c.addError(e.Token.Pos, "pure function %s must not call impure builtin %s", fnName, name)
+		case pureBuiltins[name]:
+			// allowed
+		default:
+			// A known user-defined function must itself be pure. Unknown idents
+			// (kitty/collar constructors, in-scope function values) are left
+			// alone in step 1.
+			if _, ok := c.info.FuncTypes[name]; ok && !c.pureFuncs[name] {
+				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
+			}
+		}
+	case *ast.MemberExpr:
+		// A member call is either an imported-package call (file.snoop(...)) or
+		// a groom method call (c.show()). Neither can be verified pure in step 1
+		// — groom methods are plain meow functions and may perform I/O — so both
+		// are rejected to preserve the transitive purity guarantee.
+		if pkg, ok := c.importPackageMember(fn); ok {
+			c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, pkg)
+		} else {
+			c.addError(e.Token.Pos, "pure function %s must not call method %s", fnName, fn.Member)
+		}
+		// walk the object expression regardless (e.g. self.field.method())
+		c.checkPurityExpr(fnName, fn.Object)
+	default:
+		// higher-order / chained call target — walk it
+		c.checkPurityExpr(fnName, e.Fn)
+	}
+	// Always walk arguments (lambdas, nested calls) to catch impurity there.
+	for _, arg := range e.Args {
+		c.checkPurityExpr(fnName, arg)
+	}
 }
 
 // isPrimitiveType reports whether t is a simple scalar type (int, byte, float, string, bool, nil).

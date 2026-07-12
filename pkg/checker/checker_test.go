@@ -920,3 +920,187 @@ meow test_fn() {
 		t.Fatalf("unexpected errors: block-level var should not collide: %v", errs)
 	}
 }
+
+// hasPurityError reports whether any error is a purity violation. All purity
+// messages share the "must not" phrasing, so matching it confirms the purity
+// rule fired rather than an incidental parse/type error.
+func hasPurityError(errs []*checker.TypeError) bool {
+	for _, e := range errs {
+		if contains(e.Error(), "must not") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestPureFuncCallsImpureBuiltin(t *testing.T) {
+	_, errs := check(t, `
+trill meow noisy(a int) int {
+  nya(a)
+  bring a
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function calling nya, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsHiss(t *testing.T) {
+	_, errs := check(t, `
+trill meow boom(a int) int {
+  bring hiss("bad")
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function calling hiss, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsGag(t *testing.T) {
+	_, errs := check(t, `
+trill meow recover(a int) int {
+  bring gag(a)
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function calling gag, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsNonPureFunc(t *testing.T) {
+	_, errs := check(t, `
+meow helper(a int) int {
+  bring a + 1
+}
+trill meow user(a int) int {
+  bring helper(a)
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function calling non-pure function, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsImportedPackage(t *testing.T) {
+	_, errs := check(t, `
+nab "http"
+trill meow grab(url string) furball {
+  bring http.pounce(url)
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function using imported package, got: %v", errs)
+	}
+}
+
+func TestPureFuncReadsImportedPackageAsValue(t *testing.T) {
+	// Reading a package member as a value (not a call) is still impure.
+	_, errs := check(t, `
+nab "file"
+trill meow grab() furball {
+  bring file.snoop
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for reading imported package member, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsGroomMethod(t *testing.T) {
+	// groom methods are plain meow functions that may perform I/O, so calling
+	// one from a trill function must be rejected (transitive purity).
+	_, errs := check(t, `
+kitty Cat {
+  name: string
+}
+groom Cat {
+  meow noisy() int {
+    nya(self.name)
+    bring 1
+  }
+}
+trill meow f(c Cat) int {
+  bring c.noisy()
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for trill function calling groom method, got: %v", errs)
+	}
+}
+
+func TestPureFuncDefinesImpureNestedFunc(t *testing.T) {
+	// A function nested inside a trill body must itself be pure.
+	_, errs := check(t, `
+trill meow f(x int) int {
+  meow noisy(y int) int {
+    nya(y)
+    bring y
+  }
+  bring x
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for impure nested function, got: %v", errs)
+	}
+}
+
+func TestPureFuncDefinesImpureNestedGroom(t *testing.T) {
+	// A groom block nested in a trill body must also be pure.
+	_, errs := check(t, `
+kitty Cat {
+  name: string
+}
+trill meow f(x int) int {
+  groom Cat {
+    meow noisy() int {
+      nya(x)
+      bring 1
+    }
+  }
+  bring x
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for impure nested groom, got: %v", errs)
+	}
+}
+
+func TestPureFuncPassesImpureLambdaToLick(t *testing.T) {
+	_, errs := check(t, `
+trill meow shout(xs litter) litter {
+  bring lick(xs, paw(x int) { nya(x) })
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for impure lambda passed to lick, got: %v", errs)
+	}
+}
+
+func TestPureFuncCallsPureFuncAndBuiltins(t *testing.T) {
+	_, errs := check(t, `
+trill meow inc(a int) int {
+  bring a + 1
+}
+trill meow twice(a int) int {
+  bring inc(inc(a))
+}
+trill meow sized(xs litter) int {
+  bring len(xs)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for pure trill functions: %v", errs)
+	}
+}
+
+func TestPureFuncFullyPure(t *testing.T) {
+	_, errs := check(t, `
+trill meow square(a int) int {
+  nyan r = a * a
+  bring r
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for fully pure trill function: %v", errs)
+	}
+}

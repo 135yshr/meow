@@ -89,6 +89,8 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseVarStmt()
 	case token.MEOW:
 		return p.parseFuncStmt()
+	case token.TRILL:
+		return p.parsePureFuncStmt()
 	case token.BRING:
 		return p.parseReturnStmt()
 	case token.SNIFF:
@@ -137,6 +139,21 @@ func (p *Parser) parseFuncStmt() *ast.FuncStmt {
 	}
 	body := p.parseBlock()
 	return &ast.FuncStmt{Token: tok, Name: name.Literal, Params: params, ReturnType: returnType, Body: body}
+}
+
+func (p *Parser) parsePureFuncStmt() *ast.FuncStmt {
+	trillTok := p.advance() // consume trill
+	if p.cur.Type != token.MEOW {
+		// Don't hand a non-meow token to parseFuncStmt: it would parse from the
+		// wrong position and cascade errors. Report once and return a stub; the
+		// trill token is already consumed, so the caller's loop makes progress
+		// by re-parsing the current token as its own statement.
+		p.errs = append(p.errs, newError(p.cur.Pos, "expected meow after trill but got %v", p.cur.Type))
+		return &ast.FuncStmt{Token: trillTok, Pure: true}
+	}
+	fn := p.parseFuncStmt()
+	fn.Pure = true
+	return fn
 }
 
 func (p *Parser) parseTypedParamList() []ast.Param {

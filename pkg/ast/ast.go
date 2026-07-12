@@ -354,6 +354,8 @@ type FuncStmt struct {
 	ReturnType TypeExpr
 	// Body is the list of statements in the function body.
 	Body []Stmt
+	// Pure is true when the function was declared with the trill modifier.
+	Pure bool
 }
 
 func (n *FuncStmt) Pos() token.Position { return n.Token.Pos }

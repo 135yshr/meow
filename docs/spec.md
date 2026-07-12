@@ -38,14 +38,14 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 24 identifiers are reserved as keywords:
+The following 25 identifiers are reserved as keywords:
 
 ```text
 nyan      meow      bring     sniff     scratch
 purr      paw       nya       lick      picky
 curl      peek      hiss      nab       flaunt
 catnap    yarn      hairball  kitty     breed
-collar    pose      groom     self
+collar    pose      groom     self      trill
 ```
 
 ### Type Keywords
@@ -193,7 +193,7 @@ VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr .
 Function with typed parameters and return type:
 
 ```ebnf
-FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
+FuncStmt = [ "trill" ] "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 ParamList = Param { "," Param } .
 Param = identifier [ TypeExpr ] .
 ```
@@ -353,7 +353,7 @@ Rebinds an existing variable to a new value.
 ### Function Declaration
 
 ```ebnf
-FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
+FuncStmt = [ "trill" ] "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 Block    = "{" { Stmt } "}" .
 ```
 
@@ -364,6 +364,18 @@ meow greet(name string) string {
   bring "Hello, " + name + "!"
 }
 ```
+
+#### Pure Functions (trill)
+
+Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`). Calling `nya`, `hiss`, `gag`, an imported-package member, or a non-`trill` user function is a compile error. Lambda bodies are scanned recursively, so an impure lambda passed to `lick`/`picky`/`curl` is also rejected.
+
+```meow
+trill meow add(a int, b int) int {
+  bring a + b
+}
+```
+
+**Known limitation (step 1):** passing a non-pure function as a bare value (without calling it) is not yet detected.
 
 ### Return Statement
 
