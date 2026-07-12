@@ -197,7 +197,7 @@ VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr .
 Function with typed parameters and return type:
 
 ```ebnf
-FuncStmt = "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
+FuncStmt = [ "trill" ] "meow" identifier "(" [ ParamList ] ")" [ TypeExpr ] Block .
 ParamList = Param { "," Param } .
 Param = identifier [ TypeExpr ] .
 ```

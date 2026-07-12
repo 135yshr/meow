@@ -1044,6 +1044,27 @@ trill meow f(x int) int {
 	}
 }
 
+func TestPureFuncDefinesImpureNestedGroom(t *testing.T) {
+	// A groom block nested in a trill body must also be pure.
+	_, errs := check(t, `
+kitty Cat {
+  name: string
+}
+trill meow f(x int) int {
+  groom Cat {
+    meow noisy() int {
+      nya(x)
+      bring 1
+    }
+  }
+  bring x
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for impure nested groom, got: %v", errs)
+	}
+}
+
 func TestPureFuncPassesImpureLambdaToLick(t *testing.T) {
 	_, errs := check(t, `
 trill meow shout(xs litter) litter {

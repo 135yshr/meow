@@ -557,6 +557,19 @@ func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
 		for _, b := range s.Body {
 			c.checkPurityStmt(fnName, b)
 		}
+	case *ast.LearnStmt:
+		// A groom block nested in a trill body: walk every method body so an
+		// impure method (nya/hiss/...) defined there is caught, mirroring the
+		// nested-function case above.
+		for i := range s.Methods {
+			for _, b := range s.Methods[i].Body {
+				c.checkPurityStmt(fnName, b)
+			}
+		}
+	case *ast.FetchStmt, *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt:
+		// Declaration statements carry no runtime value expressions, so there
+		// is nothing to walk. Listed explicitly so a newly added statement kind
+		// is not silently skipped without consideration.
 	}
 }
 
