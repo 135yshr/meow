@@ -575,8 +575,17 @@ func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
 
 func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 	switch e := expr.(type) {
-	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.BoolLit, *ast.NilLit, *ast.Ident, *ast.SelfExpr:
+	case *ast.IntLit, *ast.FloatLit, *ast.StringLit, *ast.BoolLit, *ast.NilLit, *ast.SelfExpr:
 		// leaves: nothing to walk
+	case *ast.Ident:
+		// Step 2: a bare reference to a non-pure user function (passing it as a
+		// value rather than calling it) still lets an impure function escape the
+		// pure body, so reject it. Call targets are handled by checkPurityCall
+		// and never reach here, so this fires only for genuine value references.
+		// Idents naming pure functions, constructors, or in-scope locals are fine.
+		if _, ok := c.info.FuncTypes[e.Name]; ok && !c.pureFuncs[e.Name] {
+			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
+		}
 	case *ast.UnaryExpr:
 		c.checkPurityExpr(fnName, e.Right)
 	case *ast.BinaryExpr:
@@ -651,16 +660,16 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 		default:
 			// A known user-defined function must itself be pure. Unknown idents
 			// (kitty/collar constructors, in-scope function values) are left
-			// alone in step 1.
+			// alone — they carry no impure top-level function to leak.
 			if _, ok := c.info.FuncTypes[name]; ok && !c.pureFuncs[name] {
 				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
 			}
 		}
 	case *ast.MemberExpr:
 		// A member call is either an imported-package call (file.snoop(...)) or
-		// a groom method call (c.show()). Neither can be verified pure in step 1
-		// — groom methods are plain meow functions and may perform I/O — so both
-		// are rejected to preserve the transitive purity guarantee.
+		// a groom method call (c.show()). Neither can be verified pure — groom
+		// methods are plain meow functions and may perform I/O — so both are
+		// rejected to preserve the transitive purity guarantee.
 		if pkg, ok := c.importPackageMember(fn); ok {
 			c.addError(e.Token.Pos, "pure function %s must not use imported package %s", fnName, pkg)
 		} else {

@@ -350,6 +350,7 @@ Check the [`examples/`](examples/) directory:
 | [`list_ops.nyan`](examples/list_ops.nyan) | `lick`, `picky`, `curl` demo |
 | [`error_handling.nyan`](examples/error_handling.nyan) | `hiss`, `gag`, `is_furball`, `~>` demo |
 | [`trick_example.nyan`](examples/trick_example.nyan) | `pose`, `groom`, `self` demo |
+| [`pure_function.nyan`](examples/pure_function.nyan) | `trill` pure functions with compile-time purity checks |
 | [`file_io.nyan`](examples/file_io.nyan) | File I/O with `nab "file"` |
 | [`http_example.nyan`](examples/http_example.nyan) | HTTP client with `nab "http"` |
 
