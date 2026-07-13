@@ -1,3 +1,8 @@
+# [v0.10.0](https://github.com/135yshr/meow/compare/v0.9.3...v0.10.0) (2026-07-13)
+
+## ✨ New Features
+- [`b714fde`](https://github.com/135yshr/meow/commit/b714fde)  feat: Detect non-pure functions referenced as bare values in trill (#100) (Issues: [`#100`](https://github.com/135yshr/meow/issues/100))
+
 # [v0.9.3](https://github.com/135yshr/meow/compare/v0.9.2...v0.9.3) (2026-07-13)
 
 # [v0.9.2](https://github.com/135yshr/meow/compare/v0.9.1...v0.9.2) (2026-07-12)
