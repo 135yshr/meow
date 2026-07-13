@@ -35,5 +35,10 @@ nya(area(4, 5))               # => 20
 #   bring helper(a)           # Hiss! pure function user must not call non-pure function helper
 # }
 #
-# Known limitation (step 1): passing an impure function as a bare value
-# (without calling it) is not detected yet.
+# Referencing an impure function as a bare value (without calling it) is
+# rejected too, so impurity cannot escape a pure body:
+#
+# meow shout(a int) int { nya(a) bring a }
+# trill meow leak(xs litter) litter {
+#   bring lick(xs, shout)     # Hiss! pure function leak must not reference non-pure function shout
+# }

@@ -375,7 +375,7 @@ trill meow add(a int, b int) int {
 }
 ```
 
-**Known limitation (step 1):** passing a non-pure function as a bare value (without calling it) is not yet detected.
+Referencing a non-`trill` function as a bare value — binding it to a variable, passing it as an argument, or returning it — is also a compile error, so impurity cannot escape a pure body without being called.
 
 ### Return Statement
 

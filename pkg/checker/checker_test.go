@@ -1104,3 +1104,73 @@ trill meow square(a int) int {
 		t.Fatalf("unexpected errors for fully pure trill function: %v", errs)
 	}
 }
+
+// --- step 2: non-pure functions referenced as bare values ---
+
+func TestPureFuncBindsNonPureFuncAsValue(t *testing.T) {
+	// Binding a non-pure function to a variable (without calling it) still lets
+	// the impure function escape the pure body, so it must be rejected.
+	_, errs := check(t, `
+meow helper(a int) int {
+  nya(a)
+  bring a
+}
+trill meow user(a int) int {
+  nyan f = helper
+  bring a
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for non-pure function bound as value, got: %v", errs)
+	}
+}
+
+func TestPureFuncPassesNonPureFuncAsArg(t *testing.T) {
+	// Passing a non-pure function as an argument to a higher-order builtin is
+	// just as impure as calling it inline.
+	_, errs := check(t, `
+meow dbl(a int) int {
+  nya(a)
+  bring a * 2
+}
+trill meow user(xs litter) litter {
+  bring lick(xs, dbl)
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for non-pure function passed as argument, got: %v", errs)
+	}
+}
+
+func TestPureFuncReturnsNonPureFuncAsValue(t *testing.T) {
+	// Returning a non-pure function by name leaks impurity to the caller.
+	_, errs := check(t, `
+meow helper(a int) int {
+  nya(a)
+  bring a
+}
+trill meow user() int {
+  bring helper
+}
+`)
+	if !hasPurityError(errs) {
+		t.Fatalf("expected purity error for non-pure function returned as value, got: %v", errs)
+	}
+}
+
+func TestPureFuncReferencesPureFuncAsValue(t *testing.T) {
+	// Referencing another pure function by name (as a value) is allowed — the
+	// transitive purity guarantee still holds.
+	_, errs := check(t, `
+trill meow inc(a int) int {
+  bring a + 1
+}
+trill meow user(a int) int {
+  nyan f = inc
+  bring a
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors for pure function referenced as value: %v", errs)
+	}
+}

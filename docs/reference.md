@@ -204,8 +204,9 @@ trill meow add(a int, b int) int {
 }
 ```
 
-**Known limitation (step 1):** passing a non-pure function as a bare value
-(without calling it) is not detected yet.
+A non-`trill` function referenced as a bare value — bound to a variable, passed
+as an argument, or returned — is rejected too, so an impure function can't slip
+out of a pure body without being called.
 
 ### Struct (Kitty) Definition
 
