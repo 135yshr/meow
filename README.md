@@ -95,13 +95,13 @@ brew install 135yshr/homebrew-tap/meow
 ```bash
 git clone https://github.com/135yshr/meow.git
 cd meow
-go install .
+go install ./cmd/meow
 ```
 
 ### Go Install
 
 ```bash
-go install github.com/135yshr/meow@latest
+go install github.com/135yshr/meow/cmd/meow@latest
 ```
 
 **Requires Go 1.26+**
