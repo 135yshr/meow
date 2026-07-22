@@ -1,3 +1,8 @@
+# [v0.10.3](https://github.com/135yshr/meow/compare/v0.10.2...v0.10.3) (2026-07-22)
+
+## 🐛 Bug Fixes
+- [`3ce3150`](https://github.com/135yshr/meow/commit/3ce3150)  fix: make GA4 tag detectable under Consent Mode v2 (#103) (Issues: [`#103`](https://github.com/135yshr/meow/issues/103))
+
 # [v0.10.2](https://github.com/135yshr/meow/compare/v0.10.1...v0.10.2) (2026-07-19)
 
 # [v0.10.1](https://github.com/135yshr/meow/compare/v0.10.0...v0.10.1) (2026-07-19)
