@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.8.1",
+  "checkpoint_id": "1f8a75bbade8",
+  "strategy": "manual-commit",
+  "branch": "fix/ga4-consent-mode-detection",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "website/layouts/_default/baseof.html",
+    "website/static/js/consent.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1f/8a75bbade8/0/metadata.json",
+      "transcript": "/1f/8a75bbade8/0/full.jsonl",
+      "compact_transcript": "/1f/8a75bbade8/0/transcript.jsonl",
+      "content_hash": "/1f/8a75bbade8/0/content_hash.txt",
+      "prompt": "/1f/8a75bbade8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18779,
+    "cache_creation_tokens": 217932,
+    "cache_read_tokens": 1762835,
+    "output_tokens": 32504,
+    "api_call_count": 26
+  }
+}
