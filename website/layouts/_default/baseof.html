@@ -14,13 +14,14 @@
   <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
   {{ if hugo.IsProduction }}
     <link rel="stylesheet" href="{{ "css/consent.css" | relURL }}">
-    <script defer src="{{ "js/consent.js" | relURL }}"></script>
-    <script defer src="https://www.googletagmanager.com/gtag/js?id={{ site.Config.Services.GoogleAnalytics.ID }}"></script>
+    <!-- consent.js must load blocking BEFORE the GA config so the Consent Mode v2 default is registered first -->
+    <script src="{{ "js/consent.js" | relURL }}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.Config.Services.GoogleAnalytics.ID }}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '{{ site.Config.Services.GoogleAnalytics.ID }}', { send_page_view: false });
+      gtag('config', '{{ site.Config.Services.GoogleAnalytics.ID }}');
     </script>
   {{ end }}
 </head>

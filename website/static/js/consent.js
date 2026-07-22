@@ -44,8 +44,8 @@
   try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) { /* ignore */ }
 
   if (stored === 'granted') {
+    // gtag('config', ...) already sends the page_view; the update upgrades subsequent measurement.
     gtag('consent', 'update', GRANTED);
-    gtag('event', 'page_view');
     return;
   }
   if (stored === 'denied') {
@@ -65,7 +65,6 @@
     acceptBtn.addEventListener('click', function () {
       try { localStorage.setItem(STORAGE_KEY, 'granted'); } catch (e) { /* ignore */ }
       gtag('consent', 'update', GRANTED);
-      gtag('event', 'page_view');
       banner.hidden = true;
     });
 
