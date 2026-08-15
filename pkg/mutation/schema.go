@@ -220,7 +220,9 @@ func walkExprTree(expr ast.Expr, fn func(ast.Expr)) {
 			walkExprTree(arg, fn)
 		}
 	case *ast.LambdaExpr:
-		walkExprTree(e.Body, fn)
+		if e.Body != nil {
+			walkExprTree(e.Body, fn)
+		}
 	case *ast.ListLit:
 		for _, item := range e.Items {
 			walkExprTree(item, fn)

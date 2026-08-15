@@ -1445,11 +1445,35 @@ func (g *Generator) genPartialCall(fnName string, ft types.FuncType, suppliedArg
 }
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
-	body := g.genExpr(e.Body)
 	return fmt.Sprintf("meow.NewFuncWithArity(\"lambda\", %d, func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+
-		"\treturn %s\n"+
-		"})", len(e.Params), g.genLambdaParamBindings(e.Params), body)
+		"%s"+
+		"})", len(e.Params), g.genLambdaParamBindings(e.Params), g.genLambdaBody(e))
+}
+
+// genLambdaBody emits the closure body. The lambda closure has the same shape
+// as an untyped function body — func(...) meow.Value — so a block body reuses
+// the ordinary statement generator.
+func (g *Generator) genLambdaBody(e *ast.LambdaExpr) string {
+	if e.Block == nil {
+		return fmt.Sprintf("\treturn %s\n", g.genExpr(e.Body))
+	}
+	var b strings.Builder
+	for i, stmt := range e.Block {
+		b.WriteString("\t")
+		// A trailing expression statement is the lambda's result, mirroring the
+		// single-expression form; genStmt would otherwise discard its value.
+		if exprStmt, ok := stmt.(*ast.ExprStmt); ok && i == len(e.Block)-1 {
+			fmt.Fprintf(&b, "return %s\n", g.genExpr(exprStmt.Expr))
+			return b.String()
+		}
+		b.WriteString(g.genStmt(stmt))
+		b.WriteString("\n")
+	}
+	if !g.blockAlwaysReturns(e.Block) {
+		b.WriteString("\treturn meow.NewNil()\n")
+	}
+	return b.String()
 }
 
 func (g *Generator) genLambdaParamBindings(params []ast.Param) string {

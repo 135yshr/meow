@@ -594,7 +594,12 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 	case *ast.CallExpr:
 		c.checkPurityCall(fnName, e)
 	case *ast.LambdaExpr:
-		c.checkPurityExpr(fnName, e.Body)
+		if e.Body != nil {
+			c.checkPurityExpr(fnName, e.Body)
+		}
+		for _, stmt := range e.Block {
+			c.checkPurityStmt(fnName, stmt)
+		}
 	case *ast.ListLit:
 		for _, item := range e.Items {
 			c.checkPurityExpr(fnName, item)
@@ -1180,9 +1185,34 @@ func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {
 		paramTypes[i] = pt
 		c.define(p.Name, pt)
 	}
-	retType := c.inferExpr(e.Body)
+	retType := c.inferLambdaBody(e)
 	c.popScope()
 	return types.FuncType{Params: paramTypes, Return: retType}
+}
+
+// inferLambdaBody infers the result type of a lambda. A block body is checked
+// statement by statement; its type comes from a trailing expression statement,
+// and is otherwise left open, since `bring` may return from anywhere in it.
+func (c *Checker) inferLambdaBody(e *ast.LambdaExpr) types.Type {
+	if e.Block == nil {
+		return c.inferExpr(e.Body)
+	}
+
+	// `bring` inside a block body returns from the lambda, not from any
+	// enclosing function. A lambda declares no return type, so anything goes.
+	prevReturnType := c.currentReturnType
+	c.currentReturnType = types.AnyType{}
+	defer func() { c.currentReturnType = prevReturnType }()
+
+	var retType types.Type = types.AnyType{}
+	for i, stmt := range e.Block {
+		if exprStmt, ok := stmt.(*ast.ExprStmt); ok && i == len(e.Block)-1 {
+			retType = c.inferExpr(exprStmt.Expr)
+			continue
+		}
+		c.checkStmt(stmt)
+	}
+	return retType
 }
 
 func (c *Checker) inferList(e *ast.ListLit) types.Type {

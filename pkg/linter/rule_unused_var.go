@@ -167,7 +167,12 @@ func (c *unusedChecker) checkExpr(expr ast.Expr) {
 			c.define(p.Name, e.Token.Pos)
 			c.markUsed(p.Name)
 		}
-		c.checkExpr(e.Body)
+		if e.Body != nil {
+			c.checkExpr(e.Body)
+		}
+		for _, stmt := range e.Block {
+			c.checkStmt(stmt)
+		}
 		c.reportUnused()
 		c.popScope()
 	case *ast.ListLit:

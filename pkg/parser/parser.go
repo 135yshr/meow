@@ -647,10 +647,19 @@ func (p *Parser) parseLambda() ast.Expr {
 	p.expect(token.LPAREN)
 	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
-	p.expect(token.LBRACE)
-	body := p.parseExpr(0)
-	p.expect(token.RBRACE)
-	return &ast.LambdaExpr{Token: tok, Params: params, Body: body}
+
+	// The body is parsed as a statement block so that control flow — sniff /
+	// scratch, purr, intermediate nyan bindings — is available inside a lambda.
+	// The common single-expression form (paw(x) { x * 2 }) parses as a block
+	// holding one expression statement, and is collapsed back to the expression
+	// form so it keeps yielding that expression's value.
+	stmts := p.parseBlock()
+	if len(stmts) == 1 {
+		if exprStmt, ok := stmts[0].(*ast.ExprStmt); ok {
+			return &ast.LambdaExpr{Token: tok, Params: params, Body: exprStmt.Expr}
+		}
+	}
+	return &ast.LambdaExpr{Token: tok, Params: params, Block: stmts}
 }
 
 func (p *Parser) parseListLit() ast.Expr {

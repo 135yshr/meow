@@ -579,7 +579,10 @@ func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowr
 				child.Define(p.Name, meowrt.NewNil())
 			}
 		}
-		return interp.evalExpr(e.Body, child)
+		if e.Block == nil {
+			return interp.evalExpr(e.Body, child)
+		}
+		return interp.evalLambdaBlock(e.Block, child)
 	}
 	return meowrt.NewFuncWithArity("lambda", arity, func(args ...meowrt.Value) meowrt.Value {
 		if len(args) < arity {
@@ -592,6 +595,36 @@ func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowr
 		}
 		return evalWithArgs(args)
 	})
+}
+
+// evalLambdaBlock runs a block-bodied lambda. A trailing expression statement
+// is the result, mirroring the single-expression form; otherwise the value is
+// whatever `bring` returned, or catnap.
+func (interp *Interpreter) evalLambdaBlock(stmts []ast.Stmt, env *Environment) meowrt.Value {
+	var result meowrt.Value
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				sig, ok := r.(returnSignal)
+				if !ok {
+					panic(r)
+				}
+				result = sig.Value
+			}
+		}()
+		for i, stmt := range stmts {
+			if exprStmt, ok := stmt.(*ast.ExprStmt); ok && i == len(stmts)-1 {
+				result = interp.evalExpr(exprStmt.Expr, env)
+				return
+			}
+			interp.execStmt(stmt, env)
+		}
+	}()
+
+	if result != nil {
+		return result
+	}
+	return meowrt.NewNil()
 }
 
 // --- Collections ---

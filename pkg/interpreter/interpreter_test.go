@@ -713,3 +713,40 @@ nya(m["collar"])
 		t.Errorf("got %q, want %q", got, "catnap\n")
 	}
 }
+
+// Lambda bodies may be statement blocks, not just single expressions.
+func TestLambdaBlockBody(t *testing.T) {
+	got := runMeow(t, `
+nyan classify = paw(n) { sniff (n > 10) { bring "big" } scratch { bring "small" } }
+nya(classify(5))
+nya(classify(50))
+`)
+	if got != "small\nbig\n" {
+		t.Errorf("got %q, want %q", got, "small\nbig\n")
+	}
+}
+
+// A trailing expression statement is the result, the same way the
+// single-expression form yields its value.
+func TestLambdaBlockTrailingExpr(t *testing.T) {
+	got := runMeow(t, `
+nyan area = paw(w, h) {
+  nyan a = w * h
+  a + 1
+}
+nya(area(3, 4))
+`)
+	if strings.TrimSpace(got) != "13" {
+		t.Errorf("got %q, want %q", got, "13")
+	}
+}
+
+func TestLambdaSingleExpressionBodyUnchanged(t *testing.T) {
+	got := runMeow(t, `
+nyan double = paw(x int) { x * 2 }
+nya(double(21))
+`)
+	if strings.TrimSpace(got) != "42" {
+		t.Errorf("got %q, want %q", got, "42")
+	}
+}
