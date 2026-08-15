@@ -344,6 +344,10 @@ type VarStmt struct {
 	TypeAnn TypeExpr
 	// Value is the initial value expression.
 	Value Expr
+	// Implicit is true when the statement was written without the nyan
+	// keyword (x = 42). That form declares a variable just as nyan does; it is
+	// tracked so that an attempt to use it as a reassignment can be reported.
+	Implicit bool
 }
 
 func (n *VarStmt) Pos() token.Position { return n.Token.Pos }

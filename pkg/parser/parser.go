@@ -425,7 +425,7 @@ func (p *Parser) parseExprStmtOrAssign() ast.Stmt {
 		value := p.parseExpr(0)
 		p.consumeTerminator()
 		// x = 42 is equivalent to nyan x = 42 (implicit variable declaration)
-		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value}
+		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value, Implicit: true}
 	}
 	p.consumeTerminator()
 	return &ast.ExprStmt{Token: expr.(ast.Node).Pos().AsToken(), Expr: expr}

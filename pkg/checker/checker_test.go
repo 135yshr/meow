@@ -1,6 +1,7 @@
 package checker_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/135yshr/meow/pkg/checker"
@@ -1172,5 +1173,69 @@ trill meow user(a int) int {
 `)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors for pure function referenced as value: %v", errs)
+	}
+}
+
+// `x = ...` declares a variable rather than assigning to one, so inside a block
+// it shadows the outer binding and leaves it untouched. That used to pass the
+// checker and produce Go that either did nothing useful or failed to compile
+// with "declared and not used", so it is now reported directly.
+func TestImplicitReassignmentInBlockIsRejected(t *testing.T) {
+	_, errs := check(t, `
+nyan total = 0
+purr i (5) {
+  total = total + 1
+}
+nya(total)
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected an error for reassigning an outer binding")
+	}
+	if !strings.Contains(errs[0].Message, "cannot be reassigned") {
+		t.Errorf("expected a reassignment error, got %q", errs[0].Message)
+	}
+}
+
+func TestImplicitReassignmentInsideFunctionIsRejected(t *testing.T) {
+	_, errs := check(t, `
+meow tally(n int) int {
+  nyan total = 0
+  purr i (n) {
+    total = total + 1
+  }
+  bring total
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected an error for reassigning an outer binding")
+	}
+}
+
+// Declaring a fresh name in an inner scope is not a reassignment.
+func TestImplicitDeclarationOfNewNameIsAllowed(t *testing.T) {
+	_, errs := check(t, `
+nyan total = 0
+purr i (5) {
+  running = total + 1
+  nya(running)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+// An explicit nyan declaration still shadows, which is a deliberate act rather
+// than a mistaken assignment.
+func TestExplicitShadowingIsAllowed(t *testing.T) {
+	_, errs := check(t, `
+nyan total = 0
+purr i (5) {
+  nyan total = i
+  nya(total)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
