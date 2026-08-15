@@ -1,3 +1,8 @@
+# [v0.10.7](https://github.com/135yshr/meow/compare/v0.10.6...v0.10.7) (2026-08-15)
+
+## 🐛 Bug Fixes
+- [`08737a9`](https://github.com/135yshr/meow/commit/08737a9)  fix: Repair the gaps found writing a real program in Meow (#111) (Issues: [`#111`](https://github.com/135yshr/meow/issues/111))
+
 # [v0.10.6](https://github.com/135yshr/meow/compare/v0.10.5...v0.10.6) (2026-08-15)
 
 # [v0.10.5](https://github.com/135yshr/meow/compare/v0.10.4...v0.10.5) (2026-07-27)
