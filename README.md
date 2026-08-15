@@ -55,7 +55,7 @@ with cat words, compile them to native binaries, and run them at full speed.
 
 ```
 nyan name = "Nyantyu"
-meow greet(who) {
+meow greet(who string) string {
   bring "Hello, " + who + "!"
 }
 nya(greet(name))
@@ -71,11 +71,11 @@ Hello, Nyantyu!
 - **Cat-themed syntax** — Every keyword is a cat word (`nyan`, `meow`, `sniff`, `purr`, ...)
 - **Transpiles to Go** — Generates clean, readable Go code
 - **Native binaries** — Compiled output runs at full Go speed
-- **Gradual typing** — Optional type annotations with `meow.Value` boxing
+- **Gradual typing** — Annotate function signatures; everything else is inferred and boxed as `meow.Value`
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
 - **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
 - **Interfaces & methods** — `pose` (interface), `groom` (method impl)
-- **Standard library** — `nab "file"`, `nab "http"` for file I/O and HTTP
+- **Standard library** — `nab "file"`, `nab "http"`, `nab "env"` for file I/O, HTTP, and environment variables
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
 - **Pipe operator** — Chain operations with `|=|`
@@ -145,7 +145,7 @@ nyan nothing = catnap           # nil
 ### Functions
 
 ```
-meow add(a, b) {
+meow add(a int, b int) int {
   bring a + b
 }
 
@@ -164,11 +164,19 @@ sniff (x > 0) {
   nya("negative")
 }
 
-# while loop
-nyan i = 0
-purr (i < 10) {
+# loop, count form — 0 to n-1
+purr i (10) {
   nya(i)
-  i = i + 1
+}
+
+# loop, range form — a to b inclusive
+purr i (1..20) {
+  nya(i)
+}
+
+# loop over a list
+purr name (["Nyantyu", "Tyako"]) {
+  nya(name)
 }
 ```
 
@@ -197,7 +205,7 @@ curl(nums, 0, paw(acc, x) { acc + x }) # => 15
 ### Error Handling
 
 ```
-meow divide(a, b) {
+meow divide(a int, b int) int {
   sniff (b == 0) { hiss("division by zero") }
   bring a / b
 }
@@ -249,11 +257,11 @@ nyan result = peek(score) {
 | Meow | Meaning | Example |
 |------|---------|---------|
 | `nyan` | Variable declaration | `nyan x = 42` |
-| `meow` | Function definition | `meow add(a, b) { bring a + b }` |
+| `meow` | Function definition | `meow add(a int, b int) int { bring a + b }` |
 | `bring` | Return value | `bring x + 1` |
 | `sniff` | If condition | `sniff (x > 0) { ... }` |
 | `scratch` | Else branch | `} scratch { ... }` |
-| `purr` | While loop | `purr (i < 10) { ... }` |
+| `purr` | Loop (count, range, or list) | `purr i (10) { ... }` |
 | `paw` | Lambda (anonymous function) | `paw(x) { x * 2 }` |
 | `nya` | Print | `nya("Hello!")` |
 | `lick` | Map over list | `lick(nums, paw(x) { x * 2 })` |
@@ -287,7 +295,7 @@ nyan result = peek(score) {
 | `~>` | Error recovery | `divide(10, 0) ~> 0` |
 | `..` | Range | `1..10` |
 | `=>` | Match arm | `0 => "zero"` |
-| `=` | Assignment | `nyan x = 1` |
+| `=` | Bind a name (bindings are immutable) | `nyan x = 1` |
 
 ### Literals & Delimiters
 

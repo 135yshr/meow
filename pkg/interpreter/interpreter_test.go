@@ -672,3 +672,135 @@ nya(result)
 		t.Errorf("got %q", got)
 	}
 }
+
+// Indexing is shared with the transpiler through meowrt.Index, so the
+// interpreter that backs the WASM playground must agree with compiled output.
+func TestIndexLiteralSubscript(t *testing.T) {
+	got := runMeow(t, `
+nyan nums = [10, 20, 30]
+nya(nums[0])
+nya(nums[2])
+nyan i = 1
+nya(nums[i])
+nya(nums[i + 1])
+`)
+	expected := "10\n30\n20\n30\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestIndexChained(t *testing.T) {
+	got := runMeow(t, `
+nyan data = {"items": [1, 2, 3], "inner": {"value": 7}}
+nya(data["items"][1])
+nya(data["inner"]["value"])
+nyan grid = [[1, 2], [3, 4]]
+nya(grid[1][0])
+`)
+	expected := "2\n7\n3\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestIndexMapMissingKey(t *testing.T) {
+	got := runMeow(t, `
+nyan m = {"name": "Nyantyu"}
+nya(m["collar"])
+`)
+	if got != "catnap\n" {
+		t.Errorf("got %q, want %q", got, "catnap\n")
+	}
+}
+
+// Lambda bodies may be statement blocks, not just single expressions.
+func TestLambdaBlockBody(t *testing.T) {
+	got := runMeow(t, `
+nyan classify = paw(n) { sniff (n > 10) { bring "big" } scratch { bring "small" } }
+nya(classify(5))
+nya(classify(50))
+`)
+	if got != "small\nbig\n" {
+		t.Errorf("got %q, want %q", got, "small\nbig\n")
+	}
+}
+
+// A trailing expression statement is the result, the same way the
+// single-expression form yields its value.
+func TestLambdaBlockTrailingExpr(t *testing.T) {
+	got := runMeow(t, `
+nyan area = paw(w, h) {
+  nyan a = w * h
+  a + 1
+}
+nya(area(3, 4))
+`)
+	if strings.TrimSpace(got) != "13" {
+		t.Errorf("got %q, want %q", got, "13")
+	}
+}
+
+func TestLambdaSingleExpressionBodyUnchanged(t *testing.T) {
+	got := runMeow(t, `
+nyan double = paw(x int) { x * 2 }
+nya(double(21))
+`)
+	if strings.TrimSpace(got) != "42" {
+		t.Errorf("got %q, want %q", got, "42")
+	}
+}
+
+// String builtins must behave the same on the interpreter that backs the
+// WASM playground as they do in compiled output.
+func TestStringBuiltins(t *testing.T) {
+	got := runMeow(t, `
+nyan s = "hello,world,meow"
+nya(whiff(s, "world"))
+nya(track(s, "world"))
+nya(track(s, "dog"))
+nya(shred(s, ","))
+nya(tangle(shred(s, ","), " / "))
+nya(nibble(s, 0, 5))
+nya(nibble(s, -4, 16))
+`)
+	expected := "true\n6\n-1\n[hello, world, meow]\nhello / world / meow\nhello\nmeow\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestStringConversionsRoundTrip(t *testing.T) {
+	got := runMeow(t, `
+nya(to_string(to_bytes("hello")))
+nya(tangle(to_runes("hello"), ""))
+`)
+	if got != "hello\nhello\n" {
+		t.Errorf("got %q, want %q", got, "hello\nhello\n")
+	}
+}
+
+// paw() {} has an empty block body, which must yield catnap rather than being
+// mistaken for an expression body.
+func TestLambdaEmptyBlockBody(t *testing.T) {
+	got := runMeow(t, `
+nyan nothing = paw() { }
+nya(nothing())
+`)
+	if got != "catnap\n" {
+		t.Errorf("got %q, want %q", got, "catnap\n")
+	}
+}
+
+// A lambda parameter shadows an outer binding of the same name.
+func TestLambdaParamShadowsOuter(t *testing.T) {
+	got := runMeow(t, `
+nyan x = 100
+nyan bump = paw(x) { x + 1 }
+nya(bump(5))
+nya(x)
+`)
+	if got != "6\n100\n" {
+		t.Errorf("got %q, want %q", got, "6\n100\n")
+	}
+}

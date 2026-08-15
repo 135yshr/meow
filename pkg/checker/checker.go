@@ -77,6 +77,17 @@ func (c *Checker) define(name string, t types.Type) {
 	c.scopes[len(c.scopes)-1][name] = t
 }
 
+// declaredInOuterScope reports whether name is bound in any scope enclosing the
+// current one.
+func (c *Checker) declaredInOuterScope(name string) bool {
+	for i := len(c.scopes) - 2; i >= 0; i-- {
+		if _, ok := c.scopes[i][name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Checker) lookup(name string) types.Type {
 	for i := len(c.scopes) - 1; i >= 0; i-- {
 		if t, ok := c.scopes[i][name]; ok {
@@ -427,6 +438,14 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 		currentScope := c.scopes[len(c.scopes)-1]
 		if _, exists := currentScope[s.Name]; exists {
 			c.addError(s.Token.Pos, "Variable %s already declared in this scope", s.Name)
+		} else if s.Implicit && c.declaredInOuterScope(s.Name) {
+			// `x = ...` looks like an assignment, but bindings in meow are
+			// immutable: it declares a new variable that shadows the outer one
+			// for the rest of the block, leaving the outer value untouched.
+			// Reporting it beats silently doing nothing useful.
+			c.addError(s.Token.Pos,
+				"Variable %s is already bound and cannot be reassigned — bindings are immutable, so use nyan %s to declare a new one",
+				s.Name, s.Name)
 		}
 	}
 
@@ -511,6 +530,11 @@ var pureBuiltins = map[string]bool{
 	"lick":       true,
 	"picky":      true,
 	"curl":       true,
+	"whiff":      true,
+	"track":      true,
+	"shred":      true,
+	"tangle":     true,
+	"nibble":     true,
 }
 
 // checkPurity walks the body of a trill function and reports any call that
@@ -594,7 +618,12 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 	case *ast.CallExpr:
 		c.checkPurityCall(fnName, e)
 	case *ast.LambdaExpr:
-		c.checkPurityExpr(fnName, e.Body)
+		if e.Body != nil {
+			c.checkPurityExpr(fnName, e.Body)
+		}
+		for _, stmt := range e.Block {
+			c.checkPurityStmt(fnName, stmt)
+		}
 	case *ast.ListLit:
 		for _, item := range e.Items {
 			c.checkPurityExpr(fnName, item)
@@ -1054,6 +1083,14 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.BoolType{}
 		case "len":
 			return types.IntType{}
+		case "whiff":
+			return types.BoolType{}
+		case "track":
+			return types.IntType{}
+		case "shred":
+			return types.ListType{Elem: types.StringType{}}
+		case "tangle", "nibble":
+			return types.StringType{}
 		case "nya", "hiss", "gag":
 			return types.AnyType{}
 		case "head":
@@ -1180,9 +1217,34 @@ func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {
 		paramTypes[i] = pt
 		c.define(p.Name, pt)
 	}
-	retType := c.inferExpr(e.Body)
+	retType := c.inferLambdaBody(e)
 	c.popScope()
 	return types.FuncType{Params: paramTypes, Return: retType}
+}
+
+// inferLambdaBody infers the result type of a lambda. A block body is checked
+// statement by statement; its type comes from a trailing expression statement,
+// and is otherwise left open, since `bring` may return from anywhere in it.
+func (c *Checker) inferLambdaBody(e *ast.LambdaExpr) types.Type {
+	if e.Block == nil {
+		return c.inferExpr(e.Body)
+	}
+
+	// `bring` inside a block body returns from the lambda, not from any
+	// enclosing function. A lambda declares no return type, so anything goes.
+	prevReturnType := c.currentReturnType
+	c.currentReturnType = types.AnyType{}
+	defer func() { c.currentReturnType = prevReturnType }()
+
+	var retType types.Type = types.AnyType{}
+	for i, stmt := range e.Block {
+		if exprStmt, ok := stmt.(*ast.ExprStmt); ok && i == len(e.Block)-1 {
+			retType = c.inferExpr(exprStmt.Expr)
+			continue
+		}
+		c.checkStmt(stmt)
+	}
+	return retType
 }
 
 func (c *Checker) inferList(e *ast.ListLit) types.Type {

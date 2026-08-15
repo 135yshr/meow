@@ -425,7 +425,7 @@ func (p *Parser) parseExprStmtOrAssign() ast.Stmt {
 		value := p.parseExpr(0)
 		p.consumeTerminator()
 		// x = 42 is equivalent to nyan x = 42 (implicit variable declaration)
-		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value}
+		return &ast.VarStmt{Token: ident.Token, Name: ident.Name, Value: value, Implicit: true}
 	}
 	p.consumeTerminator()
 	return &ast.ExprStmt{Token: expr.(ast.Node).Pos().AsToken(), Expr: expr}
@@ -488,7 +488,7 @@ func (p *Parser) infixPrec(typ token.TokenType) int {
 }
 
 func (p *Parser) parseExpr(minPrec int) ast.Expr {
-	left := p.parsePrefix()
+	left := p.parsePostfix(p.parsePrefix())
 	for {
 		prec := p.infixPrec(p.cur.Type)
 		if prec <= minPrec {
@@ -593,9 +593,7 @@ func (p *Parser) parseIdentOrCall() ast.Expr {
 	if p.cur.Type == token.LPAREN {
 		return p.finishCall(ident)
 	}
-	if p.cur.Type == token.LBRACKET {
-		return p.parseIndex(ident)
-	}
+	// Subscripts are applied by parsePostfix, so that they can chain.
 	return ident
 }
 
@@ -649,10 +647,25 @@ func (p *Parser) parseLambda() ast.Expr {
 	p.expect(token.LPAREN)
 	params := p.parseTypedParamList()
 	p.expect(token.RPAREN)
-	p.expect(token.LBRACE)
-	body := p.parseExpr(0)
-	p.expect(token.RBRACE)
-	return &ast.LambdaExpr{Token: tok, Params: params, Body: body}
+
+	// The body is parsed as a statement block so that control flow — sniff /
+	// scratch, purr, intermediate nyan bindings — is available inside a lambda.
+	// The common single-expression form (paw(x) { x * 2 }) parses as a block
+	// holding one expression statement, and is collapsed back to the expression
+	// form so it keeps yielding that expression's value.
+	stmts := p.parseBlock()
+	if len(stmts) == 1 {
+		if exprStmt, ok := stmts[0].(*ast.ExprStmt); ok {
+			return &ast.LambdaExpr{Token: tok, Params: params, Body: exprStmt.Expr}
+		}
+	}
+	if stmts == nil {
+		// paw() {} has no statements, but Block must stay non-nil: a nil Block
+		// means "expression body", and Body is nil here. An empty block yields
+		// catnap.
+		stmts = []ast.Stmt{}
+	}
+	return &ast.LambdaExpr{Token: tok, Params: params, Block: stmts}
 }
 
 func (p *Parser) parseListLit() ast.Expr {
@@ -701,6 +714,20 @@ func (p *Parser) parseMapLit() ast.Expr {
 	p.skipNewlines()
 	p.expect(token.RBRACE)
 	return &ast.MapLit{Token: tok, Keys: keys, Vals: vals}
+}
+
+// parsePostfix applies subscripts to an already-parsed operand, repeatedly, so
+// that indexing chains and indexing of any expression — not just a bare
+// identifier — are accepted: grid[1][0], data["items"][1], f()[0], [1, 2][0].
+//
+// A subscript only ever continues the current expression, because the lexer
+// emits a NEWLINE between statements; a line that opens with '[' therefore
+// starts a fresh list literal rather than indexing the line above.
+func (p *Parser) parsePostfix(left ast.Expr) ast.Expr {
+	for p.cur.Type == token.LBRACKET {
+		left = p.parseIndex(left)
+	}
+	return left
 }
 
 func (p *Parser) parseIndex(left ast.Expr) ast.Expr {

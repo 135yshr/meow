@@ -123,7 +123,32 @@ func ToString(v Value) Value {
 	if f, ok := v.(*Furball); ok {
 		return f
 	}
+	// A list of Byte values is what to_bytes produces, and Byte is not produced
+	// by anything else, so reassembling it here is unambiguous and makes
+	// to_string the inverse of to_bytes. Any other list keeps its display form.
+	if l, ok := v.(*List); ok {
+		if s, ok := bytesToString(l); ok {
+			return NewString(s)
+		}
+	}
 	return NewString(v.String())
+}
+
+// bytesToString reassembles a list of Byte values into a string. It reports
+// false for an empty list, or one holding anything other than Bytes.
+func bytesToString(l *List) (string, bool) {
+	if l.Len() == 0 {
+		return "", false
+	}
+	bytes := make([]byte, 0, l.Len())
+	for v := range l.Iter() {
+		b, ok := v.(*Byte)
+		if !ok {
+			return "", false
+		}
+		bytes = append(bytes, b.Val)
+	}
+	return string(bytes), true
 }
 
 // ToBytes converts a string value to a list of Byte values.

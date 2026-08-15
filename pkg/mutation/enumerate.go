@@ -142,7 +142,12 @@ func (e *enumerator) enumExpr(expr ast.Expr) {
 			e.enumExpr(arg)
 		}
 	case *ast.LambdaExpr:
-		e.enumExpr(ex.Body)
+		if ex.Body != nil {
+			e.enumExpr(ex.Body)
+		}
+		for _, stmt := range ex.Block {
+			e.enumStmt(stmt)
+		}
 	case *ast.ListLit:
 		for _, item := range ex.Items {
 			e.enumExpr(item)

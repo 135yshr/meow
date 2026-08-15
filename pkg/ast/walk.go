@@ -92,8 +92,15 @@ func walk(node Node, yield func(Node) bool) bool {
 			}
 		}
 	case *LambdaExpr:
-		if !walk(n.Body, yield) {
-			return false
+		if n.Body != nil {
+			if !walk(n.Body, yield) {
+				return false
+			}
+		}
+		for _, stmt := range n.Block {
+			if !walk(stmt, yield) {
+				return false
+			}
 		}
 	case *ListLit:
 		for _, item := range n.Items {

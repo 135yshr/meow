@@ -457,6 +457,21 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "to_runes":
 		requireArgs("to_runes", args, 1)
 		return meowrt.ToRunes(args[0]), true
+	case "whiff":
+		requireArgs("whiff", args, 2)
+		return meowrt.Whiff(args[0], args[1]), true
+	case "track":
+		requireArgs("track", args, 2)
+		return meowrt.Track(args[0], args[1]), true
+	case "shred":
+		requireArgs("shred", args, 2)
+		return meowrt.Shred(args[0], args[1]), true
+	case "tangle":
+		requireArgs("tangle", args, 2)
+		return meowrt.Tangle(args[0], args[1]), true
+	case "nibble":
+		requireArgs("nibble", args, 3)
+		return meowrt.Nibble(args[0], args[1], args[2]), true
 	case "gag":
 		requireArgs("gag", args, 1)
 		return meowrt.Gag(args[0]), true
@@ -579,7 +594,10 @@ func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowr
 				child.Define(p.Name, meowrt.NewNil())
 			}
 		}
-		return interp.evalExpr(e.Body, child)
+		if e.Block == nil {
+			return interp.evalExpr(e.Body, child)
+		}
+		return interp.evalLambdaBlock(e.Block, child)
 	}
 	return meowrt.NewFuncWithArity("lambda", arity, func(args ...meowrt.Value) meowrt.Value {
 		if len(args) < arity {
@@ -592,6 +610,36 @@ func (interp *Interpreter) evalLambda(e *ast.LambdaExpr, env *Environment) meowr
 		}
 		return evalWithArgs(args)
 	})
+}
+
+// evalLambdaBlock runs a block-bodied lambda. A trailing expression statement
+// is the result, mirroring the single-expression form; otherwise the value is
+// whatever `bring` returned, or catnap.
+func (interp *Interpreter) evalLambdaBlock(stmts []ast.Stmt, env *Environment) meowrt.Value {
+	var result meowrt.Value
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				sig, ok := r.(returnSignal)
+				if !ok {
+					panic(r)
+				}
+				result = sig.Value
+			}
+		}()
+		for i, stmt := range stmts {
+			if exprStmt, ok := stmt.(*ast.ExprStmt); ok && i == len(stmts)-1 {
+				result = interp.evalExpr(exprStmt.Expr, env)
+				return
+			}
+			interp.execStmt(stmt, env)
+		}
+	}()
+
+	if result != nil {
+		return result
+	}
+	return meowrt.NewNil()
 }
 
 // --- Collections ---
@@ -618,18 +666,7 @@ func (interp *Interpreter) evalIndex(e *ast.IndexExpr, env *Environment) meowrt.
 	left := interp.evalExpr(e.Left, env)
 	index := interp.evalExpr(e.Index, env)
 
-	switch obj := left.(type) {
-	case *meowrt.List:
-		return obj.Get(int(meowrt.AsInt(index)))
-	case *meowrt.Map:
-		key := meowrt.AsString(index)
-		if v, ok := obj.Get(key); ok {
-			return v
-		}
-		return meowrt.NewNil()
-	default:
-		panic(fmt.Sprintf("Hiss! cannot index %s, nya~", left.Type()))
-	}
+	return meowrt.Index(left, index)
 }
 
 // --- Member Access ---

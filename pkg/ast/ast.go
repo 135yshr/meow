@@ -151,13 +151,21 @@ func (n *CallExpr) nodeTag()            {}
 func (n *CallExpr) exprTag()            {}
 
 // LambdaExpr represents a lambda expression (e.g. paw(x) { x * 2 }).
+//
+// A lambda body is either a single expression, whose value is the result, or a
+// block of statements. Exactly one of Body and Block is set.
 type LambdaExpr struct {
 	// Token is the paw keyword token.
 	Token token.Token
 	// Params is the list of parameters with optional type annotations.
 	Params []Param
-	// Body is the lambda body expression.
+	// Body is the lambda body expression, or nil when Block is set.
 	Body Expr
+	// Block is the lambda body statement list, or nil when Body is set.
+	// A trailing expression statement is the result, matching the way the
+	// single-expression form yields its value; otherwise the lambda returns
+	// what `bring` returns, or catnap.
+	Block []Stmt
 }
 
 func (n *LambdaExpr) Pos() token.Position { return n.Token.Pos }
@@ -336,6 +344,10 @@ type VarStmt struct {
 	TypeAnn TypeExpr
 	// Value is the initial value expression.
 	Value Expr
+	// Implicit is true when the statement was written without the nyan
+	// keyword (x = 42). That form declares a variable just as nyan does; it is
+	// tracked so that an attempt to use it as a reassignment can be reported.
+	Implicit bool
 }
 
 func (n *VarStmt) Pos() token.Position { return n.Token.Pos }

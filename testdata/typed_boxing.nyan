@@ -1,0 +1,44 @@
+# Typed parameter passed to a builtin that takes meow.Value
+meow byte_len(s string) int {
+  bring len(to_bytes(s))
+}
+nya(byte_len("hello"))
+
+meow describe(s string) string {
+  nyan bytes = to_bytes(s)
+  bring to_string(len(bytes))
+}
+nya(describe("meow"))
+
+# purr loop variable arithmetic inside a typed function
+meow count_up(n int) int {
+  purr i (n) {
+    nya(i + 1)
+  }
+  bring n
+}
+nya(count_up(3))
+
+# typed param inside a list literal and a lambda
+meow pack(a int, b int) int {
+  nyan xs = [a, b]
+  bring len(xs)
+}
+nya(pack(7, 8))
+
+meow scale(n int) int {
+  nyan double = paw(v) { v + n }
+  bring to_int(double(n))
+}
+nya(scale(21))
+
+# nested purr loop variables in arithmetic
+meow grid(n int) int {
+  purr i (n) {
+    purr j (n) {
+      nya(i + j)
+    }
+  }
+  bring n
+}
+nya(grid(2))
