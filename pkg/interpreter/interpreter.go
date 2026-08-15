@@ -457,6 +457,21 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "to_runes":
 		requireArgs("to_runes", args, 1)
 		return meowrt.ToRunes(args[0]), true
+	case "whiff":
+		requireArgs("whiff", args, 2)
+		return meowrt.Whiff(args[0], args[1]), true
+	case "track":
+		requireArgs("track", args, 2)
+		return meowrt.Track(args[0], args[1]), true
+	case "shred":
+		requireArgs("shred", args, 2)
+		return meowrt.Shred(args[0], args[1]), true
+	case "tangle":
+		requireArgs("tangle", args, 2)
+		return meowrt.Tangle(args[0], args[1]), true
+	case "nibble":
+		requireArgs("nibble", args, 3)
+		return meowrt.Nibble(args[0], args[1], args[2]), true
 	case "gag":
 		requireArgs("gag", args, 1)
 		return meowrt.Gag(args[0]), true

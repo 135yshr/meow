@@ -750,3 +750,32 @@ nya(double(21))
 		t.Errorf("got %q, want %q", got, "42")
 	}
 }
+
+// String builtins must behave the same on the interpreter that backs the
+// WASM playground as they do in compiled output.
+func TestStringBuiltins(t *testing.T) {
+	got := runMeow(t, `
+nyan s = "hello,world,meow"
+nya(whiff(s, "world"))
+nya(track(s, "world"))
+nya(track(s, "dog"))
+nya(shred(s, ","))
+nya(tangle(shred(s, ","), " / "))
+nya(nibble(s, 0, 5))
+nya(nibble(s, -4, 16))
+`)
+	expected := "true\n6\n-1\n[hello, world, meow]\nhello / world / meow\nhello\nmeow\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestStringConversionsRoundTrip(t *testing.T) {
+	got := runMeow(t, `
+nya(to_string(to_bytes("hello")))
+nya(tangle(to_runes("hello"), ""))
+`)
+	if got != "hello\nhello\n" {
+		t.Errorf("got %q, want %q", got, "hello\nhello\n")
+	}
+}

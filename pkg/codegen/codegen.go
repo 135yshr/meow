@@ -68,6 +68,7 @@ type coverBlock struct {
 }
 
 var stdPackages = map[string]string{
+	"env":     "github.com/135yshr/meow/runtime/env",
 	"file":    "github.com/135yshr/meow/runtime/file",
 	"http":    "github.com/135yshr/meow/runtime/http",
 	"testing": "github.com/135yshr/meow/runtime/testing",
@@ -797,7 +798,8 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		}
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
 	case "to_string", "to_int", "to_float", "to_bytes", "to_runes", "is_furball", "gag", "len",
-		"head", "tail", "append", "lick", "picky", "curl":
+		"head", "tail", "append", "lick", "picky", "curl",
+		"whiff", "track", "shred", "tangle", "nibble":
 		builtinNames := map[string]string{
 			"to_string":  "ToString",
 			"to_int":     "ToInt",
@@ -813,6 +815,11 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"lick":       "Lick",
 			"picky":      "Picky",
 			"curl":       "Curl",
+			"whiff":      "Whiff",
+			"track":      "Track",
+			"shred":      "Shred",
+			"tangle":     "Tangle",
+			"nibble":     "Nibble",
 		}
 		// Known return types for builtins that produce typed results
 		builtinRetTypes := map[string]types.Type{
@@ -821,6 +828,10 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"to_float":   types.FloatType{},
 			"is_furball": types.BoolType{},
 			"len":        types.IntType{},
+			"whiff":      types.BoolType{},
+			"track":      types.IntType{},
+			"tangle":     types.StringType{},
+			"nibble":     types.StringType{},
 		}
 		args := make([]string, len(e.Args))
 		for i, a := range e.Args {
@@ -1305,6 +1316,16 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToBytes(%s)", argStr)
 		case "to_runes":
 			return fmt.Sprintf("meow.ToRunes(%s)", argStr)
+		case "whiff":
+			return fmt.Sprintf("meow.Whiff(%s)", argStr)
+		case "track":
+			return fmt.Sprintf("meow.Track(%s)", argStr)
+		case "shred":
+			return fmt.Sprintf("meow.Shred(%s)", argStr)
+		case "tangle":
+			return fmt.Sprintf("meow.Tangle(%s)", argStr)
+		case "nibble":
+			return fmt.Sprintf("meow.Nibble(%s)", argStr)
 		case "gag":
 			return fmt.Sprintf("meow.Gag(%s)", argStr)
 		case "is_furball":

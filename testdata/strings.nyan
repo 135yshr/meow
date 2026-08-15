@@ -1,0 +1,15 @@
+nyan s = "hello,world,meow"
+nya(whiff(s, "world"))
+nya(whiff(s, "dog"))
+nya(track(s, "world"))
+nya(track(s, "dog"))
+nya(shred(s, ","))
+nya(tangle(shred(s, ","), " / "))
+nya(nibble(s, 0, 5))
+nya(nibble(s, -4, 16))
+nya(nibble(s, 10, 3))
+# inverse conversions
+nya(to_string(to_bytes("hello")))
+nya(tangle(to_runes("hello"), ""))
+# multibyte is counted in characters
+nya(nibble("にゃんこ", 1, 3))

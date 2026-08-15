@@ -530,6 +530,11 @@ var pureBuiltins = map[string]bool{
 	"lick":       true,
 	"picky":      true,
 	"curl":       true,
+	"whiff":      true,
+	"track":      true,
+	"shred":      true,
+	"tangle":     true,
+	"nibble":     true,
 }
 
 // checkPurity walks the body of a trill function and reports any call that
@@ -1078,6 +1083,14 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.BoolType{}
 		case "len":
 			return types.IntType{}
+		case "whiff":
+			return types.BoolType{}
+		case "track":
+			return types.IntType{}
+		case "shred":
+			return types.ListType{Elem: types.StringType{}}
+		case "tangle", "nibble":
+			return types.StringType{}
 		case "nya", "hiss", "gag":
 			return types.AnyType{}
 		case "head":
