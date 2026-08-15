@@ -22,6 +22,10 @@ var (
 )
 
 func main() {
+	// Let the compiler pin the runtime module to this binary's version when it
+	// generates a go.mod outside the meow source tree.
+	compiler.Version = version
+
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)

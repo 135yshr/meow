@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -107,7 +108,7 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 
 	// Create go.mod in temp dir
 	modRoot := c.findModuleRoot()
-	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	goVersion := goVersionFor(modRoot)
 	modContent, err := buildModContent(goVersion, modRoot)
 	if err != nil {
 		return err
@@ -252,7 +253,7 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 	}
 
 	modRoot := c.findModuleRoot()
-	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	goVersion := goVersionFor(modRoot)
 	modContent, err := buildModContent(goVersion, modRoot)
 	if err != nil {
 		return err
@@ -362,7 +363,7 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	}
 
 	modRoot := c.findModuleRoot()
-	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	goVersion := goVersionFor(modRoot)
 	modContent, err := buildModContent(goVersion, modRoot)
 	if err != nil {
 		return err
@@ -495,7 +496,7 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	}
 
 	modRoot := c.findModuleRoot()
-	goVersion := readGoVersion(filepath.Join(modRoot, "go.mod"))
+	goVersion := goVersionFor(modRoot)
 	modContent, err := buildModContent(goVersion, modRoot)
 	if err != nil {
 		return err
@@ -530,6 +531,20 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 
 var validGoVersion = regexp.MustCompile(`^\d+\.\d+(\.\d+)?$`)
 
+// defaultGoVersion is the go directive used when no meow source tree is in
+// scope to read one from.
+const defaultGoVersion = "1.26"
+
+// goVersionFor returns the go directive for the generated module. Inside the
+// meow source tree it mirrors that tree's go.mod; outside it there is no go.mod
+// to consult, so the compiler's own baseline is used.
+func goVersionFor(modRoot string) string {
+	if modRoot == "" {
+		return defaultGoVersion
+	}
+	return readGoVersion(filepath.Join(modRoot, "go.mod"))
+}
+
 // readGoVersion parses a go.mod file and returns the Go version directive.
 // Falls back to "1.26" if the file cannot be read or parsed.
 func readGoVersion(path string) string {
@@ -550,12 +565,76 @@ func readGoVersion(path string) string {
 	return "1.26"
 }
 
+// meowModulePath is the import path of the module that hosts runtime/*, which
+// generated programs link against.
+const meowModulePath = "github.com/135yshr/meow"
+
+// Version is the version of the meow compiler, used to pin the runtime module
+// when compiling from outside the meow source tree. cmd/meow overwrites it with
+// the value baked in at release time; when it is left at "dev" (a plain
+// `go build`) the version is recovered from the embedded build info instead.
+var Version = "dev"
+
+// runtimeRequirement returns the module version generated programs should
+// require. It prefers the release version baked into the binary, falls back to
+// the version recorded by `go install`, and finally to "latest" so that a
+// binary built without either still resolves to something buildable.
+func runtimeRequirement() string {
+	if v, ok := asModuleVersion(Version); ok {
+		return v
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		if v, ok := asModuleVersion(bi.Main.Version); ok {
+			return v
+		}
+		for _, dep := range bi.Deps {
+			if dep.Path != meowModulePath {
+				continue
+			}
+			if v, ok := asModuleVersion(dep.Version); ok {
+				return v
+			}
+		}
+	}
+	return "latest"
+}
+
+// asModuleVersion normalises a version string into a go.mod requirement.
+// Release tooling stamps the tag without its "v" prefix, so it is restored
+// here; anything that is not a semantic version ("dev", "(devel)", "") is
+// rejected so the caller can fall back.
+func asModuleVersion(v string) (string, bool) {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "", false
+	}
+	if !strings.HasPrefix(v, "v") {
+		v = "v" + v
+	}
+	if !semverLike.MatchString(v) {
+		return "", false
+	}
+	return v, true
+}
+
+var semverLike = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.\-]+)?(\+[0-9A-Za-z.\-]+)?$`)
+
 // buildModContent generates go.mod content for a temporary build directory.
+//
+// modRoot is the meow source tree to link against, or "" when the compiler is
+// running outside it. With a source tree we point at it with a `replace` so the
+// working copy of runtime/* is used; without one we pin the published module by
+// version, which is what lets a .nyan file anywhere on disk compile.
 func buildModContent(goVersion, modRoot string) (string, error) {
 	if strings.ContainsAny(modRoot, "\n\r") {
 		return "", fmt.Errorf("hiss! module root path contains invalid characters, nya~")
 	}
-	return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire github.com/135yshr/meow v0.0.0\n\nreplace github.com/135yshr/meow => %s\n", goVersion, modRoot), nil
+	if modRoot == "" {
+		return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire %s %s\n",
+			goVersion, meowModulePath, runtimeRequirement()), nil
+	}
+	return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire %s v0.0.0\n\nreplace %s => %s\n",
+		goVersion, meowModulePath, meowModulePath, modRoot), nil
 }
 
 // companionSourcePath returns the inferred source file path for a test file.
@@ -570,19 +649,70 @@ func companionSourcePath(testPath string) string {
 	return filepath.Join(dir, name+".nyan")
 }
 
+// findModuleRoot locates the meow source tree to compile against, or returns ""
+// when there is none in scope.
+//
+// It searches upward from the working directory and from the compiler binary's
+// own location, so both `meow run` inside a checkout and `go run ./cmd/meow`
+// are covered. Crucially it only accepts a directory that really is the meow
+// module: any other go.mod (the user's own project, or a parent directory that
+// merely happens to have one) is ignored, because pointing the generated
+// `replace` at it produces a go.mod that cannot resolve runtime/meowrt.
 func (c *Compiler) findModuleRoot() string {
-	// Walk up from executable to find go.mod
-	dir, _ := os.Getwd()
+	var starts []string
+	if wd, err := os.Getwd(); err == nil {
+		starts = append(starts, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+			exe = resolved
+		}
+		starts = append(starts, filepath.Dir(exe))
+	}
+	for _, start := range starts {
+		if root := findMeowModuleFrom(start); root != "" {
+			return root
+		}
+	}
+	return ""
+}
+
+// findMeowModuleFrom walks up from dir looking for the root of the meow module.
+func findMeowModuleFrom(dir string) string {
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+		if isMeowModuleRoot(dir) {
 			return dir
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			break
+			return ""
 		}
 		dir = parent
 	}
-	// fallback
-	return "."
+}
+
+// isMeowModuleRoot reports whether dir is the root of the meow module: its
+// go.mod must declare the meow module path, and it must actually carry the
+// runtime package that generated code imports.
+func isMeowModuleRoot(dir string) bool {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		return false
+	}
+	if modulePath(string(data)) != meowModulePath {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(dir, "runtime", "meowrt"))
+	return err == nil && info.IsDir()
+}
+
+// modulePath extracts the module path from go.mod content.
+func modulePath(content string) string {
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(line, "module "); ok {
+			return strings.TrimSpace(after)
+		}
+	}
+	return ""
 }
