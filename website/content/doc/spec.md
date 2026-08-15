@@ -184,8 +184,10 @@ nyan humid = Humidity(72)
 
 Type annotations appear after identifiers. They are optional on variable
 declarations and on `paw` parameters, where the type is inferred, and required
-on `meow` function signatures: every parameter must be annotated, and a function
-containing `bring` must declare its return type.
+on `meow` function signatures: every parameter must have a type, and a function
+containing `bring` must declare its return type. Grouped parameters satisfy the
+requirement without repeating the type — in `meow add(a, b int)`, `a` takes the
+type of the next parameter that has one.
 
 ```ebnf
 TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
@@ -387,7 +389,8 @@ meow greet(name string) string {
 
 #### Pure Functions (trill)
 
-Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`). Calling `nya`, `hiss`, `gag`, an imported-package member, or a non-`trill` user function is a compile error. Lambda bodies are scanned recursively, so an impure lambda passed to `lick`/`picky`/`curl` is also rejected.
+Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`, `whiff`,
+`track`, `shred`, `tangle`, `nibble`). Calling `nya`, `hiss`, `gag`, an imported-package member, or a non-`trill` user function is a compile error. Lambda bodies are scanned recursively, so an impure lambda passed to `lick`/`picky`/`curl` is also rejected.
 
 ```meow
 trill meow add(a int, b int) int {

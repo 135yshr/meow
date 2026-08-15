@@ -91,6 +91,8 @@ func TestModulePath(t *testing.T) {
 	}{
 		{"simple", "module example.com/x\n\ngo 1.26.0\n", "example.com/x"},
 		{"indented", "  module example.com/x  \n", "example.com/x"},
+		// go.mod allows the module path to be quoted.
+		{"quoted", "module \"example.com/x\"\n", "example.com/x"},
 		{"missing", "go 1.26.0\n", ""},
 		{"empty", "", ""},
 	}
@@ -108,8 +110,42 @@ func TestBuildModContentInsideSourceTree(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(got, "replace "+meowModulePath+" => /src/meow") {
+	if !strings.Contains(got, `replace `+meowModulePath+` => "/src/meow"`) {
 		t.Errorf("expected a replace directive, got:\n%s", got)
+	}
+}
+
+// go.mod tokenises on whitespace, so a checkout under a path containing a space
+// must still produce a parseable file.
+func TestBuildModContentQuotesModuleRoot(t *testing.T) {
+	got, err := buildModContent("1.26", "/src/my meow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, `=> "/src/my meow"`) {
+		t.Errorf("expected the module root to be quoted, got:\n%s", got)
+	}
+}
+
+// With no version known there is nothing meaningful to pin, and "latest" is not
+// a version. The requirement is left out so `go mod tidy` resolves the import.
+func TestBuildModContentOmitsUnknownVersion(t *testing.T) {
+	original := Version
+	t.Cleanup(func() { Version = original })
+	Version = "dev"
+
+	got, err := buildModContent("1.26", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, known := runtimeRequirement(); known {
+		t.Skip("this build records a module version, so the fallback is not exercised")
+	}
+	if strings.Contains(got, "require") {
+		t.Errorf("expected no require directive, got:\n%s", got)
+	}
+	if strings.Contains(got, "latest") {
+		t.Errorf("latest is not a valid go.mod version, got:\n%s", got)
 	}
 }
 

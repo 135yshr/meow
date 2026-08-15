@@ -71,6 +71,23 @@ func TestShred(t *testing.T) {
 	}
 }
 
+// Track and Nibble must agree on their unit, so that the offset Track reports
+// can be handed straight to Nibble. Byte offsets would break that on
+// multi-byte text.
+func TestTrackAgreesWithNibble(t *testing.T) {
+	s := meowrt.NewString("にゃんこ meow")
+	sub := meowrt.NewString("meow")
+
+	at := meowrt.Track(s, sub)
+	if at.String() != "5" {
+		t.Fatalf("expected a character offset of 5, got %s", at.String())
+	}
+	got := meowrt.Nibble(s, at, meowrt.NewInt(9))
+	if got.String() != "meow" {
+		t.Errorf("got %q, want %q", got.String(), "meow")
+	}
+}
+
 func TestTangleInvertsShred(t *testing.T) {
 	original := "a,b,c"
 	parts := meowrt.Shred(meowrt.NewString(original), meowrt.NewString(","))

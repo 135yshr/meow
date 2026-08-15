@@ -17,3 +17,14 @@ nya(area(3, 4))
 # block body used with a higher-order builtin
 nyan xs = [1, 2, 3, 4]
 nya(xs |=| picky(paw(x) { sniff (x > 2) { bring yarn } scratch { bring hairball } }))
+
+# An empty block body evaluates to catnap
+nyan nothing = paw() { }
+nya(nothing())
+
+# A lambda parameter shadowing a native parameter of a typed function
+meow apply(x int) int {
+  nyan bump = paw(x) { x + 1 }
+  bring to_int(bump(x))
+}
+nya(apply(5))

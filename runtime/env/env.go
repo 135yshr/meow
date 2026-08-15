@@ -63,8 +63,15 @@ func Hunt(args ...meowrt.Value) meowrt.Value {
 
 // Sniffed reports whether the named environment variable is set, including when
 // it is set to the empty string.
-func Sniffed(name meowrt.Value) meowrt.Value {
-	n, fb := expectName("sniffed", name)
+//
+// It is variadic so that a wrong argument count is reported as a Furball, the
+// way every other error in this package is; a fixed arity would instead surface
+// as a Go compile error from generated code.
+func Sniffed(args ...meowrt.Value) meowrt.Value {
+	if len(args) != 1 {
+		return furball("sniffed expects 1 argument, got %d", len(args))
+	}
+	n, fb := expectName("sniffed", args[0])
 	if fb != nil {
 		return fb
 	}
@@ -75,7 +82,12 @@ func Sniffed(name meowrt.Value) meowrt.Value {
 // Prowl returns the names of every environment variable, sorted, as a List of
 // Strings. Only the names are returned: listing the values would make it far
 // too easy to print a secret by accident.
-func Prowl() meowrt.Value {
+//
+// Variadic for the same reason as Sniffed.
+func Prowl(args ...meowrt.Value) meowrt.Value {
+	if len(args) != 0 {
+		return furball("prowl expects no arguments, got %d", len(args))
+	}
 	entries := os.Environ()
 	names := make([]string, 0, len(entries))
 	for _, e := range entries {

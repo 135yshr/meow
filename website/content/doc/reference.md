@@ -15,7 +15,7 @@ A complete reference of all keywords, operators, and syntax in the Meow Programm
 | `bring` | Return a value | `bring x + 1` |
 | `sniff` | Conditional branch (if) | `sniff (x > 0) { ... }` |
 | `scratch` | Else branch | `} scratch { ... }` |
-| `purr` | Loop (range-based) | `purr i (10) { ... }` |
+| `purr` | Loop (count, range, or list) | `purr i (10) { ... }` |
 | `paw` | Lambda (anonymous function) | `paw(x int) { x * 2 }` |
 | `nya` | Print values | `nya("Hello!")` |
 | `lick` | Transform each element in a list (map) | `lick(nums, paw(x) { x * 2 })` |
@@ -44,14 +44,17 @@ Meow supports gradual static typing. Type keywords annotate variables, function
 parameters, and return values.
 
 Annotations are **optional on variables**, where the type is inferred from the
-initialiser, but **required on function signatures**: every parameter of a
-`meow` function must be annotated, and a function containing `bring` must
+initializer, but **required on function signatures**: every parameter of a
+`meow` function must have a type, and a function containing `bring` must
 declare its return type. Omitting either is a compile error:
 
-```
+```text
 Hiss! Parameter "a" of function add must have a type annotation, nya~
 Hiss! Function add has bring statements but no return type annotation, nya~
 ```
+
+Grouped parameters satisfy the requirement without repeating the type: in
+`meow add(a, b int) int`, `a` takes the type of the next parameter that has one.
 
 Lambdas are the exception — `paw` parameters may be left unannotated, and their
 result type is inferred.
@@ -132,7 +135,7 @@ meow add(a, b int) int {
 | `.` | Member access | `cat.name`, `file.snoop("x")` |
 | `..` | Range (inclusive) | `1..10` |
 | `=>` | Match arm separator | `0 => "zero"` |
-| `=` | Assignment | `nyan x = 1` |
+| `=` | Bind a name (bindings are immutable) | `nyan x = 1` |
 
 ### Operator Precedence
 

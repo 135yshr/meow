@@ -26,6 +26,12 @@ meow pack(a int, b int) int {
 }
 nya(pack(7, 8))
 
+meow scale(n int) int {
+  nyan double = paw(v) { v + n }
+  bring to_int(double(n))
+}
+nya(scale(21))
+
 # nested purr loop variables in arithmetic
 meow grid(n int) int {
   purr i (n) {

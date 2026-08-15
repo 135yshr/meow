@@ -295,7 +295,7 @@ nyan result = peek(score) {
 | `~>` | Error recovery | `divide(10, 0) ~> 0` |
 | `..` | Range | `1..10` |
 | `=>` | Match arm | `0 => "zero"` |
-| `=` | Assignment | `nyan x = 1` |
+| `=` | Bind a name (bindings are immutable) | `nyan x = 1` |
 
 ### Literals & Delimiters
 

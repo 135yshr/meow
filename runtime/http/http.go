@@ -53,16 +53,6 @@ func expectString(funcName string, v meowrt.Value) (string, error) {
 	return s.Val, nil
 }
 
-// readResponse reads the response body (up to limit bytes) and returns it as a
-// meowrt.String, or an error if the body exceeds the limit / I/O fails.
-func readResponse(resp *http.Response, limit int64) (meowrt.Value, error) {
-	body, err := readBody(resp, limit)
-	if err != nil {
-		return nil, err
-	}
-	return meowrt.NewString(body), nil
-}
-
 // readBody reads the response body, up to limit bytes.
 func readBody(resp *http.Response, limit int64) (string, error) {
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
@@ -88,10 +78,37 @@ func bodyOrFurball(funcName string, resp *http.Response, limit int64) meowrt.Val
 		return furball(err)
 	}
 	if resp.StatusCode >= 400 {
+		// The status alone rarely explains the failure, and the body is no
+		// longer returned for these responses, so carry an excerpt of it.
 		return &meowrt.Furball{Message: fmt.Sprintf(
-			"Hiss! %s got HTTP %d %s, nya~", funcName, resp.StatusCode, http.StatusText(resp.StatusCode))}
+			"Hiss! %s got HTTP %d %s%s, nya~",
+			funcName, resp.StatusCode, http.StatusText(resp.StatusCode), bodyExcerpt(body))}
 	}
 	return meowrt.NewString(body)
+}
+
+// maxExcerptBytes bounds how much of an error body is quoted in a Furball, so
+// that a large error page cannot swamp the message.
+const maxExcerptBytes = 200
+
+// bodyExcerpt renders a short, single-line quote of an error body, or "" when
+// there is nothing useful to show.
+func bodyExcerpt(body string) string {
+	trimmed := strings.TrimSpace(body)
+	if trimmed == "" {
+		return ""
+	}
+	truncated := false
+	if len(trimmed) > maxExcerptBytes {
+		// Cut on a rune boundary so the excerpt stays valid UTF-8.
+		trimmed = strings.ToValidUTF8(trimmed[:maxExcerptBytes], "")
+		truncated = true
+	}
+	trimmed = strings.Join(strings.Fields(trimmed), " ")
+	if truncated {
+		trimmed += "..."
+	}
+	return ": " + trimmed
 }
 
 // fullResponse builds the Map returned by chase, describing the whole response
@@ -101,9 +118,11 @@ func fullResponse(resp *http.Response, limit int64) meowrt.Value {
 	if err != nil {
 		return furball(err)
 	}
+	// Join repeated values rather than taking the first: chase exists to report
+	// the whole response, and headers such as Set-Cookie legitimately repeat.
 	headers := make(map[string]meowrt.Value, len(resp.Header))
-	for k := range resp.Header {
-		headers[k] = meowrt.NewString(resp.Header.Get(k))
+	for k, values := range resp.Header {
+		headers[k] = meowrt.NewString(strings.Join(values, ", "))
 	}
 	return meowrt.NewMap(map[string]meowrt.Value{
 		"status":  meowrt.NewInt(int64(resp.StatusCode)),
@@ -329,7 +348,7 @@ func Chase(args ...meowrt.Value) meowrt.Value {
 	var ct string
 	if len(args) >= 3 {
 		switch b := args[2].(type) {
-		case *meowrt.NilValue:
+		case nil, *meowrt.NilValue:
 			// no body
 		case *meowrt.Map:
 			body = strings.NewReader(meowrt.ToJSON(b))

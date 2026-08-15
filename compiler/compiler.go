@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -576,27 +577,26 @@ const meowModulePath = "github.com/135yshr/meow"
 var Version = "dev"
 
 // runtimeRequirement returns the module version generated programs should
-// require. It prefers the release version baked into the binary, falls back to
-// the version recorded by `go install`, and finally to "latest" so that a
-// binary built without either still resolves to something buildable.
-func runtimeRequirement() string {
+// require, and whether one is known at all. It prefers the release version
+// baked into the binary and falls back to the version recorded by `go install`.
+func runtimeRequirement() (string, bool) {
 	if v, ok := asModuleVersion(Version); ok {
-		return v
+		return v, true
 	}
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		if v, ok := asModuleVersion(bi.Main.Version); ok {
-			return v
+			return v, true
 		}
 		for _, dep := range bi.Deps {
 			if dep.Path != meowModulePath {
 				continue
 			}
 			if v, ok := asModuleVersion(dep.Version); ok {
-				return v
+				return v, true
 			}
 		}
 	}
-	return "latest"
+	return "", false
 }
 
 // asModuleVersion normalizes a version string into a go.mod requirement.
@@ -630,11 +630,21 @@ func buildModContent(goVersion, modRoot string) (string, error) {
 		return "", fmt.Errorf("hiss! module root path contains invalid characters, nya~")
 	}
 	if modRoot == "" {
+		version, ok := runtimeRequirement()
+		if !ok {
+			// No version is known, so there is nothing meaningful to pin —
+			// "latest" is not a version and does not belong in a go.mod. Leave
+			// the requirement out entirely and let `go mod tidy` resolve the
+			// import it finds in the generated source.
+			return fmt.Sprintf("module meow_build\n\ngo %s\n", goVersion), nil
+		}
 		return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire %s %s\n",
-			goVersion, meowModulePath, runtimeRequirement()), nil
+			goVersion, meowModulePath, version), nil
 	}
+	// go.mod tokenises on whitespace, so a path containing a space has to be
+	// quoted to stay parseable.
 	return fmt.Sprintf("module meow_build\n\ngo %s\n\nrequire %s v0.0.0\n\nreplace %s => %s\n",
-		goVersion, meowModulePath, meowModulePath, modRoot), nil
+		goVersion, meowModulePath, meowModulePath, strconv.Quote(modRoot)), nil
 }
 
 // companionSourcePath returns the inferred source file path for a test file.
@@ -711,7 +721,12 @@ func modulePath(content string) string {
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if after, ok := strings.CutPrefix(line, "module "); ok {
-			return strings.TrimSpace(after)
+			path := strings.TrimSpace(after)
+			// The module path may be quoted; go.mod allows either form.
+			if unquoted, err := strconv.Unquote(path); err == nil {
+				return unquoted
+			}
+			return path
 		}
 	}
 	return ""

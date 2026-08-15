@@ -63,6 +63,18 @@ func (g *Generator) enterNativeScope() func() {
 	return func() { g.nativeVars = prev }
 }
 
+// enterBoxedScope opens a scope in which the given names are bound to
+// meow.Value variables. Whatever those names meant outside is shadowed, so they
+// must stop counting as native — otherwise genIdent would box a value that is
+// already boxed. Returns a function that restores the previous set.
+func (g *Generator) enterBoxedScope(names ...string) func() {
+	restore := g.enterNativeScope()
+	for _, name := range names {
+		g.bindNativeVar(name, nil)
+	}
+	return restore
+}
+
 type coverBlock struct {
 	startLine, startCol, endLine, endCol, numStmt int
 }
@@ -407,9 +419,12 @@ func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
 	}
 	var b strings.Builder
 	params := make([]string, len(fn.Params))
+	names := make([]string, len(fn.Params))
 	for i, p := range fn.Params {
 		params[i] = p.Name + " meow.Value"
+		names[i] = p.Name
 	}
+	defer g.enterBoxedScope(names...)()
 	fmt.Fprintf(&b, "func %s(%s) meow.Value {\n", fn.Name, strings.Join(params, ", "))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
@@ -994,9 +1009,11 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 	case *ast.VarStmt:
 		// Bind, then short-circuit if the value is a Furball — the untyped
 		// path's error-propagation point.
-		return fmt.Sprintf(
+		code := fmt.Sprintf(
 			"var %s meow.Value = %s\n\tif __f, __ok := meow.AsFurball(%s); __ok { return __f }",
 			s.Name, g.genExpr(s.Value), s.Name)
+		g.bindNativeVar(s.Name, nil)
+		return code
 	case *ast.ReturnStmt:
 		if s.Value != nil {
 			return fmt.Sprintf("return %s", g.genExpr(s.Value))
@@ -1125,6 +1142,7 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 		startExpr, cmp, g.genExpr(s.End))
 	fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
+	defer g.enterBoxedScope(s.Var)()
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
@@ -1146,6 +1164,7 @@ func (g *Generator) genListRange(s *ast.RangeStmt) string {
 	}
 	fmt.Fprintf(&b, "\tvar %s meow.Value = __elem\n", s.Var)
 	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
+	defer g.enterBoxedScope(s.Var, s.IndexVar)()
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
@@ -1510,6 +1529,11 @@ func (g *Generator) genPartialCall(fnName string, ft types.FuncType, suppliedArg
 }
 
 func (g *Generator) genLambda(e *ast.LambdaExpr) string {
+	names := make([]string, len(e.Params))
+	for i, p := range e.Params {
+		names[i] = p.Name
+	}
+	defer g.enterBoxedScope(names...)()
 	return fmt.Sprintf("meow.NewFuncWithArity(\"lambda\", %d, func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+
 		"%s"+
@@ -1666,6 +1690,13 @@ func (g *Generator) genMutatedExpr(original ast.Expr, entries []mutation.Mutatio
 }
 
 func (g *Generator) genLearnMethod(typeName string, fn *ast.FuncStmt) string {
+	names := make([]string, 0, len(fn.Params)+1)
+	names = append(names, "self")
+	for _, p := range fn.Params {
+		names = append(names, p.Name)
+	}
+	defer g.enterBoxedScope(names...)()
+
 	var b strings.Builder
 	methodFuncName := fmt.Sprintf("meow_method_%s_%s", typeName, fn.Name)
 

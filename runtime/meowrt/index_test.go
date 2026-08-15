@@ -1,6 +1,7 @@
 package meowrt_test
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -40,6 +41,19 @@ func TestIndexListOutOfRange(t *testing.T) {
 		}
 		if !strings.Contains(f.Message, "out of range") {
 			t.Errorf("index %d: expected an out-of-range message, got %q", index, f.Message)
+		}
+	}
+}
+
+// int is 32 bits on wasm, which backs the playground, so an index beyond its
+// range must be rejected rather than silently truncated into a valid one.
+func TestIndexListRejectsOutOfIntRange(t *testing.T) {
+	lst := meowrt.NewList(meowrt.NewInt(10), meowrt.NewInt(20))
+
+	for _, index := range []int64{math.MaxInt32 + 1, math.MaxInt64, math.MinInt64} {
+		got := meowrt.Index(lst, meowrt.NewInt(index))
+		if _, ok := got.(*meowrt.Furball); !ok {
+			t.Errorf("index %d: expected a Furball, got %s", index, got.String())
 		}
 	}
 }

@@ -1,11 +1,22 @@
 package env_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/135yshr/meow/runtime/env"
 	"github.com/135yshr/meow/runtime/meowrt"
 )
+
+// unset guarantees the variable is absent, and restores whatever the runner had
+// once the test finishes.
+func unset(t *testing.T, name string) {
+	t.Helper()
+	t.Setenv(name, "")
+	if err := os.Unsetenv(name); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestHunt(t *testing.T) {
 	t.Setenv("MEOW_TOKEN", "s3cret")
@@ -19,6 +30,8 @@ func TestHunt(t *testing.T) {
 // An unset variable reads as catnap, so a caller can tell it apart from one set
 // to the empty string.
 func TestHuntUnsetIsNil(t *testing.T) {
+	unset(t, "MEOW_DEFINITELY_UNSET")
+
 	got := env.Hunt(meowrt.NewString("MEOW_DEFINITELY_UNSET"))
 	if _, ok := got.(*meowrt.Furball); ok {
 		t.Fatalf("expected catnap, got a Furball: %s", got.String())
@@ -40,6 +53,8 @@ func TestHuntEmptyIsNotUnset(t *testing.T) {
 }
 
 func TestHuntFallback(t *testing.T) {
+	unset(t, "MEOW_DEFINITELY_UNSET")
+
 	got := env.Hunt(meowrt.NewString("MEOW_DEFINITELY_UNSET"), meowrt.NewString("fallback"))
 	if got.String() != "fallback" {
 		t.Errorf("got %q, want %q", got.String(), "fallback")
@@ -73,6 +88,7 @@ func TestSniffed(t *testing.T) {
 	if got := env.Sniffed(meowrt.NewString("MEOW_EMPTY")); got.String() != "true" {
 		t.Errorf("a set-but-empty variable is still set, got %q", got.String())
 	}
+	unset(t, "MEOW_DEFINITELY_UNSET")
 	if got := env.Sniffed(meowrt.NewString("MEOW_DEFINITELY_UNSET")); got.String() != "false" {
 		t.Errorf("got %q, want false", got.String())
 	}
@@ -112,5 +128,25 @@ func TestProwlIsSorted(t *testing.T) {
 			t.Fatalf("names are not sorted: %q came after %q", v.String(), prev)
 		}
 		prev = v.String()
+	}
+}
+
+// A wrong argument count must surface as a Furball. These are called from
+// generated Go, where a fixed arity would instead be a compile error.
+func TestArityErrorsAreFurballs(t *testing.T) {
+	tests := []struct {
+		name string
+		got  meowrt.Value
+	}{
+		{"sniffed with no arguments", env.Sniffed()},
+		{"sniffed with two arguments", env.Sniffed(meowrt.NewString("A"), meowrt.NewString("B"))},
+		{"prowl with an argument", env.Prowl(meowrt.NewString("A"))},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, ok := tt.got.(*meowrt.Furball); !ok {
+				t.Errorf("expected a Furball, got %s", tt.got.String())
+			}
+		})
 	}
 }

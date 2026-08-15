@@ -659,6 +659,12 @@ func (p *Parser) parseLambda() ast.Expr {
 			return &ast.LambdaExpr{Token: tok, Params: params, Body: exprStmt.Expr}
 		}
 	}
+	if stmts == nil {
+		// paw() {} has no statements, but Block must stay non-nil: a nil Block
+		// means "expression body", and Body is nil here. An empty block yields
+		// catnap.
+		stmts = []ast.Stmt{}
+	}
 	return &ast.LambdaExpr{Token: tok, Params: params, Block: stmts}
 }
 

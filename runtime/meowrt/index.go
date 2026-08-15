@@ -1,5 +1,7 @@
 package meowrt
 
+import "math"
+
 // Index evaluates the `container[key]` expression for any indexable value.
 //
 // It is the single implementation shared by the transpiler (pkg/codegen) and
@@ -22,6 +24,11 @@ func Index(container, key Value) Value {
 		i, f := TryAsInt(key)
 		if f != nil {
 			return f
+		}
+		// int is 32 bits on wasm, which backs the playground, so a large index
+		// would wrap around and silently select a valid element.
+		if i < math.MinInt || i > math.MaxInt {
+			return NewFurball("Hiss! Index %d out of range, nya~", i)
 		}
 		return obj.Get(int(i))
 	case *Map:

@@ -160,7 +160,25 @@ func walkStmtTree(stmt ast.Stmt, fn func(ast.Stmt)) {
 		for _, body := range s.Body {
 			walkStmtTree(body, fn)
 		}
+	case *ast.VarStmt:
+		walkExprStmts(s.Value, fn)
+	case *ast.ExprStmt:
+		walkExprStmts(s.Expr, fn)
+	case *ast.ReturnStmt:
+		walkExprStmts(s.Value, fn)
 	}
+}
+
+// walkExprStmts finds statements nested inside an expression — currently only
+// the body of a block lambda — so that statement mutations reach them.
+func walkExprStmts(expr ast.Expr, fn func(ast.Stmt)) {
+	walkExprTree(expr, func(e ast.Expr) {
+		if lambda, ok := e.(*ast.LambdaExpr); ok {
+			for _, stmt := range lambda.Block {
+				walkStmtTree(stmt, fn)
+			}
+		}
+	})
 }
 
 // walkExprs walks all expressions in the program, calling fn for each.
@@ -222,6 +240,13 @@ func walkExprTree(expr ast.Expr, fn func(ast.Expr)) {
 	case *ast.LambdaExpr:
 		if e.Body != nil {
 			walkExprTree(e.Body, fn)
+		}
+		// A block-bodied lambda holds its expressions in statements. The
+		// enumerator descends into them and assigns mutant IDs, so the schema
+		// walker has to reach them too — otherwise those mutants are never
+		// applied and are reported as spuriously surviving.
+		for _, stmt := range e.Block {
+			walkStmtExprs(stmt, fn)
 		}
 	case *ast.ListLit:
 		for _, item := range e.Items {

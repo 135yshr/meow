@@ -157,9 +157,11 @@ nya(to_float(42))   # => 42
 
 Convert any value to its string representation.
 
-A list of byte values — which is what `to_bytes` produces, and nothing else
-does — is reassembled into the original string, so `to_string` is the inverse of
-`to_bytes`. Any other list yields its display form.
+A non-empty list whose elements are all byte values — which is what `to_bytes`
+produces, and nothing else does — is reassembled into the original string, so
+`to_string` inverts `to_bytes`. Any other list yields its display form, and an
+empty list is ambiguous rather than empty text, so `to_string(to_bytes(""))` is
+`"[]"` rather than `""`.
 
 ```meow
 nya(to_string(42))          # => 42

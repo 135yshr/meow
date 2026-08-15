@@ -32,8 +32,11 @@ func Whiff(s, sub Value) Value {
 	return NewBool(strings.Contains(str, needle))
 }
 
-// Track returns the byte offset of the first occurrence of sub in s, or -1 when
-// it does not occur.
+// Track returns the position of the first occurrence of sub in s, or -1 when it
+// does not occur.
+//
+// The position counts characters, not bytes, so that it can be handed straight
+// to Nibble — the two would otherwise disagree on multi-byte text.
 func Track(s, sub Value) Value {
 	str, f := requireString("track", "haystack", s)
 	if f != nil {
@@ -43,7 +46,11 @@ func Track(s, sub Value) Value {
 	if f != nil {
 		return f
 	}
-	return NewInt(int64(strings.Index(str, needle)))
+	at := strings.Index(str, needle)
+	if at < 0 {
+		return NewInt(-1)
+	}
+	return NewInt(int64(len([]rune(str[:at]))))
 }
 
 // Shred splits s around each occurrence of sep, returning a List of the pieces.
@@ -57,12 +64,7 @@ func Shred(s, sep Value) Value {
 	if f != nil {
 		return f
 	}
-	var parts []string
-	if separator == "" {
-		parts = strings.Split(str, "")
-	} else {
-		parts = strings.Split(str, separator)
-	}
+	parts := strings.Split(str, separator)
 	elems := make([]Value, len(parts))
 	for i, p := range parts {
 		elems[i] = NewString(p)

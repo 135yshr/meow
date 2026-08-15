@@ -212,3 +212,58 @@ func TestChaseRejectsBadArguments(t *testing.T) {
 		})
 	}
 }
+
+// chase reports the whole response, so headers that legitimately repeat —
+// Set-Cookie above all — must not collapse to their first value.
+func TestChaseKeepsRepeatedHeaders(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Set-Cookie", "a=1")
+		w.Header().Add("Set-Cookie", "b=2")
+		w.Write([]byte("ok"))
+	}))
+	defer srv.Close()
+
+	got := meowhttp.Chase(meowrt.NewString("GET"), meowrt.NewString(srv.URL))
+	m, ok := got.(*meowrt.Map)
+	if !ok {
+		t.Fatalf("expected a Map, got %T", got)
+	}
+	headers, _ := m.Get("headers")
+	hm, ok := headers.(*meowrt.Map)
+	if !ok {
+		t.Fatalf("expected headers to be a Map, got %T", headers)
+	}
+	v, _ := hm.Get("Set-Cookie")
+	if v == nil || !strings.Contains(v.String(), "a=1") || !strings.Contains(v.String(), "b=2") {
+		t.Errorf("expected both cookies to be reported, got %v", v)
+	}
+}
+
+// The status alone rarely explains a failure, and the verb functions no longer
+// return the body for these responses.
+func TestVerbFurballCarriesBodyExcerpt(t *testing.T) {
+	srv := newStatusServer()
+	defer srv.Close()
+
+	got := meowhttp.Pounce(meowrt.NewString(srv.URL + "/status/401"))
+	f, ok := got.(*meowrt.Furball)
+	if !ok {
+		t.Fatalf("expected a Furball, got %T", got)
+	}
+	if !strings.Contains(f.Message, "unauthorized") {
+		t.Errorf("expected the error body in the message, got %q", f.Message)
+	}
+}
+
+// A nil interface value must not reach Type() and panic.
+func TestChaseHandlesNilBodyValue(t *testing.T) {
+	got := meowhttp.Chase(
+		meowrt.NewString("GET"),
+		meowrt.NewString("http://example.invalid"),
+		nil,
+		meowrt.NewString("not a map"),
+	)
+	if _, ok := got.(*meowrt.Furball); !ok {
+		t.Errorf("expected a Furball, got %T", got)
+	}
+}

@@ -779,3 +779,28 @@ nya(tangle(to_runes("hello"), ""))
 		t.Errorf("got %q, want %q", got, "hello\nhello\n")
 	}
 }
+
+// paw() {} has an empty block body, which must yield catnap rather than being
+// mistaken for an expression body.
+func TestLambdaEmptyBlockBody(t *testing.T) {
+	got := runMeow(t, `
+nyan nothing = paw() { }
+nya(nothing())
+`)
+	if got != "catnap\n" {
+		t.Errorf("got %q, want %q", got, "catnap\n")
+	}
+}
+
+// A lambda parameter shadows an outer binding of the same name.
+func TestLambdaParamShadowsOuter(t *testing.T) {
+	got := runMeow(t, `
+nyan x = 100
+nyan bump = paw(x) { x + 1 }
+nya(bump(5))
+nya(x)
+`)
+	if got != "6\n100\n" {
+		t.Errorf("got %q, want %q", got, "6\n100\n")
+	}
+}
