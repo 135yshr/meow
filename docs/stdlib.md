@@ -153,9 +153,15 @@ nya(to_float(42))   # => 42
 
 Convert any value to its string representation.
 
+A list of byte values — which is what `to_bytes` produces, and nothing else
+does — is reassembled into the original string, so `to_string` is the inverse of
+`to_bytes`. Any other list yields its display form.
+
 ```meow
 nya(to_string(42))          # => 42
 nya(to_string([1, 2, 3]))   # => [1, 2, 3]
+
+nya(to_string(to_bytes("hello")))   # => hello
 ```
 
 ### `to_bytes(s)`
@@ -170,6 +176,92 @@ Convert a string to a list of byte (integer) values.
 nya(to_bytes("ABC"))    # => [65, 66, 67]
 nya(to_bytes("あ"))     # => [227, 129, 130]
 nya(to_bytes(""))       # => []
+```
+
+### `to_runes(s)`
+
+Convert a string to a list of single-character strings, split on characters
+rather than bytes.
+
+- **s** (string): The string to convert.
+- **Returns**: A list of one-character strings.
+- **Returns a Furball**: If the argument is not a string.
+
+To go back the other way, join the list with `tangle(runes, "")`.
+
+```meow
+nya(to_runes("ABC"))              # => [A, B, C]
+nya(to_runes("にゃん"))            # => [に, ゃ, ん]
+nya(tangle(to_runes("にゃん"), ""))  # => にゃん
+```
+
+### `whiff(s, sub)`
+
+Report whether `s` contains `sub`.
+
+- **Returns**: `yarn` or `hairball`.
+- **Returns a Furball**: If either argument is not a string.
+
+```meow
+nya(whiff("hello,world", "world"))   # => yarn
+nya(whiff("hello,world", "dog"))     # => hairball
+```
+
+### `track(s, sub)`
+
+Find the byte offset of the first occurrence of `sub` in `s`.
+
+- **Returns**: The offset, or `-1` when `sub` does not occur.
+- **Returns a Furball**: If either argument is not a string.
+
+```meow
+nya(track("hello,world", "world"))   # => 6
+nya(track("hello,world", "dog"))     # => -1
+```
+
+### `shred(s, sep)`
+
+Split `s` around each occurrence of `sep`.
+
+- **Returns**: A litter of strings. An empty `sep` splits `s` into its
+  individual characters.
+- **Returns a Furball**: If either argument is not a string.
+
+```meow
+nya(shred("a,b,c", ","))    # => [a, b, c]
+nya(shred("abc", ""))       # => [a, b, c]
+nya(shred("abc", ","))      # => [abc]
+```
+
+### `tangle(list, sep)`
+
+Join a litter of strings into one, separated by `sep`. The inverse of `shred`.
+
+- **Returns**: The joined string.
+- **Returns a Furball**: If `list` is not a litter, or holds a non-string.
+
+```meow
+nya(tangle(["a", "b", "c"], ","))       # => a,b,c
+nya(tangle(shred("a,b,c", ","), " / "))  # => a / b / c
+```
+
+### `nibble(s, start, end)`
+
+Take the piece of `s` from `start` up to but not including `end`.
+
+Positions count characters, not bytes, so multi-byte text behaves the way it
+reads. A negative position counts back from the end, positions are clamped to
+the bounds of `s`, and an inverted range yields `""`.
+
+- **Returns**: The substring.
+- **Returns a Furball**: If `s` is not a string, or a position is not an int.
+
+```meow
+nya(nibble("hello,world", 0, 5))    # => hello
+nya(nibble("hello,world", -5, 11))  # => world
+nya(nibble("hello", 0, 99))         # => hello
+nya(nibble("hello", 4, 2))          # =>
+nya(nibble("にゃんこ", 1, 3))         # => ゃん
 ```
 
 ---
@@ -214,7 +306,16 @@ Maximum line length: 1 MiB.
 
 ## http Package
 
-Import with `nab "http"`. Provides HTTP client operations. All functions return the response body as a string.
+Import with `nab "http"`. Provides HTTP client operations.
+
+The functions named after a verb — `pounce`, `toss`, `knead`, `swat`, `prowl` —
+return the response body as a string, and return a **Furball naming the status**
+when the response is 4xx or 5xx, so a failed request can be recovered with `~>`
+like any other error rather than being mistaken for a successful one.
+
+To read a status code instead of failing on it, use
+[`http.chase`](#httpchasemethod-url--body--options), which returns the whole
+response.
 
 **Default settings:**
 - Timeout: 10 seconds
@@ -315,6 +416,106 @@ HTTP OPTIONS request.
 ```meow
 nab "http"
 http.prowl("https://httpbin.org/get")
+```
+
+### `http.chase(method, url [, body [, options]])`
+
+Perform a request with any method and return the whole response, rather than
+just its body. This is how to inspect a status code: the verb functions answer
+"give me the body, and fail if it did not work", while `chase` answers "tell me
+what happened" — which is what a reachability or health check needs.
+
+- **method** (string): HTTP method, case-insensitive.
+- **url** (string): Request URL.
+- **body** (map, string or `catnap`, optional): A map is sent as JSON with
+  `Content-Type: application/json`; a string is sent as-is. Pass `catnap` to
+  send no body. The body is positional rather than trailing so it can never be
+  confused with the options map.
+- **options** (map, optional): Options map.
+- **Returns**: A map describing the response.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `"status"` | int | HTTP status code |
+| `"ok"` | bool | `yarn` when the status is 2xx |
+| `"body"` | string | Response body |
+| `"headers"` | map | Response headers |
+
+A non-2xx status is reported in the map rather than as a Furball; a Furball is
+still returned when the request itself could not be made.
+
+```meow
+nab "http"
+
+nyan resp = http.chase("GET", "https://httpbin.org/status/401")
+nya(resp["status"])   # => 401
+nya(resp["ok"])       # => hairball
+
+# With a JSON body
+http.chase("POST", "https://httpbin.org/post", {"name": "Nyantyu"})
+
+# With no body, but custom headers
+http.chase("GET", "https://httpbin.org/get", catnap, {
+  "headers": {"Authorization": "Bearer my_token"}
+})
+```
+
+---
+
+## env Package
+
+Import with `nab "env"`. Reads the process environment, so that values which
+should not be written down — tokens, endpoints that differ per deployment — can
+reach a program without being staged in a plain-text file first.
+
+### `env.hunt(name [, fallback])`
+
+Read an environment variable.
+
+- **name** (string): Variable name.
+- **fallback** (any, optional): Returned when the variable is unset.
+- **Returns**: The value as a string, or `catnap` when unset and no fallback was
+  given.
+- **Returns a Furball**: If `name` is not a non-empty string.
+
+An unset variable reads as `catnap` rather than `""`, so it can be told apart
+from one set to the empty string.
+
+```meow
+nab "env"
+
+nyan token = env.hunt("API_TOKEN")
+sniff (token == catnap) {
+  hiss("API_TOKEN is not set")
+}
+
+nyan level = env.hunt("LOG_LEVEL", "info")
+```
+
+### `env.sniffed(name)`
+
+Report whether an environment variable is set, including when it is set to the
+empty string.
+
+- **Returns**: `yarn` or `hairball`.
+
+```meow
+nab "env"
+nya(env.sniffed("HOME"))   # => yarn
+```
+
+### `env.prowl()`
+
+List the names of every environment variable, sorted.
+
+- **Returns**: A litter of strings.
+
+Only names are returned — listing values would make it far too easy to print a
+secret by accident. Use `env.hunt` to read one deliberately.
+
+```meow
+nab "env"
+nya(len(env.prowl()))
 ```
 
 ---

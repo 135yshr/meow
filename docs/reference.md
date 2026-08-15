@@ -36,7 +36,21 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 
 ## Type Keywords
 
-Meow supports gradual static typing. Type keywords can annotate variables, function parameters, and return values.
+Meow supports gradual static typing. Type keywords annotate variables, function
+parameters, and return values.
+
+Annotations are **optional on variables**, where the type is inferred from the
+initialiser, but **required on function signatures**: every parameter of a
+`meow` function must be annotated, and a function containing `bring` must
+declare its return type. Omitting either is a compile error:
+
+```
+Hiss! Parameter "a" of function add must have a type annotation, nya~
+Hiss! Function add has bring statements but no return type annotation, nya~
+```
+
+Lambdas are the exception — `paw` parameters may be left unannotated, and their
+result type is inferred.
 
 | Type | Meaning | Example |
 |------|---------|---------|
@@ -173,6 +187,31 @@ nyan cats_are_great = yarn
 nyan nothing = catnap
 ```
 
+The `nyan` keyword may be omitted, in which case `x = 42` declares `x` just as
+`nyan x = 42` does.
+
+**Bindings are immutable.** There is no assignment: a name is bound once, and
+`x = ...` against a name already bound in an enclosing scope is a compile error
+rather than a reassignment.
+
+```meow
+nyan total = 0
+purr i (5) {
+  total = total + 1   # Hiss! Variable total is already bound and cannot be
+                      # reassigned — bindings are immutable, nya~
+}
+```
+
+Accumulate with `curl` instead of updating a variable in a loop:
+
+```meow
+nyan total = curl([1, 2, 3, 4, 5], 0, paw(acc, x) { acc + x })
+nya(total)   # => 15
+```
+
+An explicit `nyan` inside an inner scope still shadows deliberately, since that
+declares a new, separate binding.
+
 ### Function Definition
 
 ```meow
@@ -191,7 +230,8 @@ function, the body may only call:
 - other `trill` functions, and
 - side-effect-free builtins: arithmetic/comparison operators, `len`, `to_int`,
   `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`,
-  `append`, `lick`, `picky`, `curl`.
+  `append`, `lick`, `picky`, `curl`, `whiff`, `track`, `shred`, `tangle`,
+  `nibble`.
 
 Any other call is a compile error: impure builtins (`nya`, `hiss`, `gag`),
 imported-package members (e.g. `http.pounce(...)`), and non-`trill` user
@@ -369,6 +409,23 @@ nyan double = paw(x int) { x * 2 }
 nya(double(5))   # => 10
 ```
 
+A lambda body may also be a block of statements, so control flow is available
+inside `paw`. A trailing expression is the result, just as in the
+single-expression form, and `bring` returns from the lambda:
+
+```meow
+nyan classify = paw(n) {
+  sniff (n > 10) { bring "big" } scratch { bring "small" }
+}
+nya(classify(50))   # => big
+
+nyan area = paw(w, h) {
+  nyan a = w * h
+  a + 1
+}
+nya(area(3, 4))     # => 13
+```
+
 ### List Operations
 
 ```meow
@@ -425,6 +482,7 @@ Use `nab` to import a standard library package:
 ```meow
 nab "file"
 nab "http"
+nab "env"
 nab "testing"
 ```
 
@@ -436,7 +494,7 @@ nyan content = file.snoop("data.txt")
 nya(content)
 ```
 
-Available packages: `file`, `http`, `testing`. See [stdlib.md](stdlib.md) for details.
+Available packages: `file`, `http`, `env`, `testing`. See [stdlib.md](stdlib.md) for details.
 
 ### Member Access
 

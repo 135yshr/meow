@@ -1,0 +1,63 @@
+# The code samples from README.md, kept runnable so they cannot drift.
+
+nyan name = "Nyantyu"
+meow greet(who string) string {
+  bring "Hello, " + who + "!"
+}
+nya(greet(name))
+
+meow add(a int, b int) int {
+  bring a + b
+}
+nya(add(1, 2))
+
+nyan x = 5
+sniff (x > 0) {
+  nya("positive")
+} scratch sniff (x == 0) {
+  nya("zero")
+} scratch {
+  nya("negative")
+}
+
+purr i (3) {
+  nya(i)
+}
+purr j (1..3) {
+  nya(j)
+}
+purr n (["Nyantyu", "Tyako"]) {
+  nya(n)
+}
+
+nyan double = paw(y) { y * 2 }
+nya(double(5))
+
+nyan nums = [1, 2, 3, 4, 5]
+nya(lick(nums, paw(v) { v * 2 }))
+nya(picky(nums, paw(v) { v % 2 == 0 }))
+nya(curl(nums, 0, paw(acc, v) { acc + v }))
+
+meow divide(a int, b int) int {
+  sniff (b == 0) { hiss("division by zero") }
+  bring a / b
+}
+nyan val = divide(10, 0) ~> 0
+nya(val)
+nyan val2 = divide(10, 0) ~> paw(err) { 42 }
+nya(val2)
+nyan result = gag(paw() { divide(10, 0) })
+sniff (is_furball(result)) {
+  nya("caught:", result)
+} scratch {
+  nya("ok:", result)
+}
+
+nyan score = 5
+nyan verdict = peek(score) {
+  0 => "zero",
+  1..10 => "low",
+  11..100 => "high",
+  _ => "off the charts"
+}
+nya(verdict)

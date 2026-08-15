@@ -106,7 +106,7 @@ Delimiters:
 
 ## Types
 
-Meow uses a gradual type system. Values are dynamically typed at runtime (boxed as `Value`), but optional static type annotations enable compile-time checking and optimized code generation.
+Meow uses a gradual type system. Values are dynamically typed at runtime (boxed as `Value`), but static type annotations enable compile-time checking and optimized code generation. They are optional on variables and `paw` parameters, and required on `meow` function signatures (see [Type Annotations](#type-annotations)).
 
 ### Primitive Types
 
@@ -178,7 +178,10 @@ nyan humid = Humidity(72)
 
 ### Type Annotations
 
-Type annotations are optional but recommended. They appear after identifiers:
+Type annotations appear after identifiers. They are optional on variable
+declarations and on `paw` parameters, where the type is inferred, and required
+on `meow` function signatures: every parameter must be annotated, and a function
+containing `bring` must declare its return type.
 
 ```ebnf
 TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
@@ -255,13 +258,26 @@ Calls a function, lambda, or built-in. Also used to construct `kitty` instances 
 ### Lambda Expression
 
 ```ebnf
-LambdaExpr = "paw" "(" [ ParamList ] ")" "{" Expr "}" .
+LambdaExpr = "paw" "(" [ ParamList ] ")" "{" ( Expr | { Stmt } ) "}" .
 ```
 
-Creates an anonymous function. The body is a single expression (not a block of statements).
+Creates an anonymous function. The body is either a single expression, whose
+value is the result, or a block of statements.
+
+In a block body, a trailing expression statement is the result — matching the
+way the single-expression form yields its value — and `bring` returns from the
+lambda rather than from any enclosing function. A block that does neither
+evaluates to `catnap`.
 
 ```meow
 paw(x int) { x * 2 }
+
+paw(n) { sniff (n > 10) { bring "big" } scratch { bring "small" } }
+
+paw(w, h) {
+  nyan a = w * h
+  a + 1
+}
 ```
 
 ### Index Expression
