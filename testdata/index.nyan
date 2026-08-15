@@ -1,0 +1,38 @@
+# Indexing lists and maps, with literal and variable subscripts
+
+nyan nums = [10, 20, 30]
+
+# Literal subscripts
+nya(nums[0])
+nya(nums[2])
+
+# Variable subscripts
+nyan i = 1
+nya(nums[i])
+
+# Computed subscripts
+nya(nums[i + 1])
+
+nyan cat = {
+  "name": "Nyantyu", "age": 3
+}
+
+# Map reads by literal and variable key
+nya(cat["name"])
+nyan key = "age"
+nya(cat[key])
+
+# A missing key reads as catnap rather than failing
+nya(cat["collar"])
+
+# Nested containers
+nyan data = {
+  "items": [1, 2, 3], "inner": {
+    "value": 7
+  }
+}
+nya(data["items"][1])
+nya(data["inner"]["value"])
+
+nyan grid = [[1, 2], [3, 4]]
+nya(grid[1][0])

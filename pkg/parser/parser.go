@@ -488,7 +488,7 @@ func (p *Parser) infixPrec(typ token.TokenType) int {
 }
 
 func (p *Parser) parseExpr(minPrec int) ast.Expr {
-	left := p.parsePrefix()
+	left := p.parsePostfix(p.parsePrefix())
 	for {
 		prec := p.infixPrec(p.cur.Type)
 		if prec <= minPrec {
@@ -593,9 +593,7 @@ func (p *Parser) parseIdentOrCall() ast.Expr {
 	if p.cur.Type == token.LPAREN {
 		return p.finishCall(ident)
 	}
-	if p.cur.Type == token.LBRACKET {
-		return p.parseIndex(ident)
-	}
+	// Subscripts are applied by parsePostfix, so that they can chain.
 	return ident
 }
 
@@ -701,6 +699,20 @@ func (p *Parser) parseMapLit() ast.Expr {
 	p.skipNewlines()
 	p.expect(token.RBRACE)
 	return &ast.MapLit{Token: tok, Keys: keys, Vals: vals}
+}
+
+// parsePostfix applies subscripts to an already-parsed operand, repeatedly, so
+// that indexing chains and indexing of any expression — not just a bare
+// identifier — are accepted: grid[1][0], data["items"][1], f()[0], [1, 2][0].
+//
+// A subscript only ever continues the current expression, because the lexer
+// emits a NEWLINE between statements; a line that opens with '[' therefore
+// starts a fresh list literal rather than indexing the line above.
+func (p *Parser) parsePostfix(left ast.Expr) ast.Expr {
+	for p.cur.Type == token.LBRACKET {
+		left = p.parseIndex(left)
+	}
+	return left
 }
 
 func (p *Parser) parseIndex(left ast.Expr) ast.Expr {

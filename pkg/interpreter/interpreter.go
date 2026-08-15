@@ -618,18 +618,7 @@ func (interp *Interpreter) evalIndex(e *ast.IndexExpr, env *Environment) meowrt.
 	left := interp.evalExpr(e.Left, env)
 	index := interp.evalExpr(e.Index, env)
 
-	switch obj := left.(type) {
-	case *meowrt.List:
-		return obj.Get(int(meowrt.AsInt(index)))
-	case *meowrt.Map:
-		key := meowrt.AsString(index)
-		if v, ok := obj.Get(key); ok {
-			return v
-		}
-		return meowrt.NewNil()
-	default:
-		panic(fmt.Sprintf("Hiss! cannot index %s, nya~", left.Type()))
-	}
+	return meowrt.Index(left, index)
 }
 
 // --- Member Access ---

@@ -1486,7 +1486,7 @@ func (g *Generator) genMap(e *ast.MapLit) string {
 }
 
 func (g *Generator) genIndex(e *ast.IndexExpr) string {
-	return fmt.Sprintf("%s.(*meow.List).Get(int(%s.(*meow.Int).Val))", g.genExpr(e.Left), g.genExpr(e.Index))
+	return fmt.Sprintf("meow.Index(%s, %s)", g.genExpr(e.Left), g.genExpr(e.Index))
 }
 
 func (g *Generator) genPipe(e *ast.PipeExpr) string {

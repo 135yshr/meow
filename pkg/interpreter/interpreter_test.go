@@ -672,3 +672,44 @@ nya(result)
 		t.Errorf("got %q", got)
 	}
 }
+
+// Indexing is shared with the transpiler through meowrt.Index, so the
+// interpreter that backs the WASM playground must agree with compiled output.
+func TestIndexLiteralSubscript(t *testing.T) {
+	got := runMeow(t, `
+nyan nums = [10, 20, 30]
+nya(nums[0])
+nya(nums[2])
+nyan i = 1
+nya(nums[i])
+nya(nums[i + 1])
+`)
+	expected := "10\n30\n20\n30\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestIndexChained(t *testing.T) {
+	got := runMeow(t, `
+nyan data = {"items": [1, 2, 3], "inner": {"value": 7}}
+nya(data["items"][1])
+nya(data["inner"]["value"])
+nyan grid = [[1, 2], [3, 4]]
+nya(grid[1][0])
+`)
+	expected := "2\n7\n3\n"
+	if got != expected {
+		t.Errorf("got %q, want %q", got, expected)
+	}
+}
+
+func TestIndexMapMissingKey(t *testing.T) {
+	got := runMeow(t, `
+nyan m = {"name": "Nyantyu"}
+nya(m["collar"])
+`)
+	if got != "catnap\n" {
+		t.Errorf("got %q, want %q", got, "catnap\n")
+	}
+}
