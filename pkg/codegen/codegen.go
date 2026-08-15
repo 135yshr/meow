@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 
@@ -33,6 +34,33 @@ type Generator struct {
 	inLearnMethod     bool              // true when generating a learn method body
 	aliasToPackage    map[string]string // alias → real package name
 	packageToAlias    map[string]string // real package name → alias
+	// nativeVars holds the identifiers currently emitted as native Go values
+	// (int64, string, ...) rather than as meow.Value. It is populated while
+	// generating a fully-typed function body, and is what lets the untyped
+	// generator box such an identifier when handing it to a runtime helper.
+	nativeVars map[string]types.Type
+}
+
+// bindNativeVar records that name is currently held in a native Go variable of
+// type t, or that it is not, when t is not a native type.
+func (g *Generator) bindNativeVar(name string, t types.Type) {
+	if g.nativeVars == nil {
+		return
+	}
+	if t != nil && isNativeType(t) {
+		g.nativeVars[name] = t
+		return
+	}
+	delete(g.nativeVars, name)
+}
+
+// enterNativeScope starts tracking native variables, returning a function that
+// restores the previous set.
+func (g *Generator) enterNativeScope() func() {
+	prev := g.nativeVars
+	g.nativeVars = make(map[string]types.Type, len(prev))
+	maps.Copy(g.nativeVars, prev)
+	return func() { g.nativeVars = prev }
 }
 
 type coverBlock struct {
@@ -410,10 +438,12 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 	prevReturnType := g.currentReturnType
 	g.currentReturnType = ft.Return
 	defer func() { g.currentReturnType = prevReturnType }()
+	defer g.enterNativeScope()()
 	var b strings.Builder
 	params := make([]string, len(fn.Params))
 	for i, p := range fn.Params {
 		params[i] = p.Name + " " + goTypeString(ft.Params[i])
+		g.bindNativeVar(p.Name, ft.Params[i])
 	}
 	fmt.Fprintf(&b, "func %s(%s) %s {\n", fn.Name, strings.Join(params, ", "), goTypeString(ft.Return))
 	for _, stmt := range fn.Body {
@@ -464,9 +494,15 @@ func (g *Generator) genTypedStmt(stmt ast.Stmt) string {
 func (g *Generator) genTypedVarStmt(s *ast.VarStmt) string {
 	t := g.getExprType(s.Value)
 	if t != nil && !types.IsAny(t) {
-		return fmt.Sprintf("var %s %s = %s", s.Name, goTypeString(t), g.genTypedExpr(s.Value))
+		// Generate the value before rebinding, so that `nyan x = x + 1` reads
+		// the old binding.
+		code := fmt.Sprintf("var %s %s = %s", s.Name, goTypeString(t), g.genTypedExpr(s.Value))
+		g.bindNativeVar(s.Name, t)
+		return code
 	}
-	return fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
+	code := fmt.Sprintf("var %s meow.Value = %s", s.Name, g.genExpr(s.Value))
+	g.bindNativeVar(s.Name, nil)
+	return code
 }
 
 func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
@@ -540,6 +576,10 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 			startCode = ""
 		}
 	}
+	// The loop variable is an int64 in both forms below, so it needs boxing
+	// wherever the body hands it to a runtime helper.
+	defer g.enterNativeScope()()
+	g.bindNativeVar(s.Var, types.IntType{})
 	if startCode != "" && endType != nil && !types.IsAny(endType) {
 		fmt.Fprintf(&b, "for %s := %s; %s %s %s; %s++ {\n",
 			s.Var, startCode, s.Var, cmp, g.genTypedExpr(s.End), s.Var)
@@ -607,15 +647,12 @@ func (g *Generator) genTypedExpr(expr ast.Expr) string {
 	}
 }
 
-// genExprBoxed generates an expression in untyped (meow.Value) mode,
-// but boxes any typed variables so they can be used as meow.Value.
+// genExprBoxed generates an expression in untyped (meow.Value) mode. Native Go
+// variables referenced anywhere within it are boxed by genIdent, which knows
+// which identifiers are actually held natively — the inferred type alone does
+// not say that, since a typed function can hold an int-typed local in a
+// meow.Value.
 func (g *Generator) genExprBoxed(expr ast.Expr) string {
-	if ident, ok := expr.(*ast.Ident); ok {
-		t := g.getExprType(expr)
-		if t != nil && !types.IsAny(t) {
-			return g.boxNative(ident.Name, t)
-		}
-	}
 	return g.genExpr(expr)
 }
 
@@ -1170,7 +1207,14 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 	}
 }
 
+// genIdent emits an identifier in untyped (meow.Value) mode. Inside a
+// fully-typed function body the variable may be held in a native Go type, in
+// which case it is boxed so it can be used where a meow.Value is expected —
+// passing a `s string` parameter to a runtime helper, for instance.
 func (g *Generator) genIdent(e *ast.Ident) string {
+	if t, ok := g.nativeVars[e.Name]; ok {
+		return g.boxNative(e.Name, t)
+	}
 	return e.Name
 }
 
