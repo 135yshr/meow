@@ -526,6 +526,205 @@ nya(len(env.prowl()))
 
 ---
 
+## clock Package
+
+Import with `nab "clock"`. Reads the wall clock and pauses execution.
+
+Times are reported as plain integers and strings rather than as an opaque
+timestamp type, so they can be printed, compared and written out with the
+operators the language already has.
+
+### `clock.now()`
+
+The current time as whole seconds since the Unix epoch.
+
+- **Returns**: An int.
+
+```meow
+nab "clock"
+nya(clock.now())   # => 1755266400
+```
+
+### `clock.nanos()`
+
+The current time as nanoseconds since the Unix epoch. Wire formats that carry
+timestamps — OpenTelemetry among them — ask for nanoseconds.
+
+- **Returns**: An int.
+
+```meow
+nab "clock"
+nya(clock.nanos())   # => 1755266400500000000
+```
+
+### `clock.stamp()`
+
+The current UTC time as an RFC 3339 string. Always UTC, so two machines in
+different zones agree.
+
+- **Returns**: A string.
+
+```meow
+nab "clock"
+nya(clock.stamp())   # => 2025-08-15T14:00:00Z
+```
+
+### `clock.nap(milliseconds)`
+
+Pause for the given number of milliseconds.
+
+- **milliseconds** (int): How long to pause. Zero is allowed.
+- **Returns**: `catnap`.
+- **Returns a Furball**: If the argument is not a non-negative int. A negative
+  delay is reported rather than treated as zero, since it almost always means
+  the caller computed it wrongly.
+
+```meow
+nab "clock"
+clock.nap(250)
+```
+
+---
+
+## random Package
+
+Import with `nab "random"`. Produces random values.
+
+`roll`, `drift` and `pick` draw from `math/rand/v2`, which suits sampling and
+jitter. `tuft` draws from a cryptographic source instead, because it exists to
+label things — a marker that collides, or that an observer can predict, defeats
+the purpose of having one.
+
+### `random.roll(n)`
+
+A random int in `[0, n)`.
+
+- **n** (int): Exclusive upper bound; must be positive.
+- **Returns a Furball**: If `n` is not a positive int.
+
+```meow
+nab "random"
+nya(random.roll(6))   # => 0..5
+```
+
+### `random.drift()`
+
+A random float in `[0, 1)`.
+
+```meow
+nab "random"
+nya(random.drift())   # => 0.5772156649
+```
+
+### `random.pick(list)`
+
+A random element of a litter.
+
+- **Returns a Furball**: If the argument is not a litter, or is empty.
+
+```meow
+nab "random"
+nya(random.pick(["Nyantyu", "Tyako", "Mikan"]))
+```
+
+### `random.tuft(n)`
+
+`n` random bytes as a lowercase hex string, so the result is `2n` characters
+long. Drawn from a cryptographic source, which makes it suitable for the
+markers and correlation IDs it is meant for.
+
+- **n** (int): Number of bytes, 1 to 1024.
+- **Returns a Furball**: If `n` is outside that range, or the source fails.
+
+```meow
+nab "random"
+nya(random.tuft(8))   # => 3f9a1c04b7e25d68
+```
+
+---
+
+## aws Package
+
+Import with `nab "aws"`. Talks to Amazon Web Services through the official
+[aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2).
+
+Credentials and region are resolved by the SDK's own default chain —
+environment variables, shared config and credentials files, SSO, container and
+instance metadata — so a Meow program authenticates exactly the way the AWS CLI
+does on the same machine, and never has to be handed a secret directly.
+
+Results come back as ordinary Maps and litters, so they can be indexed and
+printed with what the language already has. Every call is bounded by a 30-second
+timeout, and every failure is a Furball, so `~>` recovers from it.
+
+This is the only part of Meow that depends on a third-party package; everything
+else is standard library only.
+
+### `aws.whoami()`
+
+The identity the program is authenticated as.
+
+- **Returns**: A map with `"account"`, `"arn"` and `"user_id"`.
+
+The cheapest way to answer "are my credentials working, and am I in the account
+I think I am" before doing anything that matters.
+
+```meow
+nab "aws"
+
+nyan me = aws.whoami() ~> paw(err) { hiss("not authenticated:", err) }
+nya(me["account"])
+nya(me["arn"])
+```
+
+### `aws.region()`
+
+The region the SDK resolved, so a program can confirm where it is about to act.
+
+- **Returns**: A string.
+
+```meow
+nab "aws"
+nya(aws.region())   # => ap-northeast-1
+```
+
+### `aws.dig(group [, options])`
+
+Search a CloudWatch Logs group and return the matching events.
+
+- **group** (string): Log group name.
+- **options** (map, optional): See below.
+- **Returns**: A litter of maps, each with `"timestamp"`, `"message"` and
+  `"stream"`.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `"pattern"` | string | (all events) | CloudWatch Logs filter pattern |
+| `"start"` | int | (none) | Earliest event, in milliseconds since the epoch |
+| `"end"` | int | (none) | Latest event, in milliseconds since the epoch |
+| `"limit"` | int | 10000 | Maximum events to return, 1 to 10000 |
+
+Times are milliseconds since the Unix epoch, the unit the API uses, so
+`clock.now() * 1000` lines up with them.
+
+```meow
+nab "aws"
+nab "clock"
+
+nyan since = (clock.now() - 300) * 1000
+nyan hits = aws.dig("/aws/lambda/canary", {
+  "pattern": "nyan-marker-001", "start": since
+})
+
+sniff (len(hits) > 0) {
+  nya("OK stored:", head(hits)["message"])
+} scratch {
+  nya("NG not stored")
+}
+```
+
+---
+
 ## testing Package
 
 Import with `nab "testing"`. Provides test assertions and test execution.
