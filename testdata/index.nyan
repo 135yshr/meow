@@ -36,3 +36,8 @@ nya(data["inner"]["value"])
 
 nyan grid = [[1, 2], [3, 4]]
 nya(grid[1][0])
+
+# A loop variable the body never mentions must still compile
+purr unused (2) {
+  nya("tick")
+}

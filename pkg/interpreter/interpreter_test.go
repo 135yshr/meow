@@ -804,3 +804,16 @@ nya(x)
 		t.Errorf("got %q, want %q", got, "6\n100\n")
 	}
 }
+
+// The body need not mention the loop variable. Compiled output used to fail
+// with "declared and not used" for the count form.
+func TestRangeUnusedLoopVariable(t *testing.T) {
+	got := runMeow(t, `
+purr unused (2) {
+  nya("tick")
+}
+`)
+	if got != "tick\ntick\n" {
+		t.Errorf("got %q, want %q", got, "tick\ntick\n")
+	}
+}
