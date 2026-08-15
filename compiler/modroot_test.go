@@ -24,7 +24,7 @@ func TestIsMeowModuleRoot(t *testing.T) {
 		dir := t.TempDir()
 		writeMeowModule(t, dir, meowModulePath)
 		if !isMeowModuleRoot(dir) {
-			t.Error("expected the meow source tree to be recognised")
+			t.Error("expected the meow source tree to be recognized")
 		}
 	})
 

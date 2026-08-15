@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -134,9 +135,11 @@ func TestChaseWithBody(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
 		gotType = r.Header.Get("Content-Type")
-		buf := make([]byte, r.ContentLength)
-		r.Body.Read(buf)
-		gotBody = string(buf)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading the request body: %v", err)
+		}
+		gotBody = string(body)
 		w.Write([]byte("stored"))
 	}))
 	defer srv.Close()

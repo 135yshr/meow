@@ -599,7 +599,7 @@ func runtimeRequirement() string {
 	return "latest"
 }
 
-// asModuleVersion normalises a version string into a go.mod requirement.
+// asModuleVersion normalizes a version string into a go.mod requirement.
 // Release tooling stamps the tag without its "v" prefix, so it is restored
 // here; anything that is not a semantic version ("dev", "(devel)", "") is
 // rejected so the caller can fall back.
