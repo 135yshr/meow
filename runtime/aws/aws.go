@@ -229,18 +229,56 @@ func Dig(args ...meowrt.Value) meowrt.Value {
 	}
 	in := &cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: aws.String(group),
-		Limit:        aws.Int32(opts.limit),
 		StartTime:    opts.startTime,
 		EndTime:      opts.endTime,
 	}
 	if opts.pattern != "" {
 		in.FilterPattern = aws.String(opts.pattern)
 	}
-	out, err := client.FilterLogEvents(ctx, in)
+	events, err := fetchEvents(ctx, client, in, opts.limit)
 	if err != nil {
 		return furball("%s", err)
 	}
-	return eventsToList(out.Events)
+	return eventsToList(events)
+}
+
+// maxLogPages bounds the paging loop. The context deadline is the real limit;
+// this only keeps a server that never stops handing out tokens from spinning.
+const maxLogPages = 1000
+
+// fetchEvents follows NextToken until the limit is reached or the pages run out.
+//
+// A single call is not enough: FilterLogEvents applies Limit per page and may
+// return a partial — or entirely empty — page while still supplying a token, so
+// stopping at the first response silently drops matching events. For a check
+// asking "did this marker arrive", that reads as a confident "no".
+func fetchEvents(
+	ctx context.Context,
+	client logsAPI,
+	in *cloudwatchlogs.FilterLogEventsInput,
+	limit int32,
+) ([]cwltypes.FilteredLogEvent, error) {
+	var events []cwltypes.FilteredLogEvent
+	for range maxLogPages {
+		remaining := int(limit) - len(events)
+		if remaining <= 0 {
+			break
+		}
+		in.Limit = aws.Int32(int32(remaining))
+		out, err := client.FilterLogEvents(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, out.Events...)
+		if out.NextToken == nil || *out.NextToken == "" {
+			break
+		}
+		in.NextToken = out.NextToken
+	}
+	if len(events) > int(limit) {
+		events = events[:limit]
+	}
+	return events, nil
 }
 
 // eventsToList renders log events as a litter of Maps.

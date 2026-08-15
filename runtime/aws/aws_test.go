@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -34,6 +35,32 @@ type fakeLogs struct {
 func (f *fakeLogs) FilterLogEvents(_ context.Context, in *cloudwatchlogs.FilterLogEventsInput, _ ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 	f.got = in
 	return f.out, f.err
+}
+
+// pagingLogs replays a scripted sequence of pages and records what it was asked
+// for, so the paging loop can be observed rather than inferred.
+type pagingLogs struct {
+	pages  []*cloudwatchlogs.FilterLogEventsOutput
+	calls  int
+	tokens []string
+	limits []int32
+}
+
+func (p *pagingLogs) FilterLogEvents(_ context.Context, in *cloudwatchlogs.FilterLogEventsInput, _ ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+	p.tokens = append(p.tokens, aws.ToString(in.NextToken))
+	p.limits = append(p.limits, aws.ToInt32(in.Limit))
+	out := p.pages[p.calls]
+	p.calls++
+	return out, nil
+}
+
+// event builds a log event with just the fields these tests look at.
+func event(message string) cwltypes.FilteredLogEvent {
+	return cwltypes.FilteredLogEvent{
+		Timestamp:     aws.Int64(1755266400000),
+		Message:       aws.String(message),
+		LogStreamName: aws.String("stream"),
+	}
 }
 
 // useSTS installs a fake STS client for the duration of a test.
@@ -259,5 +286,80 @@ func TestRegion(t *testing.T) {
 	}
 	if _, ok := Region(meowrt.NewString("x")).(*meowrt.Furball); !ok {
 		t.Error("expected a Furball for unexpected arguments")
+	}
+}
+
+// FilterLogEvents applies Limit per page and may return a partial — or entirely
+// empty — page while still supplying a token. Stopping at the first response
+// silently drops matching events, which for a "did this marker arrive" check
+// reads as a confident no.
+func TestDigFollowsPaginationTokens(t *testing.T) {
+	logs := &pagingLogs{pages: []*cloudwatchlogs.FilterLogEventsOutput{
+		{Events: []cwltypes.FilteredLogEvent{event("first")}, NextToken: aws.String("t1")},
+		// An empty page mid-scan is normal and must not end the search.
+		{Events: nil, NextToken: aws.String("t2")},
+		{Events: []cwltypes.FilteredLogEvent{event("second"), event("third")}},
+	}}
+	useLogs(t, logs, nil)
+
+	got := Dig(meowrt.NewString("group"))
+	l, ok := got.(*meowrt.List)
+	if !ok {
+		t.Fatalf("expected a List, got %T (%s)", got, got.String())
+	}
+	if l.Len() != 3 {
+		t.Fatalf("got %d events, want 3 — pages were dropped", l.Len())
+	}
+	if logs.calls != 3 {
+		t.Errorf("made %d calls, want 3", logs.calls)
+	}
+	if want := []string{"", "t1", "t2"}; !slices.Equal(logs.tokens, want) {
+		t.Errorf("tokens: got %v, want %v", logs.tokens, want)
+	}
+}
+
+// Paging must stop once the caller has what it asked for, and each request must
+// ask only for what is still outstanding.
+func TestDigStopsAtLimit(t *testing.T) {
+	logs := &pagingLogs{pages: []*cloudwatchlogs.FilterLogEventsOutput{
+		{Events: []cwltypes.FilteredLogEvent{event("a"), event("b")}, NextToken: aws.String("t1")},
+		{Events: []cwltypes.FilteredLogEvent{event("c")}, NextToken: aws.String("t2")},
+	}}
+	useLogs(t, logs, nil)
+
+	got := Dig(meowrt.NewString("group"), meowrt.NewMap(map[string]meowrt.Value{
+		"limit": meowrt.NewInt(3),
+	}))
+	l, ok := got.(*meowrt.List)
+	if !ok {
+		t.Fatalf("expected a List, got %T", got)
+	}
+	if l.Len() != 3 {
+		t.Errorf("got %d events, want 3", l.Len())
+	}
+	if logs.calls != 2 {
+		t.Errorf("made %d calls, want 2 — it should stop once the limit is met", logs.calls)
+	}
+	if want := []int32{3, 1}; !slices.Equal(logs.limits, want) {
+		t.Errorf("limits: got %v, want %v — each page should request only the remainder", logs.limits, want)
+	}
+}
+
+// A page may overshoot the remaining count; the result must still honor it.
+func TestDigTrimsToLimit(t *testing.T) {
+	logs := &pagingLogs{pages: []*cloudwatchlogs.FilterLogEventsOutput{
+		{Events: []cwltypes.FilteredLogEvent{event("a"), event("b"), event("c")}},
+	}}
+	useLogs(t, logs, nil)
+
+	got := Dig(meowrt.NewString("group"), meowrt.NewMap(map[string]meowrt.Value{
+		"limit": meowrt.NewInt(2),
+	}))
+	l, ok := got.(*meowrt.List)
+	if !ok {
+		t.Fatalf("expected a List, got %T", got)
+	}
+	if l.Len() != 2 {
+		t.Errorf("got %d events, want 2", l.Len())
 	}
 }

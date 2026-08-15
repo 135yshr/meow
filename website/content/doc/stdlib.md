@@ -707,6 +707,10 @@ Search a CloudWatch Logs group and return the matching events.
 Times are milliseconds since the Unix epoch, the unit the API uses, so
 `clock.now() * 1000` lines up with them.
 
+Paging is handled for you. CloudWatch applies `"limit"` per page and may hand
+back a partial — or empty — page while more results remain, so `dig` follows the
+continuation tokens until it has `"limit"` events or the log group is exhausted.
+
 ```meow
 nab "aws"
 nab "clock"

@@ -1,6 +1,7 @@
 package clock
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -105,4 +106,35 @@ func TestArityAndTypeErrorsAreFurballs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Milliseconds are multiplied into a time.Duration, which counts nanoseconds.
+// Past the ceiling the product wraps negative and the sleep returns at once —
+// the opposite of what was asked for — so the bound is checked beforehand.
+func TestNapBoundary(t *testing.T) {
+	slept := captureSleep(t)
+	// Computed here rather than read from the implementation, so the test
+	// states the contract independently of how it is enforced.
+	ceiling := int64(math.MaxInt64) / int64(time.Millisecond)
+
+	t.Run("largest accepted value", func(t *testing.T) {
+		if _, ok := Nap(meowrt.NewInt(ceiling)).(*meowrt.Furball); ok {
+			t.Fatal("expected the ceiling itself to be accepted")
+		}
+		if *slept <= 0 {
+			t.Errorf("slept %v, want a positive duration", *slept)
+		}
+	})
+
+	t.Run("first rejected value", func(t *testing.T) {
+		if _, ok := Nap(meowrt.NewInt(ceiling + 1)).(*meowrt.Furball); !ok {
+			t.Error("expected one past the ceiling to be rejected")
+		}
+	})
+
+	t.Run("maximum int", func(t *testing.T) {
+		if _, ok := Nap(meowrt.NewInt(math.MaxInt64)).(*meowrt.Furball); !ok {
+			t.Error("expected MaxInt64 milliseconds to be rejected")
+		}
+	})
 }

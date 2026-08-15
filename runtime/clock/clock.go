@@ -7,6 +7,7 @@ package clock
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/135yshr/meow/runtime/meowrt"
@@ -63,6 +64,11 @@ func Stamp(args ...meowrt.Value) meowrt.Value {
 	return meowrt.NewString(now().UTC().Format(time.RFC3339))
 }
 
+// maxNapMillis is the largest delay that fits in a time.Duration, which counts
+// nanoseconds. Beyond it the conversion silently wraps negative and the sleep
+// returns at once — the opposite of what was asked for.
+const maxNapMillis = int64(math.MaxInt64) / int64(time.Millisecond)
+
 // Nap pauses for the given number of milliseconds.
 //
 // A negative duration is an error rather than a silent no-op, since it almost
@@ -77,6 +83,9 @@ func Nap(args ...meowrt.Value) meowrt.Value {
 	}
 	if ms < 0 {
 		return furball("nap expects a non-negative number of milliseconds, got %d", ms)
+	}
+	if ms > maxNapMillis {
+		return furball("nap expects at most %d milliseconds, got %d", maxNapMillis, ms)
 	}
 	sleep(time.Duration(ms) * time.Millisecond)
 	return meowrt.NewNil()
