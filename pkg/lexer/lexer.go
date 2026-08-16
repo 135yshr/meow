@@ -2,7 +2,6 @@ package lexer
 
 import (
 	"iter"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -80,51 +79,23 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-// readString reads a string literal and returns its *decoded* value: escape
-// sequences become the characters they stand for, so the token literal is the
-// text the program will actually see. The formatter re-escapes it when writing
-// source back out.
 func (l *Lexer) readString() token.Token {
 	pos := l.currentPos()
 	l.advance() // skip opening quote
 	start := l.pos
-	var lit strings.Builder
 	for l.pos < len(l.input) {
-		switch l.peek() {
-		case '"':
+		r := l.peek()
+		if r == '"' {
+			lit := l.input[start:l.pos]
 			l.advance() // skip closing quote
-			return l.makeToken(token.STRING, lit.String(), pos)
-		case '\\':
-			l.advance() // consume the backslash
-			if l.pos >= len(l.input) {
-				return l.makeToken(token.ILLEGAL, l.input[start:l.pos], pos)
-			}
-			lit.WriteString(unescape(l.advance()))
-		default:
-			lit.WriteRune(l.advance())
+			return l.makeToken(token.STRING, lit, pos)
 		}
+		if r == '\\' {
+			l.advance() // skip backslash
+		}
+		l.advance()
 	}
 	return l.makeToken(token.ILLEGAL, l.input[start:l.pos], pos)
-}
-
-// unescape maps the character following a backslash to what it stands for.
-// An unrecognized escape keeps both characters, so a pattern like "\d" or a
-// path like "C:\temp" survives instead of silently losing its backslash.
-func unescape(r rune) string {
-	switch r {
-	case 'n':
-		return "\n"
-	case 't':
-		return "\t"
-	case 'r':
-		return "\r"
-	case '"':
-		return `"`
-	case '\\':
-		return `\`
-	default:
-		return `\` + string(r)
-	}
 }
 
 func (l *Lexer) readNumber() token.Token {

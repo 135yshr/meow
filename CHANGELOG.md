@@ -1,3 +1,8 @@
+# [v0.11.2](https://github.com/135yshr/meow/compare/v0.11.1...v0.11.2) (2026-08-16)
+
+## 🐛 Bug Fixes
+- [`7705d41`](https://github.com/135yshr/meow/commit/7705d41)  fix: Four compiler defects found by writing real programs in Meow (#116) (Issues: [`#116`](https://github.com/135yshr/meow/issues/116))
+
 # [v0.11.1](https://github.com/135yshr/meow/compare/v0.11.0...v0.11.1) (2026-08-16)
 
 ## 🐛 Bug Fixes

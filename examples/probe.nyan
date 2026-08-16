@@ -1,0 +1,57 @@
+# probe.nyan — send a uniquely marked record, then wait for it to show up on the
+# other side.
+#
+#   PROBE_ENDPOINT=http://127.0.0.1:8848 meow run examples/probe.nyan
+#
+# This is the shape of an end-to-end reachability check: emit something you can
+# recognise, then poll the store until it appears or the budget runs out. The
+# marker has to be unpredictable as well as unique — random.tuft draws from the
+# cryptographic source, so a marker cannot collide with a previous run's.
+nab "http"
+nab "clock"
+nab "random"
+nab "env"
+
+# 15 seconds, in nanoseconds, because that is the unit clock.nanos reports.
+nyan budget = 15000000000
+nyan interval = 1000
+
+# There is no while loop and no break, so "poll until found or out of budget" is
+# written as recursion. Returning the attempt count, or -1 for a timeout, keeps
+# the caller from needing a second way to ask what happened.
+meow poll(url string, deadline int, attempt int) int {
+  sniff (clock.nanos() > deadline) {
+    bring 0 - 1
+  }
+  nyan resp = http.chase("GET", url)
+  sniff (is_furball(resp)) {
+    clock.nap(interval)
+    bring poll(url, deadline, attempt + 1)
+  }
+  # There is no JSON parser yet, so the hit is recognised by matching the shape
+  # of the response body.
+  sniff (whiff(to_string(resp["body"]), "\"count\": 1")) {
+    bring attempt
+  }
+  clock.nap(interval)
+  bring poll(url, deadline, attempt + 1)
+}
+
+nyan endpoint = env.hunt("PROBE_ENDPOINT", "http://127.0.0.1:8848")
+nyan marker = "probe-" + random.tuft(8)
+nyan started = clock.nanos()
+
+nyan sent = http.chase("POST", endpoint + "/ingest", {"marker": marker, "ts": clock.nanos()})
+sniff (is_furball(sent)) {
+  hiss("ingest failed: " + to_string(sent))
+}
+nya("sent    " + marker + "  (status " + to_string(sent["status"]) + ")")
+
+nyan attempts = poll(endpoint + "/query?marker=" + marker, started + budget, 1)
+nyan elapsed = (clock.nanos() - started) / 1000000
+
+sniff (attempts < 0) {
+  nya("MISSING " + marker + "  after " + to_string(elapsed) + "ms")
+  hiss("marker never became queryable within the budget")
+}
+nya("found   " + marker + "  after " + to_string(elapsed) + "ms (" + to_string(attempts) + " polls)")

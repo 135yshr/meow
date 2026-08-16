@@ -1,11 +1,12 @@
-quote: ["]
-backslash: [\]
-tab: [	]
-cr keeps the line: []
-two lines:
-second
-unknown escape is kept whole: [\d+]
-escaped backslash before the closing quote: [a\]
-{"ok": true}
-1
+newline:1
+tab:1
+return:1
+quote:1
+backslash:1
+{"count": 1}
 true
+12
+A
+B
+	
+C:\tmp
