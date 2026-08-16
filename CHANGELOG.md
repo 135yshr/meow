@@ -1,3 +1,8 @@
+# [v0.11.1](https://github.com/135yshr/meow/compare/v0.11.0...v0.11.1) (2026-08-16)
+
+## 🐛 Bug Fixes
+- [`cfbb08c`](https://github.com/135yshr/meow/commit/cfbb08c)  fix: Compile a list-form purr inside a typed function (#113) (Issues: [`#113`](https://github.com/135yshr/meow/issues/113))
+
 # [v0.11.0](https://github.com/135yshr/meow/compare/v0.10.7...v0.11.0) (2026-08-16)
 
 ## ✨ New Features
