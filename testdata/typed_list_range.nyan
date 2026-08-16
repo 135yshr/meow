@@ -60,8 +60,16 @@ meow grid(n int) int {
 }
 nya(grid(2))
 
-# The untyped path is unchanged
-meow plain(xs litter) {
-  purr w (xs) { nya(w) }
+# The untyped path is unchanged: its body still short-circuits on a Furball
+# with `return __f`. Routing it through the typed generator instead would drop
+# those checks, and a failure inside the loop would be swallowed — the loop
+# would run on and the function would report success. So the assertion is not
+# that the loop prints, but that a bad element stops it and reaches the caller.
+meow plain(xs litter) string {
+  purr w (xs) {
+    nyan bad = w + 1
+    nya("kept going: " + bad)
+  }
+  bring "finished"
 }
-plain(["u", "v"])
+nya(plain(["u", "v"]) ~> "stopped at the bad element")

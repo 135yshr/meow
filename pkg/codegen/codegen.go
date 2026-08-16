@@ -1155,7 +1155,7 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 		endType = types.Unwrap(endType)
 	}
 	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
-		return g.genTypedListRange(s)
+		return g.genListRange(s)
 	}
 	var b strings.Builder
 	cmp := "<"
