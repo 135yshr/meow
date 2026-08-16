@@ -1095,9 +1095,14 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.AnyType{}
 		case "head":
 			return types.AnyType{}
-		case "tail", "append":
-			return types.AnyType{}
-		case "lick", "picky", "curl":
+		// These build a litter out of a litter. Reporting `any` for them made
+		// `purr` over their result compile to a counting loop, so say what they
+		// actually return. The element type is left open because none of them
+		// promises to preserve it — lick maps to whatever its lambda returns.
+		case "tail", "append", "lick", "picky":
+			return types.ListType{Elem: types.AnyType{}}
+		// curl folds a litter down to a single value of the caller's choosing.
+		case "curl":
 			return types.AnyType{}
 		case "judge", "expect", "refuse":
 			return types.AnyType{}

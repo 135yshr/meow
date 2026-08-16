@@ -1,0 +1,52 @@
+# healthcheck.nyan — probe every endpoint listed in a file and report.
+#
+#   meow run examples/healthcheck.nyan
+#
+# Reads examples/targets.txt, one URL per line. Exits non-zero if any endpoint
+# is down, so it can be used as a CI or cron check.
+nab "http"
+nab "file"
+nab "clock"
+
+# http.chase reports a non-2xx status in its map rather than as a Furball, which
+# is what a health check wants: 503 is an answer, an unreachable host is not.
+# A Furball here means the request could not be made at all, so it is worth one
+# retry before calling the endpoint down.
+meow probe(url string) litter {
+  nyan r = http.chase("GET", url)
+  sniff (is_furball(r)) {
+    clock.nap(200)
+    bring http.chase("GET", url)
+  }
+  bring r
+}
+
+meow line(url string) string {
+  nyan r = probe(url)
+  sniff (is_furball(r)) {
+    bring "DOWN  " + url
+  }
+  bring to_string(r["status"]) + "   " + url
+}
+
+meow down_count(lines litter) int {
+  # Bindings are immutable, so a running total is a fold rather than a counter
+  # that the loop body assigns to.
+  bring curl(lines, 0, paw(acc, l) {
+    sniff (whiff(l, "DOWN")) { bring acc + 1 }
+    bring acc
+  })
+}
+
+nyan targets = file.stalk("examples/targets.txt")
+nyan lines = lick(targets, paw(u) { line(u) })
+
+purr l (lines) { nya(l) }
+nya("---")
+
+nyan down = down_count(lines)
+nya(to_string(len(targets)) + " checked, " + to_string(down) + " down")
+
+sniff (down > 0) {
+  hiss(to_string(down) + " endpoint(s) down")
+}

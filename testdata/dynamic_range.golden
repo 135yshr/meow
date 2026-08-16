@@ -1,0 +1,33 @@
+--- append ---
+a
+b
+c
+--- lick ---
+pp
+qq
+--- picky ---
+bb
+--- tail ---
+y
+z
+--- a litter reached through a map ---
+h1
+h2
+--- index form ---
+0:x
+1:y
+--- inside a fully typed function ---
+k
+l
+7
+--- count form ---
+0
+1
+2
+--- inclusive range form ---
+1
+2
+3
+--- unknown type that is a number at run time ---
+0
+1

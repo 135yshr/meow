@@ -648,3 +648,59 @@ func TestFetchStmtTagWithoutIdent(t *testing.T) {
 		t.Fatal("expected parse error for tag without identifier")
 	}
 }
+
+// Escape sequences are decoded on the way to the AST. The lexer keeps the
+// literal as written, so that `meow fmt` can write the source back unchanged.
+func TestStringEscapes(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"newline", `nyan s = "a\nb"`, "a\nb"},
+		{"tab", `nyan s = "a\tb"`, "a\tb"},
+		{"carriage return", `nyan s = "a\rb"`, "a\rb"},
+		{"double quote", `nyan s = "a\"b"`, `a"b`},
+		{"backslash", `nyan s = "a\\b"`, `a\b`},
+		{"no escapes at all", `nyan s = "plain"`, "plain"},
+		{"several in one string", `nyan s = "{\"n\":\t1}\n"`, "{\"n\":\t1}\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prog := parse(t, tt.input)
+			v, ok := prog.Stmts[0].(*ast.VarStmt)
+			if !ok {
+				t.Fatalf("expected VarStmt, got %T", prog.Stmts[0])
+			}
+			lit, ok := v.Value.(*ast.StringLit)
+			if !ok {
+				t.Fatalf("expected StringLit, got %T", v.Value)
+			}
+			if lit.Value != tt.want {
+				t.Errorf("got %q, want %q", lit.Value, tt.want)
+			}
+		})
+	}
+}
+
+// An unrecognized escape is reported rather than quietly kept as a backslash
+// and a letter: the two readings differ, and picking one silently turns a typo
+// into a string that looks right in the source and is wrong at run time.
+func TestStringEscapeErrors(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"unknown escape", `nyan s = "a\qb"`},
+		{"lone trailing backslash", `nyan s = "ab\\\"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.input, "test.nyan")
+			p := parser.New(l.Tokens())
+			if _, errs := p.Parse(); len(errs) == 0 {
+				t.Error("expected a parse error")
+			}
+		})
+	}
+}

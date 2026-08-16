@@ -1,8 +1,10 @@
 package parser
 
 import (
+	"fmt"
 	"iter"
 	"strconv"
+	"strings"
 
 	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/token"
@@ -581,7 +583,55 @@ func (p *Parser) parseFloat() ast.Expr {
 
 func (p *Parser) parseString() ast.Expr {
 	tok := p.advance()
-	return &ast.StringLit{Token: tok, Value: tok.Literal}
+	val, err := unescape(tok.Literal)
+	if err != nil {
+		p.errs = append(p.errs, newError(tok.Pos, "%s", err))
+	}
+	return &ast.StringLit{Token: tok, Value: val}
+}
+
+// escapes maps an escape letter to the character it stands for.
+//
+// A double quote is here because the lexer needs the backslash to find the end
+// of the string, so `"` cannot otherwise appear in one at all.
+var escapes = map[rune]rune{
+	'n':  '\n',
+	't':  '\t',
+	'r':  '\r',
+	'"':  '"',
+	'\\': '\\',
+}
+
+// unescape turns the source text of a string literal into the string it
+// denotes. The lexer keeps the literal as written — that is what `meow fmt`
+// writes back out — so the decoding happens here, once, on the way to the AST.
+//
+// An unrecognized escape is an error rather than a backslash kept as-is: the
+// two readings differ, and silently choosing one turns a typo into a string
+// that looks right in the source and is wrong at runtime.
+func unescape(lit string) (string, error) {
+	if !strings.ContainsRune(lit, '\\') {
+		return lit, nil
+	}
+	var b strings.Builder
+	b.Grow(len(lit))
+	runes := []rune(lit)
+	for i := 0; i < len(runes); i++ {
+		if runes[i] != '\\' {
+			b.WriteRune(runes[i])
+			continue
+		}
+		if i+1 >= len(runes) {
+			return b.String(), fmt.Errorf("string ends with a lone backslash")
+		}
+		i++
+		r, ok := escapes[runes[i]]
+		if !ok {
+			return b.String(), fmt.Errorf("unknown escape \\%c in string", runes[i])
+		}
+		b.WriteRune(r)
+	}
+	return b.String(), nil
 }
 
 func (p *Parser) parseIdentOrCall() ast.Expr {

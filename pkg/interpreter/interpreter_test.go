@@ -868,3 +868,51 @@ nya(indexed(7))
 		t.Errorf("got %q, want %q", got, "0\nx\n1\ny\n7\n")
 	}
 }
+
+// The interpreter has always decided a purr's form at run time. These lock that
+// in alongside the compiler, which used to decide it statically and guess wrong
+// whenever the subject's type was unknown.
+func TestRangeOverUntypedListExpressions(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"append", `purr w (append(["a"], "b")) { nya(w) }`, "a\nb\n"},
+		{"lick", `purr w (lick(["a"], paw(x) { x + x })) { nya(w) }`, "aa\n"},
+		{"picky", `purr w (picky(["a", "bb"], paw(x) { len(x) > 1 })) { nya(w) }`, "bb\n"},
+		{"tail", `purr w (tail(["x", "y"])) { nya(w) }`, "y\n"},
+		{"litter inside a map", `nyan c = {"h": ["p", "q"]}
+purr w (c["h"]) { nya(w) }`, "p\nq\n"},
+		{"number inside a map", `nyan c = {"n": 2}
+purr i (c["n"]) { nya(i) }`, "0\n1\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Escapes are decoded by the parser, so both backends see the same string.
+func TestStringEscapesAreDecoded(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"newline", `nya("a\nb")`, "a\nb\n"},
+		{"tab length", `nya(len("\t"))`, "1\n"},
+		{"double quote", `nya("{\"n\": 1}")`, "{\"n\": 1}\n"},
+		{"backslash", `nya("C:\\tmp")`, "C:\\tmp\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

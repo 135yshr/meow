@@ -594,6 +594,9 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
 		return g.genTypedListRange(s)
 	}
+	if isDynamicRange(s, endType) {
+		return g.genTypedDynamicRange(s)
+	}
 	var b strings.Builder
 	cmp := "<"
 	if s.Inclusive {
@@ -1157,6 +1160,9 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
 		return g.genListRange(s)
 	}
+	if isDynamicRange(s, endType) {
+		return g.genDynamicRange(s)
+	}
 	var b strings.Builder
 	cmp := "<"
 	if s.Inclusive {
@@ -1183,7 +1189,41 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 }
 
 func (g *Generator) genListRange(s *ast.RangeStmt) string {
-	return g.genListRangeWith(s, g.genExpr(s.End), g.genStmt)
+	return g.genListRangeWith(s, listItems(g.genExpr(s.End)), g.genStmt)
+}
+
+// genDynamicRange emits a `purr` whose subject has no static type — the result
+// of a call, a map lookup, a litter-typed parameter's element.
+//
+// Which of the two forms was written cannot be decided here, so the decision is
+// deferred to meow.RangeSeq, which walks a litter element by element and reads
+// anything else as a count. Choosing statically is what made
+// `purr w (append(xs, y))` compile to a counting loop and fail at run time with
+// "expected int but got List"; the playground interpreter has always decided
+// this at run time, so this is also what makes the two backends agree.
+func (g *Generator) genDynamicRange(s *ast.RangeStmt) string {
+	return g.genListRangeWith(s, rangeSeq(g.genExpr(s.End)), g.genStmt)
+}
+
+// genTypedDynamicRange is genDynamicRange inside a fully-typed function.
+func (g *Generator) genTypedDynamicRange(s *ast.RangeStmt) string {
+	return g.genListRangeWith(s, rangeSeq(g.boxValue(s.End)), g.genTypedStmt)
+}
+
+// listItems and rangeSeq name the two ways the loop header walks its subject:
+// straight down a litter's items when the type says it is one, and through the
+// runtime decision when it does not.
+func listItems(expr string) string { return fmt.Sprintf("meow.AsList(%s).Items", expr) }
+
+func rangeSeq(expr string) string { return fmt.Sprintf("meow.RangeSeq(%s)", expr) }
+
+// isDynamicRange reports whether a `purr` must decide its form at run time: it
+// is written in the elementwise form, and its subject's type is not known.
+func isDynamicRange(s *ast.RangeStmt, endType types.Type) bool {
+	if s.Start != nil || s.Inclusive {
+		return false
+	}
+	return endType == nil || types.IsAny(endType)
 }
 
 // genTypedListRange emits a list-form purr inside a fully-typed function.
@@ -1195,19 +1235,19 @@ func (g *Generator) genListRange(s *ast.RangeStmt) string {
 // by panicking instead, which gag's deferred recover turns back into a Furball
 // at the boundary.
 func (g *Generator) genTypedListRange(s *ast.RangeStmt) string {
-	return g.genListRangeWith(s, g.boxValue(s.End), g.genTypedStmt)
+	return g.genListRangeWith(s, listItems(g.boxValue(s.End)), g.genTypedStmt)
 }
 
-// genListRangeWith emits the loop shared by both range forms. list is the
-// already-generated expression yielding the litter, and genStmt generates the
+// genListRangeWith emits the loop shared by the elementwise forms. over is the
+// already-generated expression the Go `range` walks, and genStmt generates the
 // body in whichever mode the enclosing function is being written in.
 func (g *Generator) genListRangeWith(
 	s *ast.RangeStmt,
-	list string,
+	over string,
 	genStmt func(ast.Stmt) string,
 ) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "for __idx, __elem := range meow.AsList(%s).Items {\n", list)
+	fmt.Fprintf(&b, "for __idx, __elem := range %s {\n", over)
 	if s.IndexVar != "" {
 		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(int64(__idx))\n", s.IndexVar)
 		fmt.Fprintf(&b, "\t_ = %s\n", s.IndexVar)

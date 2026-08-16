@@ -425,19 +425,31 @@ sniff (x > 0) {
 ### Loop Statement
 
 ```ebnf
-RangeStmt = "purr" identifier "(" RangeExpr ")" Block .
+RangeStmt = "purr" identifier [ "," identifier ] "(" RangeExpr ")" Block .
 RangeExpr = Expr [ ".." Expr ] .
 ```
 
-Two forms:
+Three forms:
 
 - **Count form**: `purr i (n)` — iterates `i` from `0` to `n-1`.
 - **Range form**: `purr i (a..b)` — iterates `i` from `a` to `b` (inclusive).
+- **Element form**: `purr x (litter)` — iterates over a litter's elements.
+  `purr i, x (litter)` also binds the index.
 
 ```meow
 purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
 purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
+purr w (["a", "b"]) { nya(w) }        # a, b
+purr i, w (["a", "b"]) { nya(i) }     # 0, 1
 ```
+
+The count and element forms are written the same way, so which one a `purr`
+means depends on what its subject turns out to be: a litter is walked element by
+element, and anything else is read as a count. When the subject's type is known
+ahead of time — a literal, a `litter`-annotated binding — the choice is settled
+while compiling; otherwise it is settled when the loop runs. Either way the
+answer is the same, so a `purr` over a call's result or a map lookup behaves
+like a `purr` over a litter written out in full.
 
 ### Nab Statement
 
@@ -445,7 +457,8 @@ purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
 NabStmt = "nab" string_lit newline .
 ```
 
-Imports a standard library package. Available packages: `"file"`, `"http"`, `"testing"`.
+Imports a standard library package. Available packages: `"aws"`, `"clock"`,
+`"env"`, `"file"`, `"http"`, `"random"`, `"testing"`.
 
 ```meow
 nab "http"
