@@ -1,3 +1,8 @@
+# [v0.11.0](https://github.com/135yshr/meow/compare/v0.10.7...v0.11.0) (2026-08-16)
+
+## ✨ New Features
+- [`c9f2537`](https://github.com/135yshr/meow/commit/c9f2537)  feat: Add the clock, random and aws packages (#112) (Issues: [`#112`](https://github.com/135yshr/meow/issues/112))
+
 # [v0.10.7](https://github.com/135yshr/meow/compare/v0.10.6...v0.10.7) (2026-08-15)
 
 ## 🐛 Bug Fixes
