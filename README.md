@@ -75,7 +75,7 @@ Hello, Nyantyu!
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
 - **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
 - **Interfaces & methods** — `pose` (interface), `groom` (method impl)
-- **Standard library** — `nab "file"`, `nab "http"`, `nab "env"` for file I/O, HTTP, and environment variables
+- **Standard library** — `nab "file"`, `nab "http"`, `nab "env"`, `nab "clock"`, `nab "random"`, `nab "aws"`
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
 - **Pipe operator** — Chain operations with `|=|`

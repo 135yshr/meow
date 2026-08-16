@@ -80,9 +80,12 @@ type coverBlock struct {
 }
 
 var stdPackages = map[string]string{
+	"aws":     "github.com/135yshr/meow/runtime/aws",
+	"clock":   "github.com/135yshr/meow/runtime/clock",
 	"env":     "github.com/135yshr/meow/runtime/env",
 	"file":    "github.com/135yshr/meow/runtime/file",
 	"http":    "github.com/135yshr/meow/runtime/http",
+	"random":  "github.com/135yshr/meow/runtime/random",
 	"testing": "github.com/135yshr/meow/runtime/testing",
 }
 
@@ -607,6 +610,7 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 		fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 			startExpr, cmp, g.boxValue(s.End))
 		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
+		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	}
 	for _, stmt := range s.Body {
 		b.WriteString("\t")
@@ -1142,6 +1146,9 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	fmt.Fprintf(&b, "for __i := meow.AsInt(%s); __i %s meow.AsInt(%s); __i++ {\n",
 		startExpr, cmp, g.genExpr(s.End))
 	fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewInt(__i)\n", s.Var)
+	// The body need not mention the loop variable, and Go rejects an unused
+	// one. The list form already guards this the same way.
+	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	defer g.enterBoxedScope(s.Var)()
 	for _, stmt := range s.Body {
 		b.WriteString("\t")

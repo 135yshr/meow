@@ -1,0 +1,28 @@
+# clock and random produce values that change every run, so this fixture
+# asserts their properties rather than their exact output.
+nab "clock"
+nab "random"
+
+nya(clock.now() > 1700000000)
+nya(clock.nanos() > clock.now())
+nya(len(clock.stamp()) == 20)
+nya(clock.nap(1))
+
+# roll stays inside its exclusive bound
+nyan in_range = yarn
+purr i (20) {
+  nyan r = random.roll(6)
+  sniff (r < 0 || r > 5) {
+    nya("out of range:", r)
+  }
+}
+nya(in_range)
+
+nya(random.drift() >= 0.0 && random.drift() < 1.0)
+nya(len(random.pick(["a", "b", "c"])) == 1)
+nya(len(random.tuft(8)) == 16)
+
+# errors surface as Furballs rather than crashing
+nya(is_furball(gag(paw() { random.roll(0) })))
+nya(is_furball(gag(paw() { random.pick([]) })))
+nya(is_furball(gag(paw() { clock.nap(-1) })))

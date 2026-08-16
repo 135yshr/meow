@@ -490,6 +490,9 @@ Use `nab` to import a standard library package:
 nab "file"
 nab "http"
 nab "env"
+nab "clock"
+nab "random"
+nab "aws"
 nab "testing"
 ```
 
@@ -501,7 +504,7 @@ nyan content = file.snoop("data.txt")
 nya(content)
 ```
 
-Available packages: `file`, `http`, `env`, `testing`. See [stdlib.md](stdlib.md) for details.
+Available packages: `file`, `http`, `env`, `clock`, `random`, `aws`, `testing`. See [stdlib.md](stdlib.md) for details.
 
 ### Member Access
 

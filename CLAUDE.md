@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Meow is a cat-themed functional language whose `.nyan` files **transpile to Go**, then compile to native binaries via the Go toolchain. Every keyword is a cat word (`nyan`=var, `meow`=func, `sniff`=if, `purr`=while, `paw`=lambda, `nya`=print). Errors are cat-flavored: `Hiss! ... , nya~`. Zero third-party runtime dependencies — standard library only; do not introduce any.
+Meow is a cat-themed functional language whose `.nyan` files **transpile to Go**, then compile to native binaries via the Go toolchain. Every keyword is a cat word (`nyan`=var, `meow`=func, `sniff`=if, `purr`=while, `paw`=lambda, `nya`=print). Errors are cat-flavored: `Hiss! ... , nya~`. Standard library only, with one exception: `runtime/aws` uses aws-sdk-go-v2. Do not introduce further third-party runtime dependencies.
 
 **Requires Go 1.26+.**
 
