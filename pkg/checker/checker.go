@@ -97,6 +97,58 @@ func (c *Checker) lookup(name string) types.Type {
 	return types.AnyType{}
 }
 
+// bound reports whether name is bound in any enclosing scope.
+func (c *Checker) bound(name string) bool {
+	for i := len(c.scopes) - 1; i >= 0; i-- {
+		if _, ok := c.scopes[i][name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// known reports whether name refers to something the program can name: a
+// binding, a function, a type constructor, an imported package, or a builtin.
+//
+// Names that are none of these used to reach the Go compiler untouched, so a
+// misspelled builtin surfaced as `undefined: keys` — generated Go leaking
+// through the abstraction, with no Meow source position. The playground
+// interpreter has always answered "undefined variable", which is what this
+// reports.
+func (c *Checker) known(name string) bool {
+	if c.bound(name) {
+		return true
+	}
+	if _, ok := c.info.FuncTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.KittyTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.CollarTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.AliasTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.ImportNames[name]; ok {
+		return true
+	}
+	return builtinNames[name]
+}
+
+// builtinNames are the functions callable without a `nab`. Keep in step with
+// the switch in inferCall, which decides what each of them returns.
+var builtinNames = map[string]bool{
+	"nya": true, "hiss": true, "gag": true, "is_furball": true, "len": true,
+	"head": true, "tail": true, "append": true,
+	"lick": true, "picky": true, "curl": true,
+	"to_int": true, "to_float": true, "to_string": true,
+	"to_bytes": true, "to_runes": true,
+	"whiff": true, "track": true, "shred": true, "tangle": true, "nibble": true,
+	"judge": true, "expect": true, "refuse": true, "seed": true,
+}
+
 func (c *Checker) addError(pos token.Position, format string, args ...any) {
 	c.errors = append(c.errors, &TypeError{
 		Pos:     pos,
@@ -465,6 +517,13 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 }
 
 func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
+	// A function written inside another one has to be nameable by the body that
+	// contains it, and by itself so it can recurse. Top-level functions are
+	// registered before checking begins; this covers the nested ones.
+	if _, topLevel := c.info.FuncTypes[fn.Name]; !topLevel {
+		c.define(fn.Name, c.funcSignatureType(fn))
+	}
+
 	// Enforce type annotations on all parameters
 	for _, p := range fn.Params {
 		if p.TypeAnn == nil {
@@ -861,6 +920,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 	case *ast.NilLit:
 		return types.NilType{}
 	case *ast.Ident:
+		if !c.known(e.Name) {
+			c.addError(e.Token.Pos, "undefined variable %s", e.Name)
+		}
 		return c.lookup(e.Name)
 	case *ast.UnaryExpr:
 		return c.inferUnary(e)

@@ -57,13 +57,27 @@ meow test_to_string_from_list() {
   expect(to_string([]), "[]")
 }
 
-# to_int from String panics — verify via error recovery
-meow test_to_int_from_string_panics() {
-  nyan result = gag(paw() { to_int("42") })
+# to_int and to_float read a number out of a string. Everything a program takes
+# from outside itself — the environment, a file, an HTTP body — arrives as text,
+# so this is the only way a number gets in.
+meow test_to_int_from_string() {
+  expect(to_int("42"), 42)
+  expect(to_int("-5"), -5)
+  expect(to_int("  7  "), 7)
+}
+
+meow test_to_float_from_string() {
+  expect(to_float("3.14"), 3.14)
+  expect(to_float("-0.5"), -0.5)
+}
+
+# Text that does not spell a number is a Furball, not a wrong answer.
+meow test_to_int_from_unreadable_string() {
+  nyan result = gag(paw() { to_int("forty two") })
   judge(is_furball(result))
 }
 
-meow test_to_float_from_string_panics() {
-  nyan result = gag(paw() { to_float("3.14") })
+meow test_to_float_from_unreadable_string() {
+  nyan result = gag(paw() { to_float("") })
   judge(is_furball(result))
 }

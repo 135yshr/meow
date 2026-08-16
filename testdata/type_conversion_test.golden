@@ -8,7 +8,9 @@
   PASS: test_to_string_from_bool
   PASS: test_to_string_from_nil
   PASS: test_to_string_from_list
-  PASS: test_to_int_from_string_panics
-  PASS: test_to_float_from_string_panics
+  PASS: test_to_int_from_string
+  PASS: test_to_float_from_string
+  PASS: test_to_int_from_unreadable_string
+  PASS: test_to_float_from_unreadable_string
 
-All 12 tests passed, nya~!
+All 14 tests passed, nya~!

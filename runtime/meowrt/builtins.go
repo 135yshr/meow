@@ -2,6 +2,7 @@ package meowrt
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -98,6 +99,15 @@ func ToInt(v Value) Value {
 			return NewInt(1)
 		}
 		return NewInt(0)
+	case *String:
+		// Everything a program reads from outside itself — the environment, a
+		// file, an HTTP body — arrives as text, so without this there is no way
+		// to get a number into a program at all.
+		n, err := strconv.ParseInt(strings.TrimSpace(v.Val), 10, 64)
+		if err != nil {
+			return &Furball{Message: fmt.Sprintf("Hiss! Cannot read %q as an Int, nya~", v.Val)}
+		}
+		return NewInt(n)
 	default:
 		return &Furball{Message: fmt.Sprintf("Hiss! Cannot convert %s to Int, nya~", v.Type())}
 	}
@@ -113,6 +123,12 @@ func ToFloat(v Value) Value {
 		return v
 	case *Int:
 		return NewFloat(float64(v.Val))
+	case *String:
+		f, err := strconv.ParseFloat(strings.TrimSpace(v.Val), 64)
+		if err != nil {
+			return &Furball{Message: fmt.Sprintf("Hiss! Cannot read %q as a Float, nya~", v.Val)}
+		}
+		return NewFloat(f)
 	default:
 		return &Furball{Message: fmt.Sprintf("Hiss! Cannot convert %s to Float, nya~", v.Type())}
 	}

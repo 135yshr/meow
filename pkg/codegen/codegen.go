@@ -292,12 +292,7 @@ func (g *Generator) emitTest() string {
 	if g.coverEnabled {
 		b.WriteString("import meow_coverage \"github.com/135yshr/meow/runtime/coverage\"\n")
 	}
-	names := make([]string, 0, len(g.imports))
-	for name := range g.imports {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
+	for _, name := range g.usedImports(g.testWrapperImports()...) {
 		fmt.Fprintf(&b, "import meow_%s \"%s\"\n", name, g.imports[name])
 	}
 	b.WriteString("\n")
@@ -399,6 +394,43 @@ func (g *Generator) needsMeowImport() bool {
 	return false
 }
 
+// usedImports names the `nab` packages the generated code actually calls, in a
+// stable order.
+//
+// Go rejects an import nothing uses, so `nab "env"` left over from an edit
+// failed the build with a Go error naming a generated alias — the abstraction
+// leaking again, over something Meow itself has no objection to. Importing only
+// what is called keeps that a non-event.
+// testWrapperImports names what the test wrapper always calls.
+func (g *Generator) testWrapperImports() []string {
+	names := []string{"testing"}
+	if g.coverEnabled {
+		names = append(names, "coverage")
+	}
+	return names
+}
+
+// alsoUsed names packages the wrapper written after the imports calls, which no
+// scan of the generated bodies would find.
+func (g *Generator) usedImports(alsoUsed ...string) []string {
+	if len(g.imports) == 0 {
+		return nil
+	}
+	body := strings.Join(g.funcs, "\n") + "\n" + strings.Join(g.topLevel, "\n")
+	keep := make(map[string]bool, len(alsoUsed))
+	for _, name := range alsoUsed {
+		keep[name] = true
+	}
+	names := make([]string, 0, len(g.imports))
+	for name := range g.imports {
+		if keep[name] || strings.Contains(body, "meow_"+name+".") {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // genGlobalDecls declares the program's top-level bindings at package scope.
 // They are assigned, in source order, where they were written; this only puts
 // the names somewhere a function body can see them.
@@ -431,12 +463,7 @@ func (g *Generator) emit() string {
 		b.WriteString("import \"os\"\n")
 		b.WriteString("import \"strconv\"\n")
 	}
-	names := make([]string, 0, len(g.imports))
-	for name := range g.imports {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
+	for _, name := range g.usedImports() {
 		fmt.Fprintf(&b, "import meow_%s \"%s\"\n", name, g.imports[name])
 	}
 	b.WriteString("\n")
