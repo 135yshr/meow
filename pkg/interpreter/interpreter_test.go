@@ -868,3 +868,127 @@ nya(indexed(7))
 		t.Errorf("got %q, want %q", got, "0\nx\n1\ny\n7\n")
 	}
 }
+
+// The interpreter has always decided a purr's form at run time. These lock that
+// in alongside the compiler, which used to decide it statically and guess wrong
+// whenever the subject's type was unknown.
+func TestRangeOverUntypedListExpressions(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"append", `purr w (append(["a"], "b")) { nya(w) }`, "a\nb\n"},
+		{"lick", `purr w (lick(["a"], paw(x) { x + x })) { nya(w) }`, "aa\n"},
+		{"picky", `purr w (picky(["a", "bb"], paw(x) { len(x) > 1 })) { nya(w) }`, "bb\n"},
+		{"tail", `purr w (tail(["x", "y"])) { nya(w) }`, "y\n"},
+		{"litter inside a map", `nyan c = {"h": ["p", "q"]}
+purr w (c["h"]) { nya(w) }`, "p\nq\n"},
+		{"number inside a map", `nyan c = {"n": 2}
+purr i (c["n"]) { nya(i) }`, "0\n1\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Escapes are decoded by the parser, so both backends see the same string.
+func TestStringEscapesAreDecoded(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"newline", `nya("a\nb")`, "a\nb\n"},
+		{"tab length", `nya(len("\t"))`, "1\n"},
+		{"double quote", `nya("{\"n\": 1}")`, "{\"n\": 1}\n"},
+		{"backslash", `nya("C:\\tmp")`, "C:\\tmp\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Top-level bindings are visible inside functions. The interpreter has always
+// put them in the global environment; the compiler used to make them locals of
+// the wrapper that runs the program, so a function could not see them at all.
+func TestGlobalBindingsVisibleInFunctions(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"read a global", `nyan limit = 5
+meow under(n int) bool { bring n < limit }
+nya(under(3))`, "true\n"},
+		{"parameter shadows the global", `nyan limit = 5
+meow shadow(limit int) int { bring limit }
+nya(shadow(99))`, "99\n"},
+		{"walk a global litter", `nyan hosts = ["h1", "h2"]
+meow show() int {
+  purr h (hosts) { nya(h) }
+  bring len(hosts)
+}
+nya(show())`, "h1\nh2\n2\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Reaching a top-level binding from a function that runs before the binding
+// does is a mistake, and both backends have to name it the same way.
+func TestGlobalBindingBeforeItIsBound(t *testing.T) {
+	got := runMeowError(t, `meow f() int { bring to_int(limit) }
+nya(f())
+nyan limit = 5`)
+	if !strings.Contains(got, "undefined variable limit") {
+		t.Errorf("got %q, want it to name the unbound variable", got)
+	}
+}
+
+// `&&` and `||` weigh their operands by truthiness and yield one of them, so an
+// operand whose type is unknown has to stay boxed. Reading it as the other
+// side's Go type demanded a bool of it, and the compiler answered
+// "expected bool but got String" where the interpreter answered the flag.
+func TestLogicalOperandsKeepTruthiness(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"string on the left of and", `meow either(flag bool) bool {
+  nyan m = {"x": "yes"}
+  bring m["x"] && flag
+}
+nya(either(yarn))`, "true\n"},
+		// `&&` yields the left operand when it is falsy, whatever its type, so
+		// this is asserted where no declared return type is in the way.
+		{"and yields a falsy left operand", `nyan m = {"x": ""}
+nya(m["x"] && yarn)`, "\n"},
+		{"empty string on the left of or", `meow fallback(flag bool) bool {
+  nyan m = {"x": ""}
+  bring m["x"] || flag
+}
+nya(fallback(yarn))`, "true\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

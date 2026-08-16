@@ -1,0 +1,23 @@
+# Escape sequences in string literals. The lexer keeps a literal as written so
+# `meow fmt` can write it back out; the parser decodes it on the way to the AST.
+
+nya("newline:" + to_string(len("\n")))
+nya("tab:" + to_string(len("\t")))
+nya("return:" + to_string(len("\r")))
+nya("quote:" + to_string(len("\"")))
+nya("backslash:" + to_string(len("\\")))
+
+# A double quote can only reach a string through an escape, because the lexer
+# needs the backslash to know the string has not ended. Without decoding, JSON
+# could not be matched or written at all.
+nyan json = "{\"count\": 1}"
+nya(json)
+nya(whiff(json, "\"count\": 1"))
+nya(len(json))
+
+# Escapes survive the round trip through concatenation and indexing.
+nya("A" + "\n" + "B")
+nya(nibble("a\tb", 1, 2))
+
+# A backslash that is not part of an escape is still just a backslash.
+nya("C:\\tmp")

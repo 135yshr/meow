@@ -1,0 +1,43 @@
+# `purr` over a subject whose type is not known until the program runs.
+#
+# Each of these used to compile to a counting loop and die with
+# "expected int but got List", because code generation had to guess which of the
+# two forms was written and guessed the numeric one.
+
+nya("--- append ---")
+purr w (append(["a", "b"], "c")) { nya(w) }
+
+nya("--- lick ---")
+purr w (lick(["p", "q"], paw(x) { x + x })) { nya(w) }
+
+nya("--- picky ---")
+purr w (picky(["a", "bb"], paw(x) { len(x) > 1 })) { nya(w) }
+
+nya("--- tail ---")
+purr w (tail(["x", "y", "z"])) { nya(w) }
+
+nya("--- a litter reached through a map ---")
+nyan cfg = {"hosts": ["h1", "h2"]}
+purr w (cfg["hosts"]) { nya(w) }
+
+nya("--- index form ---")
+purr i, w (append(["x"], "y")) { nya(to_string(i) + ":" + w) }
+
+nya("--- inside a fully typed function ---")
+meow listed(n int) int {
+  purr w (append(["k"], "l")) { nya(w) }
+  bring n
+}
+nya(listed(7))
+
+# The numeric forms are unchanged: a subject of unknown type that turns out to
+# be a number is still walked as a count, which is what `purr i (n)` means.
+nya("--- count form ---")
+purr i (3) { nya(i) }
+
+nya("--- inclusive range form ---")
+purr i (1..3) { nya(i) }
+
+nya("--- unknown type that is a number at run time ---")
+nyan limits = {"tries": 2}
+purr i (limits["tries"]) { nya(i) }

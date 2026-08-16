@@ -1,0 +1,50 @@
+# Top-level bindings read from inside functions.
+#
+# These used to fail to build with Go's "undefined: limit", because a top-level
+# `nyan` was generated as a local of the wrapper that runs the program. A
+# constant declared once and read from a function — the most ordinary shape
+# there is — did not work.
+
+nyan limit = 5
+nyan greeting = "hi"
+
+meow under(n int) bool { bring n < limit }
+meow greet(name string) string { bring greeting + " " + name }
+
+nya(under(3))
+nya(under(9))
+nya(greet("nyantyu"))
+
+# A parameter of the same name shadows the global, as it does everywhere else.
+meow shadow(limit int) int { bring limit }
+nya(shadow(99))
+
+# Assignment keeps the order it was written in, so a later binding can be
+# computed from an earlier one.
+nyan doubled = limit * 2
+nya(doubled)
+
+# A binding written inside a top-level block is a local of that block, not a
+# global — nothing outside it can see it.
+sniff (yarn) {
+  nyan inner = "block local"
+  nya(inner)
+}
+
+purr i (2) {
+  nyan each = "turn " + to_string(i)
+  nya(each)
+}
+
+# A global holding a litter is walked like any other.
+nyan hosts = ["h1", "h2"]
+meow list_hosts() int {
+  purr h (hosts) { nya(h) }
+  bring len(hosts)
+}
+nya(list_hosts())
+
+# A binding named after something the generator emits stays a local of the
+# wrapper, as it was before hoisting existed, rather than redeclaring it.
+nyan main = "not the entry point"
+nya(main)
