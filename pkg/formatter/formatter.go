@@ -7,6 +7,30 @@ import (
 	"github.com/135yshr/meow/pkg/token"
 )
 
+// escapeString renders a decoded string literal back into source form. The
+// lexer hands over the decoded value, so writing it out raw would emit a quote
+// that ends the literal early and lose newlines and tabs.
+func escapeString(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString(`\"`)
+		case '\\':
+			b.WriteString(`\\`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\t':
+			b.WriteString(`\t`)
+		case '\r':
+			b.WriteString(`\r`)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // Config holds formatter settings.
 type Config struct {
 	IndentWidth   int
@@ -178,7 +202,7 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 		switch tok.Type {
 		case token.STRING:
 			buf.WriteByte('"')
-			buf.WriteString(tok.Literal)
+			buf.WriteString(escapeString(tok.Literal))
 			buf.WriteByte('"')
 		default:
 			buf.WriteString(tok.Literal)

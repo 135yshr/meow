@@ -1,0 +1,11 @@
+quote: ["]
+backslash: [\]
+tab: [	]
+cr keeps the line: []
+two lines:
+second
+unknown escape is kept whole: [\d+]
+escaped backslash before the closing quote: [a\]
+{"ok": true}
+1
+true

@@ -243,3 +243,27 @@ func TestFormatPipeOperator(t *testing.T) {
 		t.Errorf("expected pipe operator in output, got: %s", got)
 	}
 }
+
+// The lexer hands the formatter a decoded string, so it has to re-escape on the
+// way out. Writing the decoded value raw would end the literal at the first
+// quote and turn newlines into real line breaks.
+func TestFormatPreservesStringEscapes(t *testing.T) {
+	input := `nyan msg = "say \"hi\"\n"
+nyan path = "a\\b"
+nyan tabbed = "a\tb"
+`
+	got := format(t, input)
+	if got != input {
+		t.Errorf("escapes not preserved\ngot:\n%s\nwant:\n%s", got, input)
+	}
+}
+
+func TestFormatIsIdempotentWithEscapes(t *testing.T) {
+	input := `nyan msg = "quote \" and slash \\"
+`
+	once := format(t, input)
+	twice := format(t, once)
+	if once != twice {
+		t.Errorf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", once, twice)
+	}
+}

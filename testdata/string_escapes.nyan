@@ -1,0 +1,12 @@
+nya("quote: [\"]")
+nya("backslash: [\\]")
+nya("tab: [\t]")
+nya("cr keeps the line: [\r]")
+nya("two lines:\nsecond")
+nya("unknown escape is kept whole: [\d+]")
+nya("escaped backslash before the closing quote: [a\\]")
+
+nyan json = "{\"ok\": true}"
+nya(json)
+nya(len("\t"))
+nya(whiff(json, "\"ok\""))

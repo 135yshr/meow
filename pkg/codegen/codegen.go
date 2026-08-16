@@ -758,6 +758,22 @@ func (g *Generator) genTypedUnary(e *ast.UnaryExpr) string {
 	return g.genUnary(e)
 }
 
+// nilOperand reports whether an operand is catnap — the literal, or a value
+// the checker typed as nil. Such a comparison cannot use Go's ==: NewNil
+// allocates, so comparing boxed values would compare pointers and always be
+// false. It has to go through the runtime instead.
+func (g *Generator) nilOperand(e ast.Expr) bool {
+	if _, ok := e.(*ast.NilLit); ok {
+		return true
+	}
+	t := g.getExprType(e)
+	if t == nil {
+		return false
+	}
+	_, ok := types.Unwrap(t).(types.NilType)
+	return ok
+}
+
 func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
 	left := g.genTypedExpr(e.Left)
 	right := g.genTypedExpr(e.Right)
@@ -773,8 +789,14 @@ func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
 	case token.PERCENT:
 		return fmt.Sprintf("(%s %% %s)", left, right)
 	case token.EQ:
+		if g.nilOperand(e.Left) || g.nilOperand(e.Right) {
+			return fmt.Sprintf("meow.Equal(%s, %s).IsTruthy()", g.boxValue(e.Left), g.boxValue(e.Right))
+		}
 		return fmt.Sprintf("(%s == %s)", left, right)
 	case token.NEQ:
+		if g.nilOperand(e.Left) || g.nilOperand(e.Right) {
+			return fmt.Sprintf("meow.NotEqual(%s, %s).IsTruthy()", g.boxValue(e.Left), g.boxValue(e.Right))
+		}
 		return fmt.Sprintf("(%s != %s)", left, right)
 	case token.LT:
 		return fmt.Sprintf("(%s < %s)", left, right)

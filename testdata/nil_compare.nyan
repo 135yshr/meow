@@ -1,0 +1,32 @@
+-~ Comparing against catnap answers "is this missing?" rather than failing,
+   for every type on the other side. ~-
+
+nya(catnap == catnap)
+nya(catnap != catnap)
+
+nyan s = "cat"
+nya(s == catnap)
+nya(s != catnap)
+
+nyan n = 42
+nya(n == catnap)
+
+nyan list = [1, 2]
+nya(list == catnap)
+
+-~ An absent map key reads as catnap, which is how a program tests for one ~-
+nyan m = {"a": "A"}
+nya(m["a"] == catnap)
+nya(m["missing"] == catnap)
+
+-~ The same test inside a typed function, where the comparison used to be
+   generated as a Go pointer comparison and never matched ~-
+meow lookup(key string) string {
+  nyan table = {"hit": "found"}
+  nyan v = table[key]
+  sniff (v == catnap) { bring "missing" }
+  bring v
+}
+
+nya(lookup("hit"))
+nya(lookup("nope"))
