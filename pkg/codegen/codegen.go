@@ -206,12 +206,26 @@ func (g *Generator) Generate(prog *ast.Program) (string, error) {
 // them in the global environment and has always resolved them, so this is what
 // makes the two backends agree.
 func (g *Generator) genTopLevelStmt(stmt ast.Stmt) (string, error) {
-	if v, ok := stmt.(*ast.VarStmt); ok {
+	if v, ok := stmt.(*ast.VarStmt); ok && !isGeneratedName(v.Name) {
 		g.globalVars = append(g.globalVars, v.Name)
 		g.hoistedVar = v
 		defer func() { g.hoistedVar = nil }()
 	}
 	return g.genStmtOrError(stmt)
+}
+
+// isGeneratedName reports whether a name is one the generator emits itself.
+//
+// Hoisting such a binding to package scope would redeclare that identifier —
+// `nyan main = 5` against the program's own entry point — so it stays a local
+// of the wrapper, exactly where it was before hoisting existed. It is then
+// invisible to functions, but a binding named after the entry point always was.
+func isGeneratedName(name string) bool {
+	switch name {
+	case "main", "__meow_main", "meow", "init", "__mutant":
+		return true
+	}
+	return strings.HasPrefix(name, "meow_") || strings.HasPrefix(name, "__")
 }
 
 // GenerateTest produces Go source code from a Program AST in test mode.
@@ -831,6 +845,18 @@ func (g *Generator) operandKind(expr ast.Expr) (types.Type, bool) {
 // native the other is read as that same type; where neither is, the operator is
 // applied boxed and the result unboxed once.
 func (g *Generator) genTypedOperands(e *ast.BinaryExpr) (left, right string, native bool) {
+	// `&&` and `||` are not bool operators here: they weigh their operands by
+	// truthiness and yield one of them, so `m["x"] && flag` with a string on the
+	// left answers flag. Reading such an operand as the other side's Go type
+	// would demand a bool of it and fail on anything else.
+	if e.Op == token.AND || e.Op == token.OR {
+		if _, lok := g.operandKind(e.Left); !lok {
+			return "", "", false
+		}
+		if _, rok := g.operandKind(e.Right); !rok {
+			return "", "", false
+		}
+	}
 	lt, lok := g.operandKind(e.Left)
 	rt, rok := g.operandKind(e.Right)
 	switch {

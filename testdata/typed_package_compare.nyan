@@ -41,3 +41,19 @@ nya(since(0) > 0)
 nya(ordered())
 nya(past(1))
 nya(past(9223372036854775807))
+
+# `&&` and `||` weigh their operands by truthiness and yield one of them, so an
+# operand whose type is unknown must stay boxed rather than being read as the
+# other side's Go type — a string on the left of `&&` answers the right side.
+meow either(flag bool) bool {
+  nyan m = {"x": "yes"}
+  bring m["x"] && flag
+}
+nya(either(yarn))
+nya(either(hairball))
+
+meow fallback(flag bool) bool {
+  nyan m = {"x": ""}
+  bring m["x"] || flag
+}
+nya(fallback(yarn))

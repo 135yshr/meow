@@ -43,3 +43,8 @@ meow list_hosts() int {
   bring len(hosts)
 }
 nya(list_hosts())
+
+# A binding named after something the generator emits stays a local of the
+# wrapper, as it was before hoisting existed, rather than redeclaring it.
+nyan main = "not the entry point"
+nya(main)

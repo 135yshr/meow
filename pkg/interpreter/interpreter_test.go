@@ -958,3 +958,37 @@ nyan limit = 5`)
 		t.Errorf("got %q, want it to name the unbound variable", got)
 	}
 }
+
+// `&&` and `||` weigh their operands by truthiness and yield one of them, so an
+// operand whose type is unknown has to stay boxed. Reading it as the other
+// side's Go type demanded a bool of it, and the compiler answered
+// "expected bool but got String" where the interpreter answered the flag.
+func TestLogicalOperandsKeepTruthiness(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"string on the left of and", `meow either(flag bool) bool {
+  nyan m = {"x": "yes"}
+  bring m["x"] && flag
+}
+nya(either(yarn))`, "true\n"},
+		// `&&` yields the left operand when it is falsy, whatever its type, so
+		// this is asserted where no declared return type is in the way.
+		{"and yields a falsy left operand", `nyan m = {"x": ""}
+nya(m["x"] && yarn)`, "\n"},
+		{"empty string on the left of or", `meow fallback(flag bool) bool {
+  nyan m = {"x": ""}
+  bring m["x"] || flag
+}
+nya(fallback(yarn))`, "true\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
