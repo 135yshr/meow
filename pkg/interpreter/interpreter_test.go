@@ -916,3 +916,45 @@ func TestStringEscapesAreDecoded(t *testing.T) {
 		})
 	}
 }
+
+// Top-level bindings are visible inside functions. The interpreter has always
+// put them in the global environment; the compiler used to make them locals of
+// the wrapper that runs the program, so a function could not see them at all.
+func TestGlobalBindingsVisibleInFunctions(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"read a global", `nyan limit = 5
+meow under(n int) bool { bring n < limit }
+nya(under(3))`, "true\n"},
+		{"parameter shadows the global", `nyan limit = 5
+meow shadow(limit int) int { bring limit }
+nya(shadow(99))`, "99\n"},
+		{"walk a global litter", `nyan hosts = ["h1", "h2"]
+meow show() int {
+  purr h (hosts) { nya(h) }
+  bring len(hosts)
+}
+nya(show())`, "h1\nh2\n2\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Reaching a top-level binding from a function that runs before the binding
+// does is a mistake, and both backends have to name it the same way.
+func TestGlobalBindingBeforeItIsBound(t *testing.T) {
+	got := runMeowError(t, `meow f() int { bring to_int(limit) }
+nya(f())
+nyan limit = 5`)
+	if !strings.Contains(got, "undefined variable limit") {
+		t.Errorf("got %q, want it to name the unbound variable", got)
+	}
+}

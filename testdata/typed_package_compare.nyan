@@ -1,0 +1,43 @@
+# Comparing a `nab` package call against a typed value inside a fully typed
+# function.
+#
+# A package function has no declared type, so the checker reports `any` and the
+# typed generator emitted the boxed value — reaching Go as
+# `meow.Value > int64`, which does not build. A deadline check, which is the
+# whole of a polling loop, could not be written.
+nab "clock"
+nab "random"
+
+meow expired(deadline int) bool {
+  bring clock.nanos() > deadline
+}
+
+meow rolled_over(n int) bool {
+  bring random.roll(10) > n
+}
+
+meow since(t int) int {
+  bring clock.nanos() - t
+}
+
+# Both sides unknown: the boxed operator still knows what to do.
+meow ordered() bool {
+  bring clock.nanos() > clock.now()
+}
+
+# The comparison also has to work where it is actually used — as a condition.
+meow past(deadline int) string {
+  sniff (clock.nanos() > deadline) {
+    bring "past"
+  }
+  bring "not yet"
+}
+
+# Assertions are about properties rather than values, since the clock and the
+# dice read differently on every run.
+nya(expired(1))
+nya(rolled_over(0 - 1))
+nya(since(0) > 0)
+nya(ordered())
+nya(past(1))
+nya(past(9223372036854775807))
