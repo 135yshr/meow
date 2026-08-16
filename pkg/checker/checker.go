@@ -53,13 +53,18 @@ type Checker struct {
 	scopes            []map[string]types.Type
 	currentReturnType types.Type      // return type of the function currently being checked
 	pureFuncs         map[string]bool // names of functions declared with the trill modifier
+	// topLevelNames are the bindings written at the top level of the program.
+	// They are nameable from a function written above them, because the binding
+	// still runs before the call does.
+	topLevelNames map[string]bool
 }
 
 // New creates a new Checker.
 func New() *Checker {
 	c := &Checker{
-		info:      NewTypeInfo(),
-		pureFuncs: make(map[string]bool),
+		info:          NewTypeInfo(),
+		pureFuncs:     make(map[string]bool),
+		topLevelNames: make(map[string]bool),
 	}
 	c.pushScope()
 	return c
@@ -134,6 +139,9 @@ func (c *Checker) known(name string) bool {
 	if _, ok := c.info.ImportNames[name]; ok {
 		return true
 	}
+	if c.topLevelNames[name] {
+		return true
+	}
 	return builtinNames[name]
 }
 
@@ -158,6 +166,18 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
+	// Pre-pass: note every top-level binding's name. A function may be written
+	// above a binding it reads and still be called after that binding runs —
+	// the compiler hoists them to package scope, and the interpreter runs the
+	// declarations before the later call — so the name has to be known here
+	// before any function body is checked. Its type still comes from where it
+	// is bound, so this records the name alone.
+	for _, stmt := range prog.Stmts {
+		if v, ok := stmt.(*ast.VarStmt); ok {
+			c.topLevelNames[v.Name] = true
+		}
+	}
+
 	// Pre-pass: register import names and check for import-import collisions
 	for _, stmt := range prog.Stmts {
 		if fs, ok := stmt.(*ast.FetchStmt); ok {
@@ -549,6 +569,15 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	for _, p := range fn.Params {
 		pt := c.resolveTypeExpr(p.TypeAnn)
 		c.define(p.Name, pt)
+	}
+	// Functions written side by side in this body can call each other in either
+	// order, so all their names are registered before any of their bodies is
+	// checked. Registering each one as it is reached would report a call to a
+	// sibling written further down as an undefined name.
+	for _, stmt := range fn.Body {
+		if nested, ok := stmt.(*ast.FuncStmt); ok {
+			c.define(nested.Name, c.funcSignatureType(nested))
+		}
 	}
 	for _, stmt := range fn.Body {
 		c.checkStmt(stmt)

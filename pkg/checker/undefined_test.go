@@ -78,6 +78,19 @@ nya(double(5))`},
 		{"loop variable", `purr w (["a"]) { nya(w) }`},
 		{"imported package", `nab "clock"
 nya(clock.now() > 0)`},
+		// A function may be written above a binding it reads and still be called
+		// after that binding runs — the compiler hoists top-level bindings to
+		// package scope, and the interpreter runs the declarations first.
+		{"a global bound after the function that reads it", `meow f() int { bring to_int(x) }
+nyan x = 1
+nya(f())`},
+		// Functions written side by side can call each other in either order.
+		{"a nested function calling a later sibling", `meow outer(n int) int {
+  meow first(y int) int { bring second(y) + 1 }
+  meow second(y int) int { bring y * 2 }
+  bring first(n)
+}
+nya(outer(3))`},
 		{"aliased package", `nab "clock" tag t
 nya(t.now() > 0)`},
 	}

@@ -131,7 +131,7 @@ Convert a value to an integer.
 - `float` → truncates to int
 - `bool` → `yarn` is `1`, `hairball` is `0`
 - `string` → reads a whole number out of it, ignoring surrounding space
-- Other types → panics
+- Other types → returns a Furball
 
 ```meow
 nya(to_int(3.7))      # => 3
@@ -161,7 +161,7 @@ Convert a value to a float.
 - `float` → returns as-is
 - `int` → widens to float
 - `string` → reads a decimal number out of it, ignoring surrounding space
-- Other types → panics
+- Other types → returns a Furball
 
 ```meow
 nya(to_float(42))       # => 42

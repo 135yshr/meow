@@ -48,3 +48,10 @@ nya(list_hosts())
 # wrapper, as it was before hoisting existed, rather than redeclaring it.
 nyan main = "not the entry point"
 nya(main)
+
+# A function may be written above a binding it reads, so long as the binding
+# runs before the call does. The bindings are hoisted to package scope and
+# assigned in order, so by the time this is called the name holds its value.
+meow doubled_limit() int { bring later * 2 }
+nyan later = 21
+nya(doubled_limit())

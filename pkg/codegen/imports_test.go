@@ -38,3 +38,15 @@ nya(t.now())`)
 		t.Error("dropped clock, which the program calls through its tag")
 	}
 }
+
+// The package name may appear in a string literal without anything calling the
+// package. Reading import use back out of the rendered source would keep the
+// import, and Go would then reject it as unused.
+func TestNabNameInAStringIsNotImported(t *testing.T) {
+	out := generate(t, `nab "env"
+nya("meow_env.")`)
+
+	if strings.Contains(out, `import meow_env "`) {
+		t.Error("imported env because its generated alias appeared inside a string literal")
+	}
+}

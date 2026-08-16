@@ -43,6 +43,11 @@ type Generator struct {
 	// source order. They become package-level Go variables so that functions can
 	// read them; see genStmtInner's VarStmt case.
 	globalVars []string
+	// usedPackages records the `nab` packages a selector was actually emitted
+	// for, so an import nothing calls can be left out. It is recorded where the
+	// selector is written rather than read back out of the rendered source,
+	// which would also match a package name appearing inside a string literal.
+	usedPackages map[string]bool
 	// hoistedVar is the top-level binding currently being generated, if any.
 	// Holding the node itself rather than a depth counter keeps a `nyan` nested
 	// inside a top-level `sniff` or `purr` block a local, which is what it is.
@@ -416,19 +421,26 @@ func (g *Generator) usedImports(alsoUsed ...string) []string {
 	if len(g.imports) == 0 {
 		return nil
 	}
-	body := strings.Join(g.funcs, "\n") + "\n" + strings.Join(g.topLevel, "\n")
 	keep := make(map[string]bool, len(alsoUsed))
 	for _, name := range alsoUsed {
 		keep[name] = true
 	}
 	names := make([]string, 0, len(g.imports))
 	for name := range g.imports {
-		if keep[name] || strings.Contains(body, "meow_"+name+".") {
+		if keep[name] || g.usedPackages[name] {
 			names = append(names, name)
 		}
 	}
 	sort.Strings(names)
 	return names
+}
+
+// markPackageUsed records that a selector into a `nab` package was emitted.
+func (g *Generator) markPackageUsed(name string) {
+	if g.usedPackages == nil {
+		g.usedPackages = make(map[string]bool)
+	}
+	g.usedPackages[name] = true
 }
 
 // genGlobalDecls declares the program's top-level bindings at package scope.
@@ -1176,6 +1188,7 @@ func (g *Generator) genStmt(stmt ast.Stmt) string {
 	endLine, endCol := g.estimateEndPos(stmt)
 	id := len(g.coverBlocks)
 	g.coverBlocks = append(g.coverBlocks, coverBlock{pos.Line, pos.Column, endLine, endCol, 1})
+	g.markPackageUsed("coverage")
 	return fmt.Sprintf("meow_coverage.Hit(%d)\n%s", id, code)
 }
 
@@ -1473,6 +1486,7 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
 			if realPkg, ok := g.resolveImportName(obj.Name); ok {
+				g.markPackageUsed(realPkg)
 				return fmt.Sprintf("meow_%s.%s", realPkg, capitalizeFirst(e.Member))
 			}
 			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
@@ -1687,6 +1701,7 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 			g.genExpr(member.Object), member.Member, argStr)
 	}
 	if realPkg, ok := g.resolveImportName(obj.Name); ok {
+		g.markPackageUsed(realPkg)
 		return fmt.Sprintf("meow_%s.%s(%s)", realPkg, capitalizeFirst(member.Member), argStr)
 	}
 	if argStr == "" {
