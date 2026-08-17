@@ -477,6 +477,30 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 	case "whiff":
 		requireArgs("whiff", args, 2)
 		return meowrt.Whiff(args[0], args[1]), true
+	case "upper":
+		requireArgs("upper", args, 1)
+		return meowrt.Upper(args[0]), true
+	case "lower":
+		requireArgs("lower", args, 1)
+		return meowrt.Lower(args[0]), true
+	case "trim":
+		requireArgs("trim", args, 1)
+		return meowrt.Trim(args[0]), true
+	case "replace":
+		requireArgs("replace", args, 3)
+		return meowrt.Replace(args[0], args[1], args[2]), true
+	case "pad":
+		requireArgs("pad", args, 2)
+		return meowrt.Pad(args[0], args[1]), true
+	case "sort":
+		requireArgs("sort", args, 1)
+		return meowrt.Sort(args[0]), true
+	case "reverse":
+		requireArgs("reverse", args, 1)
+		return meowrt.Reverse(args[0]), true
+	case "round":
+		requireArgs("round", args, 2)
+		return meowrt.Round(args[0], args[1]), true
 	case "track":
 		requireArgs("track", args, 2)
 		return meowrt.Track(args[0], args[1]), true

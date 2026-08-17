@@ -225,6 +225,89 @@ nya(to_runes("にゃん"))            # => [に, ゃ, ん]
 nya(tangle(to_runes("にゃん"), ""))  # => にゃん
 ```
 
+### `upper(s)` / `lower(s)`
+
+Return the string with every letter in upper or lower case.
+
+```meow
+nya(upper("cat"))   # => CAT
+nya(lower("CAT"))   # => cat
+```
+
+### `trim(s)`
+
+Return the string without leading or trailing whitespace.
+
+A line read from a file, or an environment variable, carries surrounding space,
+and comparing against it without trimming answers no for a reason nothing in
+the source shows.
+
+```meow
+nya("[" + trim("  cat  ") + "]")   # => [cat]
+```
+
+### `replace(s, old, new)`
+
+Return the string with **every** occurrence of `old` replaced by `new`.
+
+An empty `old` is a Furball: it would insert the replacement between every
+character, which is never the intent.
+
+```meow
+nya(replace("a-b-c", "-", "+"))   # => a+b+c
+```
+
+### `pad(s, width)`
+
+Return the string widened to `width` characters with spaces.
+
+A positive width pads on the right, lining a column up on its left edge; a
+negative one pads on the left, which is what a column of numbers wants. A
+string already that wide is returned whole rather than cut — losing text to make
+a table line up is the worse trade. Width is counted in characters, as `nibble`
+and `track` are.
+
+```meow
+nya("[" + pad("ab", 5) + "]")       # => [ab   ]
+nya("[" + pad("ab", 0 - 5) + "]")   # => [   ab]
+```
+
+### `sort(list)`
+
+Return a litter with its elements in ascending order. The litter passed in is
+left alone.
+
+A litter holding more than one kind of value is a Furball rather than an
+arbitrary order: there is no answer to "is `1` before `"a"`", and inventing one
+would put a program's output at the mercy of which happened to come first.
+
+```meow
+nya(sort([3, 1, 2]))              # => [1, 2, 3]
+nya(sort(["pear", "apple"]))      # => [apple, pear]
+```
+
+### `reverse(list)`
+
+Return a litter with its elements in the opposite order. The litter passed in is
+left alone.
+
+```meow
+nya(reverse([1, 2, 3]))   # => [3, 2, 1]
+```
+
+### `round(x, places)`
+
+Return the number rounded to the given number of decimal places, 0 to 15.
+
+Rounding is half away from zero, the arithmetic convention, rather than Go's
+half-to-even — a reader expects `2.5` to print as `3`. An `int` is already
+rounded and comes back as one, so it does not start printing as `42.0`.
+
+```meow
+nya(round(3.14159, 2))   # => 3.14
+nya(round(2.5, 0))       # => 3
+```
+
 ### `whiff(s, sub)`
 
 Report whether `s` contains `sub`.

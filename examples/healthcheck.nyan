@@ -24,9 +24,9 @@ meow probe(url string) litter {
 meow line(url string) string {
   nyan r = probe(url)
   sniff (is_furball(r)) {
-    bring "DOWN  " + url
+    bring pad("DOWN", 6) + url
   }
-  bring to_string(r["status"]) + "   " + url
+  bring pad(to_string(r["status"]), 6) + url
 }
 
 meow down_count(lines litter) int {
@@ -41,7 +41,7 @@ meow down_count(lines litter) int {
 nyan targets = file.stalk("examples/targets.txt")
 nyan lines = lick(targets, paw(u) { line(u) })
 
-purr l (lines) { nya(l) }
+purr l (sort(lines)) { nya(l) }
 nya("---")
 
 nyan down = down_count(lines)
