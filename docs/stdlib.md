@@ -56,14 +56,16 @@ nya(is_furball(42))       # => hairball
 
 ### `len(v)`
 
-Return the length of a string (byte count) or list (element count).
+Return the length of a string (byte count), litter (element count) or basket
+(entry count).
 
 ```meow
-nya(len("hello"))       # => 5
-nya(len([1, 2, 3]))     # => 3
+nya(len("hello"))            # => 5
+nya(len([1, 2, 3]))          # => 3
+nya(len({"a": 1, "b": 2}))   # => 2
 ```
 
-Panics if `v` is not a string or list.
+Anything else is a Furball.
 
 ### `head(list)`
 
@@ -748,6 +750,61 @@ sniff (len(hits) > 0) {
   nya("NG not stored")
 }
 ```
+
+---
+
+## json Package
+
+Import with `nab "json"`. Reads JSON text into Meow values and writes it back.
+
+A program that talks to an HTTP API can otherwise only match replies as text,
+and deciding "did the record arrive" by searching a body for a word answers yes
+when the word appears somewhere else in the payload.
+
+### `json.unravel(text)`
+
+Read JSON text.
+
+- **text** (string): The document to read.
+- **Returns**: An object as a `basket`, an array as a `litter`, `null` as
+  `catnap`, and strings, numbers and booleans as themselves.
+- Text that is not JSON is a **Furball**, so it can be recovered from with `~>`.
+
+```meow
+nab "json"
+
+nyan doc = json.unravel("{\"hits\": [{\"marker\": \"m1\"}], \"count\": 1}")
+nya(doc["count"])            # => 1
+nya(len(doc["hits"]))        # => 1
+purr hit (doc["hits"]) {
+  nya(hit["marker"])         # => m1
+}
+
+nya(json.unravel("<html>") ~> "not json")   # => not json
+```
+
+JSON has one number type and Meow has two, so a whole value comes back as an
+`int` and anything else as a `float` — an id or a count does not arrive
+reading `42.0`. Whole values are read exactly, including ones past 2^53 that a
+float could not hold; past `int64` there is nothing exact left to offer, so
+those read as floats rather than being refused.
+
+### `json.wind(value)`
+
+Write a value as JSON text.
+
+- **value**: A `basket`, `litter`, string, number, boolean or `catnap`.
+- **Returns**: The JSON text as a string.
+- A value JSON has no shape for — a Furball, a `kitty`, a function — is a
+  **Furball**, rather than text that would read back as something else.
+
+```meow
+nya(json.wind({"a": 1, "b": [1, 2, 3]}))   # => {"a":1,"b":[1,2,3]}
+```
+
+A round trip preserves every value but not the order keys were written in: a
+`basket` has no order, so the keys come back sorted. A `litter` keeps its
+order, being a sequence.
 
 ---
 

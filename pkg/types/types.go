@@ -74,6 +74,25 @@ func (l ListType) Equals(t Type) bool {
 	return l.Elem.Equals(o.Elem)
 }
 
+// MapType represents a basket: a dictionary keyed by strings.
+//
+// The key type is fixed — a map literal only accepts string keys — so only the
+// value type varies.
+type MapType struct{ Val Type }
+
+func (m MapType) String() string { return "basket[" + m.Val.String() + "]" }
+func (m MapType) Equals(t Type) bool {
+	o, ok := t.(MapType)
+	if !ok {
+		return false
+	}
+	// basket[any] matches any basket, as list[any] matches any list.
+	if IsAny(m.Val) || IsAny(o.Val) {
+		return true
+	}
+	return m.Val.Equals(o.Val)
+}
+
 // FuncType represents a function type.
 type FuncType struct {
 	Params []Type

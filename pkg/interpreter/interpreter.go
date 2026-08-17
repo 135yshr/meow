@@ -173,23 +173,40 @@ func (interp *Interpreter) execIf(s *ast.IfStmt, env *Environment) {
 	}
 }
 
+// isWalkable reports whether a value is walked element by element rather than
+// counted to.
+func isWalkable(v meowrt.Value) bool {
+	switch v.(type) {
+	case *meowrt.List, *meowrt.Map:
+		return true
+	}
+	return false
+}
+
 func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 	endVal := interp.evalExpr(s.End, env)
 
-	// List iteration: purr elem (list) or purr i, elem (list)
-	if s.Start == nil && !s.Inclusive {
-		if list, ok := endVal.(*meowrt.List); ok {
-			for i, elem := range list.Items {
+	// Elementwise iteration: a litter's elements, or a basket's keys. The same
+	// runtime iterators the compiler emits are used here, so a program walks
+	// them in the same order — a basket by sorted key — whichever backend runs.
+	if s.Start == nil && !s.Inclusive && isWalkable(endVal) {
+		if s.IndexVar != "" {
+			for a, b := range meowrt.RangePair(endVal) {
 				interp.checkStep()
 				child := env.Child()
-				child.Define(s.Var, elem)
-				if s.IndexVar != "" {
-					child.Define(s.IndexVar, meowrt.NewInt(int64(i)))
-				}
+				child.Define(s.IndexVar, a)
+				child.Define(s.Var, b)
 				interp.execBlock(s.Body, child)
 			}
 			return
 		}
+		for elem := range meowrt.RangeSolo(endVal) {
+			interp.checkStep()
+			child := env.Child()
+			child.Define(s.Var, elem)
+			interp.execBlock(s.Body, child)
+		}
+		return
 	}
 
 	var start int64

@@ -205,6 +205,8 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 		return &ast.BasicType{Token: tok, Name: "furball"}
 	case token.TYPE_LITTER:
 		return &ast.BasicType{Token: tok, Name: "litter"}
+	case token.TYPE_BASKET:
+		return &ast.BasicType{Token: tok, Name: "basket"}
 	case token.IDENT:
 		return &ast.NamedType{Token: tok, Name: tok.Literal}
 	default:
@@ -215,7 +217,8 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 
 func (p *Parser) isTypeToken() bool {
 	switch p.cur.Type {
-	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL, token.TYPE_FURBALL, token.TYPE_LITTER:
+	case token.TYPE_INT, token.TYPE_FLOAT, token.TYPE_STRING, token.TYPE_BOOL,
+		token.TYPE_FURBALL, token.TYPE_LITTER, token.TYPE_BASKET:
 		return true
 	case token.IDENT:
 		// An IDENT is a type name only when it's followed by something that

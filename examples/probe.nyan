@@ -11,6 +11,7 @@ nab "http"
 nab "clock"
 nab "random"
 nab "env"
+nab "json"
 
 # The budget is milliseconds in the environment and nanoseconds here, because
 # that is the unit clock.nanos reports.
@@ -29,9 +30,14 @@ meow poll(url string, deadline int, attempt int) int {
     clock.nap(interval)
     bring poll(url, deadline, attempt + 1)
   }
-  # There is no JSON parser yet, so the hit is recognised by matching the shape
-  # of the response body.
-  sniff (whiff(to_string(resp["body"]), "\"count\": 1")) {
+  # Read the reply rather than searching it for a word: a marker that happened
+  # to appear elsewhere in the payload would answer "found" to a text search.
+  nyan doc = json.unravel(to_string(resp["body"]))
+  sniff (is_furball(doc)) {
+    clock.nap(interval)
+    bring poll(url, deadline, attempt + 1)
+  }
+  sniff (doc["count"] > 0) {
     bring attempt
   }
   clock.nap(interval)

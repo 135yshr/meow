@@ -1,0 +1,52 @@
+# Reading and writing JSON.
+#
+# Without this a program talking to an HTTP API could only match replies as
+# text, and "did the record arrive" was decided by searching the body for a
+# word — which answers yes when the word appears somewhere else entirely.
+nab "json"
+
+nyan doc = json.unravel("{\"hits\": [{\"marker\": \"m1\", \"at\": 1700}], \"count\": 1}")
+
+nya(doc["count"])
+nya(len(doc["hits"]))
+purr hit (doc["hits"]) {
+  nya(hit["marker"] + " @ " + to_string(hit["at"]))
+}
+
+# A parsed object is a basket, so it walks by key like any other.
+purr k (doc) { nya(k) }
+
+# JSON has one number type and Meow has two. A whole value comes back as an
+# int, so an id or a count does not arrive reading 42.0.
+nya(json.unravel("{\"id\": 42}")["id"])
+nya(json.unravel("{\"ratio\": 2.5}")["ratio"])
+
+# float64 cannot hold an int64 exactly past 2^53, so reading every number
+# through one would corrupt a large id silently.
+nya(json.unravel("9007199254740993"))
+nya(json.unravel("9223372036854775807"))
+nya(json.unravel("-9223372036854775808"))
+
+# The other scalar shapes.
+nya(json.unravel("true"))
+nya(json.unravel("null") == catnap)
+nya(json.unravel("\"plain\""))
+nya(json.unravel("[1, 2, 3]"))
+
+# Writing.
+nya(json.wind({"a": 1, "b": [1, 2, 3], "c": catnap, "d": yarn}))
+nya(json.wind([1, 2, 3]))
+nya(json.wind("text"))
+
+# A round trip preserves what it read.
+nyan original = "{\"n\":1,\"s\":\"two\"}"
+nya(json.wind(json.unravel(original)))
+
+# Text that is not JSON is a Furball, not a wrong answer — an HTML error page
+# from a proxy is exactly what a reply turns out to be often enough.
+nya(json.unravel("<html>nope</html>") ~> "not json")
+nya(json.unravel("") ~> "empty")
+nya(json.unravel("{unclosed") ~> "malformed")
+
+# So is a value JSON has no shape for.
+nya(json.wind(hiss("boom")) ~> "cannot write that")

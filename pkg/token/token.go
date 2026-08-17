@@ -87,6 +87,7 @@ const (
 	TYPE_BOOL    // bool
 	TYPE_FURBALL // furball
 	TYPE_LITTER  // litter
+	TYPE_BASKET  // basket
 
 	// Function modifiers
 	TRILL // trill (pure-function modifier)
@@ -125,6 +126,7 @@ var keywords = map[string]TokenType{
 	"bool":     TYPE_BOOL,
 	"furball":  TYPE_FURBALL,
 	"litter":   TYPE_LITTER,
+	"basket":   TYPE_BASKET,
 	"trill":    TRILL,
 }
 
