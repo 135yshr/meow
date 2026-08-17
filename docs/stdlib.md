@@ -37,8 +37,10 @@ This function never returns.
 End the program with the given status.
 
 - **status** (int, optional): 0 to 255. Omitted means 0.
-- **Never returns**, unless the status is one no process could report.
-- **Returns a Furball**: If `status` is not an int, or is outside 0 to 255.
+- **Never returns** when given a status a process can report.
+- **Returns a Furball**: If `status` is not an int, or is outside 0 to 255. There
+  is nothing to end on such a status, so the program carries on and the Furball
+  can be caught like any other.
 
 A status is how a program tells the shell, cron job or CI step that started it
 what it found. Without one, a check that saw an endpoint go down could only say

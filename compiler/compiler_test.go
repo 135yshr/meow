@@ -240,3 +240,40 @@ func runSource(t *testing.T, source string) int {
 	}
 	return 0
 }
+
+// Run is what `meow run` calls, and it is the piece that hands the program its
+// arguments and reports back the status it ended on. Running the binary
+// directly, as the tests above do, would leave both untested.
+func TestRunForwardsArgumentsAndReportsTheStatus(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	// Ends on the number of arguments it was handed, so one run proves both
+	// that they arrived and that the status came back.
+	source := "nab \"env\"\nscram(len(env.haul()))\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := compiler.New(nil).Run(nyanPath, "--target", "https://example.test", "-v")
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("got %v, want an exit status", err)
+	}
+	if exitErr.ExitCode() != 3 {
+		t.Errorf("exited with %d, want 3", exitErr.ExitCode())
+	}
+}
+
+// A program that ends well is not an error, so nothing is reported.
+func TestRunReportsNoErrorWhenTheProgramSucceeds(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	if err := os.WriteFile(nyanPath, []byte("scram(0)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := compiler.New(nil).Run(nyanPath); err != nil {
+		t.Errorf("got %v, want no error", err)
+	}
+}
