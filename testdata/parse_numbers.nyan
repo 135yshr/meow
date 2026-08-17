@@ -1,0 +1,41 @@
+# Reading a number out of a string.
+#
+# Everything a program takes from outside itself — the environment, a file, an
+# HTTP body, a command line — arrives as text. Without this there was no way to
+# get a number into a program at all: a timeout read from the environment had to
+# be a literal in the source instead.
+nab "env"
+
+nya(to_int("42"))
+nya(to_int("-5"))
+nya(to_int("0"))
+
+# Surrounding space is what a file or an environment variable tends to carry,
+# so it is trimmed rather than treated as a failure.
+nya(to_int("  7  "))
+
+nya(to_float("3.5"))
+nya(to_float("-0.25"))
+nya(to_float("42"))
+
+# Text that does not spell a number is a Furball, not a wrong answer, so it can
+# be recovered from like any other failure.
+nya(to_int("forty two") ~> "not a number")
+nya(to_int("") ~> "empty")
+nya(to_float("3.5.1") ~> "not a float")
+
+# Numbers still convert as they did.
+nya(to_int(3.9))
+nya(to_int(yarn))
+nya(to_float(42))
+
+# The shape this was missing for: a setting read from the environment.
+nyan budget = to_int(env.hunt("MEOW_BUDGET_MS", "15000"))
+nya(budget * 2)
+
+# And inside a fully typed function.
+meow parse(s string) int {
+  bring to_int(s)
+}
+nya(parse("123"))
+nya(parse("nope") ~> "recovered")

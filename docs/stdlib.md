@@ -130,11 +130,28 @@ Convert a value to an integer.
 - `int` → returns as-is
 - `float` → truncates to int
 - `bool` → `yarn` is `1`, `hairball` is `0`
-- Other types → panics
+- `string` → reads a whole number out of it, ignoring surrounding space
+- Other types → returns a Furball
 
 ```meow
 nya(to_int(3.7))      # => 3
 nya(to_int(yarn))     # => 1
+nya(to_int("42"))     # => 42
+```
+
+Everything a program takes from outside itself — the environment, a file, an
+HTTP body — arrives as text, so reading a string is how a number gets in:
+
+```meow
+nab "env"
+nyan budget = to_int(env.hunt("BUDGET_MS", "15000"))
+```
+
+Text that does not spell a number is a Furball rather than a wrong answer, so
+it can be recovered from like any other failure:
+
+```meow
+nya(to_int("forty two") ~> 0)   # => 0
 ```
 
 ### `to_float(v)`
@@ -143,11 +160,15 @@ Convert a value to a float.
 
 - `float` → returns as-is
 - `int` → widens to float
-- Other types → panics
+- `string` → reads a decimal number out of it, ignoring surrounding space
+- Other types → returns a Furball
 
 ```meow
-nya(to_float(42))   # => 42
+nya(to_float(42))       # => 42
+nya(to_float("3.5"))    # => 3.5
 ```
+
+As with `to_int`, unreadable text is a Furball.
 
 ### `to_string(v)`
 

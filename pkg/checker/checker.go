@@ -53,13 +53,18 @@ type Checker struct {
 	scopes            []map[string]types.Type
 	currentReturnType types.Type      // return type of the function currently being checked
 	pureFuncs         map[string]bool // names of functions declared with the trill modifier
+	// topLevelNames are the bindings written at the top level of the program.
+	// They are nameable from a function written above them, because the binding
+	// still runs before the call does.
+	topLevelNames map[string]bool
 }
 
 // New creates a new Checker.
 func New() *Checker {
 	c := &Checker{
-		info:      NewTypeInfo(),
-		pureFuncs: make(map[string]bool),
+		info:          NewTypeInfo(),
+		pureFuncs:     make(map[string]bool),
+		topLevelNames: make(map[string]bool),
 	}
 	c.pushScope()
 	return c
@@ -97,6 +102,61 @@ func (c *Checker) lookup(name string) types.Type {
 	return types.AnyType{}
 }
 
+// bound reports whether name is bound in any enclosing scope.
+func (c *Checker) bound(name string) bool {
+	for i := len(c.scopes) - 1; i >= 0; i-- {
+		if _, ok := c.scopes[i][name]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// known reports whether name refers to something the program can name: a
+// binding, a function, a type constructor, an imported package, or a builtin.
+//
+// Names that are none of these used to reach the Go compiler untouched, so a
+// misspelled builtin surfaced as `undefined: keys` — generated Go leaking
+// through the abstraction, with no Meow source position. The playground
+// interpreter has always answered "undefined variable", which is what this
+// reports.
+func (c *Checker) known(name string) bool {
+	if c.bound(name) {
+		return true
+	}
+	if _, ok := c.info.FuncTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.KittyTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.CollarTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.AliasTypes[name]; ok {
+		return true
+	}
+	if _, ok := c.info.ImportNames[name]; ok {
+		return true
+	}
+	if c.topLevelNames[name] {
+		return true
+	}
+	return builtinNames[name]
+}
+
+// builtinNames are the functions callable without a `nab`. Keep in step with
+// the switch in inferCall, which decides what each of them returns.
+var builtinNames = map[string]bool{
+	"nya": true, "hiss": true, "gag": true, "is_furball": true, "len": true,
+	"head": true, "tail": true, "append": true,
+	"lick": true, "picky": true, "curl": true,
+	"to_int": true, "to_float": true, "to_string": true,
+	"to_bytes": true, "to_runes": true,
+	"whiff": true, "track": true, "shred": true, "tangle": true, "nibble": true,
+	"judge": true, "expect": true, "refuse": true, "seed": true,
+}
+
 func (c *Checker) addError(pos token.Position, format string, args ...any) {
 	c.errors = append(c.errors, &TypeError{
 		Pos:     pos,
@@ -106,6 +166,18 @@ func (c *Checker) addError(pos token.Position, format string, args ...any) {
 
 // Check type-checks a program and returns type info and any errors.
 func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
+	// Pre-pass: note every top-level binding's name. A function may be written
+	// above a binding it reads and still be called after that binding runs —
+	// the compiler hoists them to package scope, and the interpreter runs the
+	// declarations before the later call — so the name has to be known here
+	// before any function body is checked. Its type still comes from where it
+	// is bound, so this records the name alone.
+	for _, stmt := range prog.Stmts {
+		if v, ok := stmt.(*ast.VarStmt); ok {
+			c.topLevelNames[v.Name] = true
+		}
+	}
+
 	// Pre-pass: register import names and check for import-import collisions
 	for _, stmt := range prog.Stmts {
 		if fs, ok := stmt.(*ast.FetchStmt); ok {
@@ -465,6 +537,13 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 }
 
 func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
+	// A function written inside another one has to be nameable by the body that
+	// contains it, and by itself so it can recurse. Top-level functions are
+	// registered before checking begins; this covers the nested ones.
+	if _, topLevel := c.info.FuncTypes[fn.Name]; !topLevel {
+		c.define(fn.Name, c.funcSignatureType(fn))
+	}
+
 	// Enforce type annotations on all parameters
 	for _, p := range fn.Params {
 		if p.TypeAnn == nil {
@@ -490,6 +569,15 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 	for _, p := range fn.Params {
 		pt := c.resolveTypeExpr(p.TypeAnn)
 		c.define(p.Name, pt)
+	}
+	// Functions written side by side in this body can call each other in either
+	// order, so all their names are registered before any of their bodies is
+	// checked. Registering each one as it is reached would report a call to a
+	// sibling written further down as an undefined name.
+	for _, stmt := range fn.Body {
+		if nested, ok := stmt.(*ast.FuncStmt); ok {
+			c.define(nested.Name, c.funcSignatureType(nested))
+		}
 	}
 	for _, stmt := range fn.Body {
 		c.checkStmt(stmt)
@@ -861,6 +949,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 	case *ast.NilLit:
 		return types.NilType{}
 	case *ast.Ident:
+		if !c.known(e.Name) {
+			c.addError(e.Token.Pos, "undefined variable %s", e.Name)
+		}
 		return c.lookup(e.Name)
 	case *ast.UnaryExpr:
 		return c.inferUnary(e)

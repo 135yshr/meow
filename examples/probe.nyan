@@ -12,8 +12,9 @@ nab "clock"
 nab "random"
 nab "env"
 
-# 15 seconds, in nanoseconds, because that is the unit clock.nanos reports.
-nyan budget = 15000000000
+# The budget is milliseconds in the environment and nanoseconds here, because
+# that is the unit clock.nanos reports.
+nyan budget = to_int(env.hunt("PROBE_BUDGET_MS", "15000")) * 1000000
 nyan interval = 1000
 
 # There is no while loop and no break, so "poll until found or out of budget" is
