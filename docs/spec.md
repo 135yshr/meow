@@ -400,10 +400,14 @@ meow greet(name string) string {
 
 #### Nested Functions
 
-A `meow` may be declared inside another. It is visible only within the enclosing
-body, it may read the enclosing scope, and it shadows a top-level function of the
-same name. Declarations are collected before the body runs, so one nested
-function may call another written after it, and may call itself.
+A `meow` may be declared inside another. It is visible only within the block it
+was written in — a `sniff` or `purr` body has its own scope, as it does for
+ordinary bindings — it may read the enclosing scope, and it shadows a top-level
+function of the same name.
+
+A nested function may call itself, and may call a sibling written after it, since
+those calls happen once both declarations have run. Calling one *before* its
+declaration has run is a failure, and reports that the function is undefined.
 
 ```meow
 meow outer(x int) int {

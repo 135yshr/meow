@@ -55,3 +55,34 @@ meow untyped_outer(x int) string {
   bring shout("meow")
 }
 nya(untyped_outer(0))
+
+# Written inside a sniff, and inside a purr. A nested function belongs to the
+# block it was written in, which the interpreter gives its own scope, so each
+# block declares its own.
+meow in_a_block(n int) int {
+  sniff (n > 0) {
+    meow twice(v int) int { bring v * 2 }
+    bring twice(n)
+  }
+  bring 0
+}
+nya(to_string(in_a_block(4)))
+
+meow in_a_loop(xs litter) int {
+  purr x (xs) {
+    meow label(v int) string { bring "saw " + to_string(v) }
+    nya(label(x))
+  }
+  bring len(xs)
+}
+nya(to_string(in_a_loop([1, 2])))
+
+# Calling one before its declaration has run is a failure, not a call of
+# something half-built: the declaration starts out as the Furball a caller
+# deserves, which is the answer the interpreter gives too.
+meow too_early() int {
+  nyan x = later()
+  meow later() int { bring 1 }
+  bring x
+}
+nya(to_string(too_early()) ~> "called before it was declared")

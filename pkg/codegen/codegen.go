@@ -91,9 +91,13 @@ func (g *Generator) hoistNestedFuncs(body []ast.Stmt) string {
 			continue
 		}
 		g.nestedFuncs[fn.Name] = true
-		// _ = name because Go rejects a variable that is only ever assigned,
-		// and a nested function nothing calls is still valid Meow.
-		fmt.Fprintf(&b, "\tvar %s meow.Value\n\t_ = %s\n", fn.Name, fn.Name)
+		// It starts as the Furball a caller would deserve, so that calling one
+		// before its declaration has run says so — the interpreter answers
+		// "undefined function" there, where a nil meow.Value would be a bare Go
+		// nil dereference. _ = name because Go rejects a variable that is only
+		// ever assigned, and a nested function nothing calls is still valid.
+		fmt.Fprintf(&b, "\tvar %s meow.Value = meow.NewFurball(\"Hiss! undefined function %s, nya~\")\n\t_ = %s\n",
+			fn.Name, fn.Name, fn.Name)
 	}
 	return b.String()
 }
@@ -762,18 +766,10 @@ func (g *Generator) genTypedIf(s *ast.IfStmt) string {
 	} else {
 		fmt.Fprintf(&b, "if (%s).IsTruthy() {\n", g.genExpr(s.Condition))
 	}
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genTypedStmt(stmt))
-		b.WriteString("\n")
-	}
+	b.WriteString(g.genBlockStmts(s.Body, g.genTypedStmt))
 	if len(s.ElseBody) > 0 {
 		b.WriteString("} else {\n")
-		for _, stmt := range s.ElseBody {
-			b.WriteString("\t")
-			b.WriteString(g.genTypedStmt(stmt))
-			b.WriteString("\n")
-		}
+		b.WriteString(g.genBlockStmts(s.ElseBody, g.genTypedStmt))
 	}
 	b.WriteString("}")
 	return b.String()
@@ -818,11 +814,7 @@ func (g *Generator) genTypedRange(s *ast.RangeStmt) string {
 		fmt.Fprintf(&b, "\tvar %s int64 = __i\n", s.Var)
 		fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	}
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genTypedStmt(stmt))
-		b.WriteString("\n")
-	}
+	b.WriteString(g.genBlockStmts(s.Body, g.genTypedStmt))
 	b.WriteString("}")
 	return b.String()
 }
@@ -1456,18 +1448,10 @@ func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 func (g *Generator) genIf(s *ast.IfStmt) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "if (%s).IsTruthy() {\n", g.genExpr(s.Condition))
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genStmt(stmt))
-		b.WriteString("\n")
-	}
+	b.WriteString(g.genBlockStmts(s.Body, g.genStmt))
 	if len(s.ElseBody) > 0 {
 		b.WriteString("} else {\n")
-		for _, stmt := range s.ElseBody {
-			b.WriteString("\t")
-			b.WriteString(g.genStmt(stmt))
-			b.WriteString("\n")
-		}
+		b.WriteString(g.genBlockStmts(s.ElseBody, g.genStmt))
 	}
 	b.WriteString("}")
 	return b.String()
@@ -1497,11 +1481,7 @@ func (g *Generator) genRange(s *ast.RangeStmt) string {
 	// one. The list form already guards this the same way.
 	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	defer g.enterBoxedScope(s.Var)()
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(g.genStmt(stmt))
-		b.WriteString("\n")
-	}
+	b.WriteString(g.genBlockStmts(s.Body, g.genStmt))
 	b.WriteString("}")
 	return b.String()
 }
@@ -1571,11 +1551,7 @@ func (g *Generator) genElementRangeWith(
 	fmt.Fprintf(&b, "\t_ = %s\n", s.Var)
 	// Both variables hold meow.Value, whatever the enclosing function does.
 	defer g.enterBoxedScope(s.Var, s.IndexVar)()
-	for _, stmt := range s.Body {
-		b.WriteString("\t")
-		b.WriteString(genStmt(stmt))
-		b.WriteString("\n")
-	}
+	b.WriteString(g.genBlockStmts(s.Body, genStmt))
 	b.WriteString("}")
 	return b.String()
 }
@@ -2194,4 +2170,23 @@ func (g *Generator) genPatternCond(subject string, pattern ast.Pattern) string {
 func isCallTo(e *ast.CallExpr, name string) bool {
 	ident, ok := e.Fn.(*ast.Ident)
 	return ok && ident.Name == name
+}
+
+// genBlockStmts emits the statements of a block, declaring any `meow` written
+// in it first.
+//
+// Every block gets its own pass, because a nested function is visible where it
+// was written and nowhere else — the interpreter gives a `sniff` or `purr` body
+// its own scope too. Without one, a nested function inside such a block was
+// assigned to a variable that had never been declared and the build failed.
+func (g *Generator) genBlockStmts(stmts []ast.Stmt, gen func(ast.Stmt) string) string {
+	defer g.enterNestedScope()()
+	var b strings.Builder
+	b.WriteString(g.hoistNestedFuncs(stmts))
+	for _, stmt := range stmts {
+		b.WriteString("\t")
+		b.WriteString(gen(stmt))
+		b.WriteString("\n")
+	}
+	return b.String()
 }
