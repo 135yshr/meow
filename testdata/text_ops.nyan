@@ -1,0 +1,65 @@
+# String, litter and number helpers.
+#
+# Without these a program could not case-fold, trim, replace, line a column up,
+# order a litter, or round a number — so a report came out as
+# "33.333333333333336%" in a column that did not line up.
+nab "json"
+
+nya(upper("cat"))
+nya(lower("CAT"))
+nya(upper(""))
+
+# Trimming matters because a line read from a file or an environment variable
+# carries surrounding space, and comparing against it without trimming answers
+# no for a reason nothing in the source shows.
+nya("[" + trim("  cat  ") + "]")
+nya("[" + trim("\tcat\n") + "]")
+nya("[" + trim("") + "]")
+
+nya(replace("a-b-c", "-", "+"))
+nya(replace("aaa", "a", ""))
+nya(replace("cat", "dog", "x"))
+nya(replace("cat", "", "x") ~> "nothing to search for")
+
+# A positive width lines a column up on its left edge; a negative one pads on
+# the left, which is what a column of numbers wants.
+nya("[" + pad("ab", 5) + "]")
+nya("[" + pad("ab", 0 - 5) + "]")
+# A string already that wide is returned whole rather than cut: losing text to
+# make a table line up is the worse trade.
+nya("[" + pad("abcdef", 3) + "]")
+# Counted in characters, as nibble and track are.
+nya("[" + pad("あい", 4) + "]")
+
+nya(sort([3, 1, 2]))
+nya(sort(["pear", "apple", "fig"]))
+nya(sort([2.5, 1.5]))
+nya(sort([]))
+nya(sort(["only"]))
+nya(reverse([1, 2, 3]))
+nya(reverse([]))
+
+# A litter holding more than one kind has no order to be put in. A literal like
+# this is refused by the checker, so the mixture has to arrive at run time.
+nya(sort(json.unravel("[1, \"a\"]")) ~> "no order for a mixture")
+
+nya(round(3.14159, 2))
+nya(round(3.14159, 0))
+# Half away from zero, the arithmetic convention, rather than Go's
+# half-to-even: a reader expects 2.5 to print as 3.
+nya(round(2.5, 0))
+nya(round(3.5, 0))
+nya(round(0.0 - 2.5, 0))
+# A whole number is already rounded, and stays an int rather than printing 42.0.
+nya(round(42, 2))
+nya(round(1.0 / 3.0, 4))
+nya(round(1.5, 0 - 1) ~> "places out of range")
+
+# Together: a lined-up report, which is what these were missing for.
+meow row(name string, count int, total int) string {
+  nyan pct = round(100.0 * to_float(count) / to_float(total), 1)
+  bring pad(name, 8) + pad(to_string(count), 0 - 4) + "  " + to_string(pct) + "%"
+}
+purr level (sort(["ERROR", "WARN", "INFO"])) {
+  nya(row(level, 2, 6))
+}

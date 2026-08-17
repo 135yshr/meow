@@ -1022,3 +1022,34 @@ purr k (t["outer"]) { nya(k) }`, "inner\n"},
 		})
 	}
 }
+
+// The text, litter and number helpers, so the playground answers as the
+// compiler does.
+func TestTextAndListHelpers(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"upper", `nya(upper("cat"))`, "CAT\n"},
+		{"lower", `nya(lower("CAT"))`, "cat\n"},
+		{"trim", `nya("[" + trim("  cat  ") + "]")`, "[cat]\n"},
+		{"replace", `nya(replace("a-b", "-", "+"))`, "a+b\n"},
+		{"pad right", `nya("[" + pad("ab", 4) + "]")`, "[ab  ]\n"},
+		{"pad left", `nya("[" + pad("ab", 0 - 4) + "]")`, "[  ab]\n"},
+		{"pad leaves a wide string whole", `nya(pad("abcdef", 2))`, "abcdef\n"},
+		{"sort numbers", `nya(sort([3, 1, 2]))`, "[1, 2, 3]\n"},
+		{"sort strings", `nya(sort(["pear", "apple"]))`, "[apple, pear]\n"},
+		{"reverse", `nya(reverse([1, 2, 3]))`, "[3, 2, 1]\n"},
+		{"round", `nya(round(3.14159, 2))`, "3.14\n"},
+		{"round half away from zero", `nya(round(2.5, 0))`, "3\n"},
+		{"round leaves an int an int", `nya(round(42, 2))`, "42\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

@@ -1020,7 +1020,8 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return fmt.Sprintf("meow_testing.%s(%s)", fn, strings.Join(args, ", "))
 	case "to_string", "to_int", "to_float", "to_bytes", "to_runes", "is_furball", "gag", "len",
 		"head", "tail", "append", "lick", "picky", "curl",
-		"whiff", "track", "shred", "tangle", "nibble":
+		"whiff", "track", "shred", "tangle", "nibble",
+		"upper", "lower", "trim", "replace", "pad", "sort", "reverse", "round":
 		builtinNames := map[string]string{
 			"to_string":  "ToString",
 			"to_int":     "ToInt",
@@ -1041,6 +1042,14 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"shred":      "Shred",
 			"tangle":     "Tangle",
 			"nibble":     "Nibble",
+			"upper":      "Upper",
+			"lower":      "Lower",
+			"trim":       "Trim",
+			"replace":    "Replace",
+			"pad":        "Pad",
+			"sort":       "Sort",
+			"reverse":    "Reverse",
+			"round":      "Round",
 		}
 		// Known return types for builtins that produce typed results
 		builtinRetTypes := map[string]types.Type{
@@ -1053,6 +1062,12 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"track":      types.IntType{},
 			"tangle":     types.StringType{},
 			"nibble":     types.StringType{},
+			"upper":      types.StringType{},
+			"lower":      types.StringType{},
+			"trim":       types.StringType{},
+			"replace":    types.StringType{},
+			"pad":        types.StringType{},
+			"round":      types.FloatType{},
 		}
 		args := make([]string, len(e.Args))
 		for i, a := range e.Args {
@@ -1614,6 +1629,22 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.ToRunes(%s)", argStr)
 		case "whiff":
 			return fmt.Sprintf("meow.Whiff(%s)", argStr)
+		case "upper":
+			return fmt.Sprintf("meow.Upper(%s)", argStr)
+		case "lower":
+			return fmt.Sprintf("meow.Lower(%s)", argStr)
+		case "trim":
+			return fmt.Sprintf("meow.Trim(%s)", argStr)
+		case "replace":
+			return fmt.Sprintf("meow.Replace(%s)", argStr)
+		case "pad":
+			return fmt.Sprintf("meow.Pad(%s)", argStr)
+		case "sort":
+			return fmt.Sprintf("meow.Sort(%s)", argStr)
+		case "reverse":
+			return fmt.Sprintf("meow.Reverse(%s)", argStr)
+		case "round":
+			return fmt.Sprintf("meow.Round(%s)", argStr)
 		case "track":
 			return fmt.Sprintf("meow.Track(%s)", argStr)
 		case "shred":

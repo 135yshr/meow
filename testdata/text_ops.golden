@@ -1,0 +1,33 @@
+CAT
+cat
+
+[cat]
+[cat]
+[]
+a+b+c
+
+cat
+nothing to search for
+[ab   ]
+[   ab]
+[abcdef]
+[あい  ]
+[1, 2, 3]
+[apple, fig, pear]
+[1.5, 2.5]
+[]
+[only]
+[3, 2, 1]
+[]
+no order for a mixture
+3.14
+3
+3
+4
+-3
+42
+0.3333
+places out of range
+ERROR      2  33.3%
+INFO       2  33.3%
+WARN       2  33.3%

@@ -154,6 +154,8 @@ var builtinNames = map[string]bool{
 	"to_int": true, "to_float": true, "to_string": true,
 	"to_bytes": true, "to_runes": true,
 	"whiff": true, "track": true, "shred": true, "tangle": true, "nibble": true,
+	"upper": true, "lower": true, "trim": true, "replace": true, "pad": true,
+	"sort": true, "reverse": true, "round": true,
 	"judge": true, "expect": true, "refuse": true, "seed": true,
 }
 
@@ -621,6 +623,14 @@ var pureBuiltins = map[string]bool{
 	"picky":      true,
 	"curl":       true,
 	"whiff":      true,
+	"upper":      true,
+	"lower":      true,
+	"trim":       true,
+	"replace":    true,
+	"pad":        true,
+	"sort":       true,
+	"reverse":    true,
+	"round":      true,
 	"track":      true,
 	"shred":      true,
 	"tangle":     true,
@@ -1246,6 +1256,12 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.ListType{Elem: types.StringType{}}
 		case "tangle", "nibble":
 			return types.StringType{}
+		case "upper", "lower", "trim", "replace", "pad":
+			return types.StringType{}
+		case "sort", "reverse":
+			return types.ListType{Elem: types.AnyType{}}
+		case "round":
+			return types.FloatType{}
 		case "nya", "hiss", "gag":
 			return types.AnyType{}
 		case "head":
