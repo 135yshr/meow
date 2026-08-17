@@ -1,3 +1,8 @@
+# [v0.13.0](https://github.com/135yshr/meow/compare/v0.12.0...v0.13.0) (2026-08-17)
+
+## ✨ New Features
+- [`f854931`](https://github.com/135yshr/meow/commit/f854931)  feat: Add the basket type, basket iteration, and the json package (#119) (Issues: [`#119`](https://github.com/135yshr/meow/issues/119) [`#116`](https://github.com/135yshr/meow/issues/116) [`#117`](https://github.com/135yshr/meow/issues/117) [`#115`](https://github.com/135yshr/meow/issues/115))
+
 # [v0.12.0](https://github.com/135yshr/meow/compare/v0.11.3...v0.12.0) (2026-08-17)
 
 ## ✨ New Features
