@@ -44,7 +44,7 @@ func Recover(left, fallback Value) Value {
 // replacing the previous panic-based termination.
 func ExitOnFurball(v Value) {
 	if f, ok := v.(*Furball); ok {
-		fmt.Fprintln(os.Stderr, f.Message)
+		fmt.Fprintln(os.Stderr, Located(f.Message))
 		os.Exit(1)
 	}
 }
@@ -55,7 +55,7 @@ func ExitOnFurball(v Value) {
 func RunMain(fn func() Value) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintln(os.Stderr, r)
+			fmt.Fprintln(os.Stderr, Located(fmt.Sprint(r)))
 			os.Exit(1)
 		}
 	}()

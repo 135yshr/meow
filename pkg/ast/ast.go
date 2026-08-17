@@ -146,9 +146,17 @@ type CallExpr struct {
 	Args []Expr
 }
 
-func (n *CallExpr) Pos() token.Position { return n.Token.Pos }
-func (n *CallExpr) nodeTag()            {}
-func (n *CallExpr) exprTag()            {}
+// Pos reports where the call starts — the function being called, not the
+// opening parenthesis. It is what an error message about the call should point
+// at, and what a reader would call the position of `nya(x)`.
+func (n *CallExpr) Pos() token.Position {
+	if n.Fn != nil {
+		return n.Fn.Pos()
+	}
+	return n.Token.Pos
+}
+func (n *CallExpr) nodeTag() {}
+func (n *CallExpr) exprTag() {}
 
 // LambdaExpr represents a lambda expression (e.g. paw(x) { x * 2 }).
 //

@@ -692,6 +692,10 @@ func goTypeString(t types.Type) string {
 }
 
 func (g *Generator) genTypedStmt(stmt ast.Stmt) string {
+	return g.located(stmt, g.genTypedStmtInner(stmt))
+}
+
+func (g *Generator) genTypedStmtInner(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		return g.genTypedVarStmt(s)
@@ -1322,7 +1326,7 @@ func (g *Generator) blockAlwaysReturns(stmts []ast.Stmt) bool {
 }
 
 func (g *Generator) genStmt(stmt ast.Stmt) string {
-	code := g.genStmtInner(stmt)
+	code := g.located(stmt, g.genStmtInner(stmt))
 	if !g.coverEnabled {
 		return code
 	}
@@ -2189,4 +2193,17 @@ func (g *Generator) genBlockStmts(stmts []ast.Stmt, gen func(ast.Stmt) string) s
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// located prefixes a statement with a note of where it came from, so that a
+// failure raised while it runs can say where the program was.
+//
+// A statement with no position of its own — one the generator made up rather
+// than read — is left alone, so it does not claim the file's first line.
+func (g *Generator) located(stmt ast.Stmt, code string) string {
+	pos := stmt.Pos()
+	if pos.Line == 0 {
+		return code
+	}
+	return fmt.Sprintf("meow.Here(%q)\n%s", pos.String(), code)
 }

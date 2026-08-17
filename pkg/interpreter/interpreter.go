@@ -70,8 +70,11 @@ func (interp *Interpreter) RunSafe(prog *ast.Program) (err error) {
 			case stepLimitExceeded:
 				err = fmt.Errorf("Hiss! step limit exceeded (%d steps), nya~", interp.stepLimit)
 			default:
+				// Prefixed with where the program was, the way a compiled one
+				// reports a failure, so the same program reads the same either
+				// side of the playground.
 				if msg, ok := r.(string); ok {
-					err = fmt.Errorf("%s", msg)
+					err = fmt.Errorf("%s", meowrt.Located(msg))
 				} else {
 					err = fmt.Errorf("internal error: %v", r)
 				}
@@ -96,6 +99,9 @@ func (interp *Interpreter) Run(prog *ast.Program) {
 	meowrt.ClearMethods()
 	interp.stepCount = 0
 	interp.exitCode = 0
+	// The playground runs one program after another in the same process, so a
+	// position left over from the last one must not be reported against this.
+	meowrt.Here("")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -145,6 +151,12 @@ func (interp *Interpreter) checkStep() {
 
 func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 	interp.checkStep()
+	// Record where the program is, so that a failure raised while this
+	// statement runs can say where. Generated code makes the same note in the
+	// same place, so both backends report a failure identically.
+	if pos := stmt.Pos(); pos.Line != 0 {
+		meowrt.Here(pos.String())
+	}
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		val := interp.evalExpr(s.Value, env)
@@ -864,6 +876,14 @@ func (interp *Interpreter) matchPattern(subject meowrt.Value, pattern ast.Patter
 // --- Builtin nya (output capture) ---
 
 func (interp *Interpreter) builtinNya(args []meowrt.Value) meowrt.Value {
+	// A failure is not something to print. Printing it would put the message in
+	// the program's output and let the program run on, where a compiled one
+	// stops — meow.Nya hands the Furball back for exactly that reason.
+	for _, a := range args {
+		if f, ok := meowrt.AsFurball(a); ok {
+			return f
+		}
+	}
 	parts := make([]string, len(args))
 	for i, v := range args {
 		parts[i] = v.String()

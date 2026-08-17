@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/parser"
@@ -1146,4 +1147,59 @@ func TestScramIsNotCaught(t *testing.T) {
 			}
 		})
 	}
+}
+
+// The playground reports a failure the same way a compiled program does, down
+// to the position — the same note, made in the same place, read by the same
+// runtime.
+func TestAFailureSaysWhereItHappened(t *testing.T) {
+	source := "nya(\"starting\")\nnyan raw = \"not a number\"\nnya(to_string(to_float(raw)))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:3:1: Hiss! Cannot read \"not a number\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A failure is not something to print. Printing it would put the message in the
+// program's output and let the program run on, where a compiled one stops.
+func TestNyaDoesNotPrintAFailure(t *testing.T) {
+	source := "nya(\"before\")\nnya(to_float(\"not a number\"))\nnya(\"after\")\n"
+
+	var buf bytes.Buffer
+	prog := parseForTest(t, source)
+	interp := New(&buf)
+	err := interp.RunSafe(prog)
+
+	if err == nil {
+		t.Fatal("expected the program to fail")
+	}
+	if buf.String() != "before\n" {
+		t.Errorf("got %q, want only what ran before the failure", buf.String())
+	}
+}
+
+// runMeowExpectingFailure runs source and returns the failure it reported.
+func runMeowExpectingFailure(t *testing.T, source string) error {
+	t.Helper()
+	var buf bytes.Buffer
+	err := New(&buf).RunSafe(parseForTest(t, source))
+	if err == nil {
+		t.Fatal("expected the program to fail")
+	}
+	return err
+}
+
+// parseForTest parses source, failing the test on any parse error.
+func parseForTest(t *testing.T, source string) *ast.Program {
+	t.Helper()
+	l := lexer.New(source, "test.nyan")
+	p := parser.New(l.Tokens())
+	prog, parseErrs := p.Parse()
+	if len(parseErrs) > 0 {
+		t.Fatalf("parse errors: %v", parseErrs)
+	}
+	return prog
 }
