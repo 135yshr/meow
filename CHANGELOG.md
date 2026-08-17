@@ -1,3 +1,8 @@
+# [v0.15.0](https://github.com/135yshr/meow/compare/v0.14.0...v0.15.0) (2026-08-17)
+
+## ✨ New Features
+- [`f89f7ec`](https://github.com/135yshr/meow/commit/f89f7ec)  feat: Add scram for exit statuses and env.haul for arguments (#121) (Issues: [`#121`](https://github.com/135yshr/meow/issues/121))
+
 # [v0.14.0](https://github.com/135yshr/meow/compare/v0.13.0...v0.14.0) (2026-08-17)
 
 ## ✨ New Features
