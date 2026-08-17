@@ -1,3 +1,8 @@
+# [v0.11.3](https://github.com/135yshr/meow/compare/v0.11.2...v0.11.3) (2026-08-17)
+
+## 🐛 Bug Fixes
+- [`fc57672`](https://github.com/135yshr/meow/commit/fc57672)  fix: Let any value be compared to catnap (#115) (Issues: [`#115`](https://github.com/135yshr/meow/issues/115) [`#116`](https://github.com/135yshr/meow/issues/116) [`#116`](https://github.com/135yshr/meow/issues/116) [`#116`](https://github.com/135yshr/meow/issues/116) [`#116`](https://github.com/135yshr/meow/issues/116))
+
 # [v0.11.2](https://github.com/135yshr/meow/compare/v0.11.1...v0.11.2) (2026-08-16)
 
 ## 🐛 Bug Fixes
