@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -31,10 +33,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	verbose := false
+	// Anything after the .nyan file of a run belongs to the program, so meow's
+	// own flags are only looked for ahead of it. A program is entitled to its
+	// own -v, and reading it here would leave env.haul unable to see it.
 	args := os.Args[1:]
-	filtered := make([]string, 0, len(args))
-	for _, a := range args {
+	ours, theirs := splitAtRunTarget(args)
+	programArguments = theirs
+
+	verbose := false
+	filtered := make([]string, 0, len(ours))
+	for _, a := range ours {
 		if a == "--verbose" || a == "-v" {
 			verbose = true
 		} else {
@@ -65,10 +73,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Hiss! Please specify a .nyan file, nya~")
 			os.Exit(1)
 		}
-		if err := c.Run(args[1]); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		runProgram(c, args[1])
 	case "build":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hiss! Please specify a .nyan file, nya~")
@@ -108,15 +113,59 @@ func main() {
 	default:
 		// Treat as "run" if the argument looks like a file
 		if len(args) >= 1 && len(args[0]) > 0 && args[0][0] != '-' {
-			if err := c.Run(args[0]); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
+			runProgram(c, args[0])
 		} else {
 			printUsage()
 			os.Exit(1)
 		}
 	}
+}
+
+// runProgram compiles and runs a .nyan file, handing it everything typed after
+// its path and answering with the status it ended on.
+//
+// A program's status is how it tells a shell, cron or a CI step what it found,
+// so passing it through matters as much as running the program at all. A
+// failure to build reports 1, since nothing ran to have a status of its own.
+func runProgram(c *compiler.Compiler, nyanPath string) {
+	if err := c.Run(nyanPath, programArguments...); err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			// The program has already said whatever it had to say.
+			os.Exit(exit.ExitCode())
+		}
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+// programArguments holds what was typed after the .nyan file of a run, for the
+// program to read through env.haul.
+var programArguments []string
+
+// splitAtRunTarget divides a command line into meow's own arguments and the
+// ones belonging to a program it is being asked to run.
+//
+// Only `meow run prog.nyan ...` and the bare `meow prog.nyan ...` form have a
+// program to hand arguments to; every other subcommand takes .nyan paths as its
+// own arguments and is left whole.
+func splitAtRunTarget(args []string) (ours, theirs []string) {
+	command := ""
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			command = a
+			break
+		}
+	}
+	if command != "run" && !strings.HasSuffix(command, ".nyan") {
+		return args, nil
+	}
+	for i, a := range args {
+		if strings.HasSuffix(a, ".nyan") {
+			return args[:i+1], args[i+1:]
+		}
+	}
+	return args, nil
 }
 
 func runTestCommand(c *compiler.Compiler, args []string) {
@@ -545,7 +594,7 @@ Usage:
   meow <command> [arguments]
 
 Commands:
-  run <file.nyan>              Run a .nyan file
+  run <file.nyan> [args...]    Run a .nyan file, passing args to the program
   build <file.nyan> [-o name]  Build a binary
   transpile <file.nyan>        Show generated Go code
   test [files...]              Run _test.nyan files
@@ -564,13 +613,18 @@ Use "meow help <command>" for more information about a command.`)
 
 func printSubcommandHelp(cmd string) {
 	helps := map[string]string{
-		"run": `Usage: meow run <file.nyan>
+		"run": `Usage: meow run <file.nyan> [program arguments...]
 
 Run a .nyan program. The file is compiled to Go and executed immediately.
 
+Everything after the .nyan file is passed to the program, where env.haul reads
+it, so a program may use flags of its own spelling — including -v. meow exits
+with whatever status the program ended on.
+
 Examples:
   meow run hello.nyan
-  meow run examples/hello.nyan`,
+  meow run examples/hello.nyan
+  meow run check.nyan --target https://example.com`,
 
 		"build": `Usage: meow build <file.nyan> [-o name]
 

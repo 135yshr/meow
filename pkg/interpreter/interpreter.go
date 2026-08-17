@@ -27,6 +27,17 @@ type returnSignal struct {
 // stepLimitExceeded signals that the step limit was reached.
 type stepLimitExceeded struct{}
 
+// scramSignal signals that the program asked to end, carrying the status it
+// asked to end with.
+//
+// A compiled program hands that status to whatever started it. The playground
+// has nothing to hand it to, so the run simply stops here and the status is
+// kept for a caller that wants it — what a program printed before scramming is
+// still worth showing.
+type scramSignal struct {
+	Code int
+}
+
 // Interpreter executes a Meow AST directly.
 type Interpreter struct {
 	globals    *Environment
@@ -37,6 +48,7 @@ type Interpreter struct {
 	funcDefs   map[string]*ast.FuncStmt
 	stepCount  int64
 	stepLimit  int64
+	exitCode   int
 }
 
 // New creates a new Interpreter that writes output to w.
@@ -81,10 +93,30 @@ func (interp *Interpreter) RunSafe(prog *ast.Program) (err error) {
 	return nil
 }
 
-// Run executes the program. Panics propagate to the caller.
+// ExitCode reports the status the last run asked to end with. A run that
+// reached the end on its own reports 0, as a process that ran out of statements
+// does.
+func (interp *Interpreter) ExitCode() int {
+	return interp.exitCode
+}
+
+// Run executes the program. Panics propagate to the caller, except the one
+// scram raises: a program asking to end is not a failure, so the run stops
+// where it asked to and keeps whatever it printed on the way.
 func (interp *Interpreter) Run(prog *ast.Program) {
 	meowrt.ClearMethods()
 	interp.stepCount = 0
+	interp.exitCode = 0
+
+	defer func() {
+		if r := recover(); r != nil {
+			sig, ok := r.(scramSignal)
+			if !ok {
+				panic(r)
+			}
+			interp.exitCode = sig.Code
+		}
+	}()
 
 	// Pass 1: collect declarations
 	for _, stmt := range prog.Stmts {
@@ -456,6 +488,12 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 		return interp.builtinNya(args), true
 	case "hiss":
 		return meowrt.Hiss(args...), true
+	case "scram":
+		code, fb := meowrt.ScramCode(args...)
+		if fb != nil {
+			return fb, true
+		}
+		panic(scramSignal{Code: code})
 	case "len":
 		requireArgs("len", args, 1)
 		return meowrt.Len(args[0]), true

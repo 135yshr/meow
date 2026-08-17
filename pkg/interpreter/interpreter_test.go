@@ -1053,3 +1053,62 @@ func TestTextAndListHelpers(t *testing.T) {
 		})
 	}
 }
+
+// scram ends the run where it was called. The playground has no process to hand
+// a status to, so the run simply stops and keeps whatever was printed on the
+// way — which is the part a reader of the playground can still use.
+func TestScramStopsTheProgram(t *testing.T) {
+	got := runMeow(t, `
+nya("before")
+scram(3)
+nya("after")
+`)
+	if got != "before\n" {
+		t.Errorf("got %q, want %q", got, "before\n")
+	}
+}
+
+func TestScramReportsItsStatus(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   int
+	}{
+		{"a status", `scram(3)`, 3},
+		{"no argument means success", `scram()`, 0},
+		// A run that reached the end on its own succeeded, as a process that
+		// ran out of statements does.
+		{"never scrammed", `nya("done")`, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.source, "test.nyan")
+			p := parser.New(l.Tokens())
+			prog, parseErrs := p.Parse()
+			if len(parseErrs) > 0 {
+				t.Fatalf("parse errors: %v", parseErrs)
+			}
+			var buf bytes.Buffer
+			interp := New(&buf)
+			if err := interp.RunSafe(prog); err != nil {
+				t.Fatalf("runtime error: %v", err)
+			}
+			if got := interp.ExitCode(); got != tt.want {
+				t.Errorf("exit code %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+// A status no process could report is a Furball, exactly as it is in a compiled
+// program — and nothing ends, because nothing was asked for that could be done.
+func TestScramRefusesAStatusAProcessCannotReport(t *testing.T) {
+	got := runMeow(t, `
+nya(scram(300) ~> "status out of range")
+nya("still running")
+`)
+	want := "status out of range\nstill running\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

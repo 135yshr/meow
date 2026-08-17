@@ -141,6 +141,7 @@ func TestArityErrorsAreFurballs(t *testing.T) {
 		{"sniffed with no arguments", env.Sniffed()},
 		{"sniffed with two arguments", env.Sniffed(meowrt.NewString("A"), meowrt.NewString("B"))},
 		{"prowl with an argument", env.Prowl(meowrt.NewString("A"))},
+		{"haul with an argument", env.Haul(meowrt.NewString("A"))},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -149,4 +150,37 @@ func TestArityErrorsAreFurballs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// The program's own name is left out: a program wants what it was asked to do,
+// and the path it happens to be installed at is not part of that.
+func TestHaulLeavesOutTheProgramName(t *testing.T) {
+	withArgs(t, "/usr/local/bin/probe", "--target", "https://example.test")
+
+	got := env.Haul()
+	l, ok := got.(*meowrt.List)
+	if !ok {
+		t.Fatalf("expected a List, got %s", got.String())
+	}
+	if l.String() != "[--target, https://example.test]" {
+		t.Errorf("got %s, want [--target, https://example.test]", l.String())
+	}
+}
+
+// A program started with no arguments gets an empty litter, so len answers
+// without a special case for "none".
+func TestHaulWithNoArgumentsIsEmpty(t *testing.T) {
+	withArgs(t, "/usr/local/bin/probe")
+
+	if got := env.Haul(); got.String() != "[]" {
+		t.Errorf("got %s, want []", got.String())
+	}
+}
+
+// withArgs replaces the command line for one test.
+func withArgs(t *testing.T, args ...string) {
+	t.Helper()
+	original := os.Args
+	os.Args = args
+	t.Cleanup(func() { os.Args = original })
 }

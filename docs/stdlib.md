@@ -32,6 +32,37 @@ hiss("bad value:", x)
 
 This function never returns.
 
+### `scram([status])`
+
+End the program with the given status.
+
+- **status** (int, optional): 0 to 255. Omitted means 0.
+- **Never returns**, unless the status is one no process could report.
+- **Returns a Furball**: If `status` is not an int, or is outside 0 to 255.
+
+A status is how a program tells the shell, cron job or CI step that started it
+what it found. Without one, a check that saw an endpoint go down could only say
+so in words that nothing downstream reads.
+
+```meow
+sniff (down > 0) {
+  nya(to_string(down) + " endpoint(s) down")
+  scram(1)
+}
+scram()          # the same as scram(0): finished, nothing wrong
+```
+
+A status outside 0 to 255 is refused rather than wrapped. A shell sees only the
+low eight bits, so `scram(256)` would arrive as 0 — a program asking to fail
+would be read as having succeeded.
+
+Nothing after `scram` runs, and `gag` cannot catch it: the program is over. As
+with `hiss`, a typed function that ends in `scram` still needs a `bring` after
+it, since the checker reads the function as having a path with no return.
+
+In the playground there is no process to end, so the run simply stops where
+`scram` was called and keeps whatever it printed on the way.
+
 ### `gag(fn)`
 
 Call a zero-argument function and catch any panic. If the function succeeds, its return value is returned. If it panics, the error is wrapped in a `Furball` and returned.
@@ -616,6 +647,32 @@ empty string.
 nab "env"
 nya(env.sniffed("HOME"))   # => yarn
 ```
+
+### `env.haul()`
+
+Read the arguments the program was started with.
+
+- **Returns**: A litter of strings, in the order they were given.
+- **Returns a Furball**: If called with any arguments.
+
+The program's own name is left out — a program wants what it was asked to do,
+not the path it happens to be installed at. A program started with no arguments
+gets an empty litter, so `len` answers without a special case for "none".
+
+```meow
+nab "env"
+
+nyan given = env.haul()
+sniff (len(given) == 0) {
+  nya("usage: check <targets file>")
+  scram(2)
+}
+nyan targets = head(given)
+```
+
+Everything typed after the `.nyan` file belongs to the program, so
+`meow run check.nyan -v` hands `-v` to the program rather than reading it as
+meow's own flag. Running the built binary the same way gives the same answer.
 
 ### `env.prowl()`
 

@@ -1000,6 +1000,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow.Nya(%s)", strings.Join(args, ", "))
+	// scram ends the program rather than returning, so unlike hiss it needs no
+	// bridge into the typed path's panic-and-recover: there is nothing left to
+	// return a value to.
+	case "scram":
+		args := make([]string, len(e.Args))
+		for i, a := range e.Args {
+			args[i] = g.boxValue(a)
+		}
+		return fmt.Sprintf("meow.Scram(%s)", strings.Join(args, ", "))
 	case "hiss":
 		// In typed contexts a function returns a native Go type (int64, etc.)
 		// and cannot return a Furball value. Panic so that `gag`'s deferred
@@ -1604,6 +1613,8 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 			return fmt.Sprintf("meow.Nya(%s)", argStr)
 		case "hiss":
 			return fmt.Sprintf("meow.Hiss(%s)", argStr)
+		case "scram":
+			return fmt.Sprintf("meow.Scram(%s)", argStr)
 		case "lick":
 			return fmt.Sprintf("meow.Lick(%s)", argStr)
 		case "picky":

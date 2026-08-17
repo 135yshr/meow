@@ -79,6 +79,29 @@ func Sniffed(args ...meowrt.Value) meowrt.Value {
 	return meowrt.NewBool(ok)
 }
 
+// Haul returns the arguments the program was started with, as a List of
+// Strings.
+//
+// The program's own name is left out: a program wants what it was asked to do,
+// and the path it happens to be installed at is not part of that. A program
+// started with no arguments gets an empty litter, so len tells a caller whether
+// it was given anything without a special case for "none".
+//
+// Variadic for the same reason as Sniffed.
+func Haul(args ...meowrt.Value) meowrt.Value {
+	if len(args) != 0 {
+		return furball("haul expects no arguments, got %d", len(args))
+	}
+	// os.Args[0] is the program's own name, and os.Args is never empty in a
+	// program the Go runtime started.
+	given := os.Args[1:]
+	values := make([]meowrt.Value, len(given))
+	for i, a := range given {
+		values[i] = meowrt.NewString(a)
+	}
+	return meowrt.NewList(values...)
+}
+
 // Prowl returns the names of every environment variable, sorted, as a List of
 // Strings. Only the names are returned: listing the values would make it far
 // too easy to print a secret by accident.
