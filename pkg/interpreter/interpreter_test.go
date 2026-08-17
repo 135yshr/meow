@@ -992,3 +992,33 @@ nya(fallback(yarn))`, "true\n"},
 		})
 	}
 }
+
+// A basket walks by key, in sorted order, and its two-variable form binds key
+// then value. Both backends use the same runtime iterators, so they agree on
+// the order as well as the bindings.
+func TestBasketIteration(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{"keys in sorted order", `nyan m = {"b": 2, "a": 1}
+purr k (m) { nya(k) }`, "a\nb\n"},
+		{"key and value", `nyan m = {"b": 2, "a": 1}
+purr k, v (m) { nya(k + "=" + to_string(v)) }`, "a=1\nb=2\n"},
+		{"length", `nya(len({"a": 1, "b": 2}))`, "2\n"},
+		{"empty basket", `purr k ({}) { nya(k) }
+nya("done")`, "done\n"},
+		{"basket from a call", `meow settings() basket { bring {"x": 1} }
+purr k (settings()) { nya(k) }`, "x\n"},
+		{"nested basket", `nyan t = {"outer": {"inner": "leaf"}}
+purr k (t["outer"]) { nya(k) }`, "inner\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runMeow(t, tt.src); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

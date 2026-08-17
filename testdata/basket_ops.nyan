@@ -1,0 +1,49 @@
+# Baskets: the string-keyed dictionary type.
+#
+# Until now a basket had no type name, so a function returning one — which
+# http.chase does — could not be annotated. It could not be measured or walked
+# either, which left `to_string(v) == "catnap"` as the only way to ask anything
+# about one.
+
+nyan m = {"b": 2, "a": 1, "c": 3}
+
+nya(len(m))
+nya(len({}))
+
+# A basket is walked by key, in sorted order. Go randomises map iteration, so
+# without sorting a program's output would differ run to run.
+purr k (m) { nya(k) }
+
+# The two-variable form binds key then value, as it binds index then element
+# for a litter.
+purr k, v (m) { nya(k + "=" + to_string(v)) }
+
+# `basket` names the type, so a function may say it returns one.
+meow settings() basket {
+  bring {"retries": 3, "verbose": yarn}
+}
+nya(settings()["retries"])
+
+meow count_of(b basket) int {
+  bring len(b)
+}
+nya(count_of(m))
+
+# A basket reached through a call has no static type, so the loop's form is
+# settled when it runs — the same as for a litter.
+purr k (settings()) { nya(k) }
+
+# Nested baskets walk like any other.
+nyan tree = {"outer": {"inner": "leaf"}}
+purr k (tree["outer"]) { nya(k) }
+nya(tree["outer"]["inner"])
+
+# An absent key reads as catnap, so presence is a plain comparison.
+nya(m["a"] == catnap)
+nya(m["zzz"] == catnap)
+
+# Litters and counts are unchanged.
+purr x (["p", "q"]) { nya(x) }
+purr i, x (["p", "q"]) { nya(to_string(i) + ":" + x) }
+purr i (3) { nya(i) }
+purr i (1..3) { nya(i) }

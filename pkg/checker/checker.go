@@ -381,6 +381,8 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 			return types.FurballType{}
 		case "litter":
 			return types.ListType{Elem: types.AnyType{}}
+		case "basket":
+			return types.MapType{Val: types.AnyType{}}
 		default:
 			return types.AnyType{}
 		}
@@ -898,29 +900,62 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 		}
 	}
 	endType := types.Unwrap(c.inferExpr(s.End))
-	isListRange := false
+	elementwise := s.Start == nil && !s.Inclusive
+	var listType types.ListType
+	var mapType types.MapType
+	isListRange, isMapRange := false, false
 	if !types.IsAny(endType) {
-		if _, ok := endType.(types.ListType); ok && s.Start == nil && !s.Inclusive {
-			isListRange = true
-		} else if _, ok := endType.(types.StringType); ok && s.Start == nil && !s.Inclusive {
-			c.addError(s.Token.Pos, "Cannot iterate over string directly, use to_runes() to convert first")
-		} else if _, ok := endType.(types.IntType); !ok {
-			c.addError(s.Token.Pos, "Range end must be int or list, got %s", endType)
+		switch t := endType.(type) {
+		case types.ListType:
+			isListRange, listType = elementwise, t
+		case types.MapType:
+			isMapRange, mapType = elementwise, t
+		case types.StringType:
+			if elementwise {
+				c.addError(s.Token.Pos, "Cannot iterate over string directly, use to_runes() to convert first")
+			}
+		case types.IntType:
+			// counted
+		default:
+			c.addError(s.Token.Pos, "Range end must be int, litter or basket, got %s", endType)
 		}
 	}
-	if s.IndexVar != "" && !isListRange {
-		c.addError(s.Token.Pos, "Two-variable form is only allowed for list iteration")
+	// The two-variable form needs something to put in the first variable: a
+	// litter's index or a basket's key. Counting has only the one number.
+	if s.IndexVar != "" && !isListRange && !isMapRange && !types.IsAny(endType) {
+		c.addError(s.Token.Pos, "Two-variable form is only allowed for litter or basket iteration")
 	}
 	c.pushScope()
-	if isListRange {
-		elemType := endType.(types.ListType).Elem
-		c.define(s.Var, elemType)
-		c.info.VarTypes[s.Var] = elemType
+	switch {
+	case isListRange:
+		c.define(s.Var, listType.Elem)
+		c.info.VarTypes[s.Var] = listType.Elem
 		if s.IndexVar != "" {
 			c.define(s.IndexVar, types.IntType{})
 			c.info.VarTypes[s.IndexVar] = types.IntType{}
 		}
-	} else {
+	case isMapRange:
+		// The one-variable form binds a key, which is always a string; the
+		// two-variable form binds key then value.
+		if s.IndexVar != "" {
+			c.define(s.IndexVar, types.StringType{})
+			c.info.VarTypes[s.IndexVar] = types.StringType{}
+			c.define(s.Var, mapType.Val)
+			c.info.VarTypes[s.Var] = mapType.Val
+		} else {
+			c.define(s.Var, types.StringType{})
+			c.info.VarTypes[s.Var] = types.StringType{}
+		}
+	case types.IsAny(endType):
+		// Nothing is known about the subject, so nothing is known about what
+		// the loop binds either.
+		c.define(s.Var, types.AnyType{})
+		c.info.VarTypes[s.Var] = types.AnyType{}
+		if s.IndexVar != "" {
+			c.define(s.IndexVar, types.AnyType{})
+			c.info.VarTypes[s.IndexVar] = types.AnyType{}
+		}
+	default:
 		c.define(s.Var, types.IntType{})
 		c.info.VarTypes[s.Var] = types.IntType{}
 	}
@@ -994,7 +1029,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		for _, v := range e.Vals {
 			c.inferExpr(v)
 		}
-		return types.AnyType{}
+		// The value type is left open: a basket routinely holds a mixture, as
+		// an HTTP response does with its status, body and headers.
+		return types.MapType{Val: types.AnyType{}}
 	case *ast.MatchExpr:
 		c.inferExpr(e.Subject)
 		var armType types.Type

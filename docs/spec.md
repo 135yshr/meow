@@ -50,10 +50,10 @@ collar    pose      groom     self      trill
 
 ### Type Keywords
 
-The following 6 identifiers are reserved as type keywords:
+The following 7 identifiers are reserved as type keywords:
 
 ```text
-int    float    string    bool    furball    litter
+int    float    string    bool    furball    litter    basket
 ```
 
 ### Identifiers
@@ -129,7 +129,7 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | Type | Description | Syntax |
 |------|-------------|--------|
 | `litter` | Ordered collection of values | `[1, 2, 3]` |
-| Map | String-keyed dictionary | `{"key": value}` |
+| `basket` | String-keyed dictionary | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
@@ -186,7 +186,7 @@ requirement without repeating the type — in `meow add(a, b int)`, `a` takes th
 type of the next parameter that has one.
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
+TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | "basket" | identifier .
 ```
 
 Variable declaration with type:
@@ -449,14 +449,21 @@ Three forms:
 - **Count form**: `purr i (n)` — iterates `i` from `0` to `n-1`.
 - **Range form**: `purr i (a..b)` — iterates `i` from `a` to `b` (inclusive).
 - **Element form**: `purr x (litter)` — iterates over a litter's elements.
-  `purr i, x (litter)` also binds the index.
+  `purr i, x (litter)` also binds the index. Over a `basket`, `purr k (basket)`
+  binds each key and `purr k, v (basket)` binds key and value.
 
 ```meow
 purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
 purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
 purr w (["a", "b"]) { nya(w) }        # a, b
 purr i, w (["a", "b"]) { nya(i) }     # 0, 1
+purr k ({"a": 1, "b": 2}) { nya(k) }         # a, b
+purr k, v ({"a": 1}) { nya(k + to_string(v)) }   # a1
 ```
+
+A `basket` is walked in sorted key order. Go, which the compiler targets,
+randomizes map iteration, so walking one in its own order would give a program
+output that differed from run to run.
 
 The count and element forms are written the same way, so which one a `purr`
 means depends on what its subject turns out to be: a litter is walked element by
@@ -473,7 +480,7 @@ NabStmt = "nab" string_lit newline .
 ```
 
 Imports a standard library package. Available packages: `"aws"`, `"clock"`,
-`"env"`, `"file"`, `"http"`, `"random"`, `"testing"`.
+`"env"`, `"file"`, `"http"`, `"json"`, `"random"`, `"testing"`.
 
 ```meow
 nab "http"

@@ -1,0 +1,19 @@
+1
+1
+m1 @ 1700
+count
+hits
+42
+2.5
+true
+true
+plain
+[1, 2, 3]
+{"a":1,"b":[1,2,3],"c":null,"d":true}
+[1,2,3]
+"text"
+{"n":1,"s":"two"}
+not json
+empty
+malformed
+cannot write that

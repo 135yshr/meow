@@ -79,6 +79,8 @@ func Len(v Value) Value {
 		return NewInt(int64(len(v.Val)))
 	case *List:
 		return NewInt(int64(v.Len()))
+	case *Map:
+		return NewInt(int64(len(v.Items)))
 	default:
 		return &Furball{Message: fmt.Sprintf("Hiss! Cannot get length of %s, nya~", v.Type())}
 	}
