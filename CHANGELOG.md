@@ -1,3 +1,8 @@
+# [v0.12.0](https://github.com/135yshr/meow/compare/v0.11.3...v0.12.0) (2026-08-17)
+
+## ✨ New Features
+- [`fe61fd5`](https://github.com/135yshr/meow/commit/fe61fd5)  feat: Read numbers from strings, and report unknown names as Meow errors (#117) (Issues: [`#117`](https://github.com/135yshr/meow/issues/117) [`#116`](https://github.com/135yshr/meow/issues/116))
+
 # [v0.11.3](https://github.com/135yshr/meow/compare/v0.11.2...v0.11.3) (2026-08-17)
 
 ## 🐛 Bug Fixes
