@@ -826,6 +826,20 @@ func (g *Generator) genTypedUnary(e *ast.UnaryExpr) string {
 	return g.genUnary(e)
 }
 
+// nilOperand reports whether an operand is catnap — the literal, or a value
+// the checker typed as nil.
+func (g *Generator) nilOperand(e ast.Expr) bool {
+	if _, ok := e.(*ast.NilLit); ok {
+		return true
+	}
+	t := g.getExprType(e)
+	if t == nil {
+		return false
+	}
+	_, ok := types.Unwrap(t).(types.NilType)
+	return ok
+}
+
 // operandKind reports an operand's type with aliases resolved, and whether it
 // is one the typed path can name a Go type for.
 func (g *Generator) operandKind(expr ast.Expr) (types.Type, bool) {
@@ -872,6 +886,19 @@ func (g *Generator) genTypedOperands(e *ast.BinaryExpr) (left, right string, nat
 }
 
 func (g *Generator) genTypedBinary(e *ast.BinaryExpr) string {
+	// catnap never compares natively. NewNil allocates, so Go's == would weigh
+	// two pointers and always answer false; and reading catnap as the other
+	// side's Go type would demand a string of it. Either side being catnap goes
+	// to the runtime, which knows catnap equals only itself.
+	if e.Op == token.EQ || e.Op == token.NEQ {
+		if g.nilOperand(e.Left) || g.nilOperand(e.Right) {
+			fn := "Equal"
+			if e.Op == token.NEQ {
+				fn = "NotEqual"
+			}
+			return fmt.Sprintf("meow.%s(%s, %s).IsTruthy()", fn, g.boxValue(e.Left), g.boxValue(e.Right))
+		}
+	}
 	left, right, native := g.genTypedOperands(e)
 	if !native {
 		// Neither side names a Go type. The boxed operators still know what to

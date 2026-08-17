@@ -155,7 +155,7 @@ From lowest to highest:
 |------|---------|-------------|
 | Integer | `42` | Decimal integer |
 | Float | `3.14` | Floating-point number |
-| String | `"Hello, world!"` | Double-quoted, `\\` for escape |
+| String | `"Hello, world!"` | Double-quoted. Escapes: `\"` `\\` `\n` `\t` `\r` |
 | List | `[1, 2, 3]` | Ordered collection |
 | Map | `{"key": "value"}` | String-keyed dictionary |
 

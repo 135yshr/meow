@@ -166,10 +166,18 @@ func Not(v Value) Value {
 	return NewBool(!v.IsTruthy())
 }
 
-// Equal checks equality between same-type operands only.
+// Equal checks equality between same-type operands, plus catnap against
+// anything. Comparing a value to catnap is how a program asks "is this
+// missing?" — an unset environment variable, an absent map key — so it has to
+// answer rather than fail. catnap is equal only to catnap.
 func Equal(a, b Value) Value {
 	if f := propagate(a, b); f != nil {
 		return f
+	}
+	_, aNil := a.(*NilValue)
+	_, bNil := b.(*NilValue)
+	if aNil || bNil {
+		return NewBool(aNil && bNil)
 	}
 	switch a := a.(type) {
 	case *Int:
@@ -191,10 +199,6 @@ func Equal(a, b Value) Value {
 	case *Bool:
 		if b, ok := b.(*Bool); ok {
 			return NewBool(a.Val == b.Val)
-		}
-	case *NilValue:
-		if _, ok := b.(*NilValue); ok {
-			return NewBool(true)
 		}
 	case *List:
 		if b, ok := b.(*List); ok {

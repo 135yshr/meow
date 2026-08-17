@@ -247,3 +247,32 @@ func TestLessEqualIntFloat_Furball(t *testing.T) {
 func TestGreaterEqualIntFloat_Furball(t *testing.T) {
 	expectFurball(t, "Cannot compare", func() Value { return GreaterEqual(NewInt(1), NewFloat(2.0)) })
 }
+
+// Comparing a value to catnap is how a program asks "is this missing?" — an
+// unset env var, an absent map key — so it answers instead of failing.
+func TestEqualNilAgainstOtherTypes(t *testing.T) {
+	others := []Value{
+		NewString("cat"),
+		NewInt(0),
+		NewFloat(0),
+		NewBool(false),
+		NewList(),
+	}
+	for _, v := range others {
+		if Equal(v, NewNil()).(*Bool).Val {
+			t.Errorf("%s == catnap: expected false", v.Type())
+		}
+		if Equal(NewNil(), v).(*Bool).Val {
+			t.Errorf("catnap == %s: expected false", v.Type())
+		}
+		if !NotEqual(v, NewNil()).(*Bool).Val {
+			t.Errorf("%s != catnap: expected true", v.Type())
+		}
+	}
+}
+
+func TestNotEqualNilNil(t *testing.T) {
+	if NotEqual(NewNil(), NewNil()).(*Bool).Val {
+		t.Error("catnap != catnap: expected false")
+	}
+}

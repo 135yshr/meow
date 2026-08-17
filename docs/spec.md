@@ -245,7 +245,22 @@ BinaryExpr = Expr op Expr .
 
 Arithmetic operators (`+`, `-`, `*`, `/`, `%`) require operands of the same type. `+` also concatenates strings.
 
-Comparison operators (`<`, `>`, `<=`, `>=`) work on `int` and `float`. Equality operators (`==`, `!=`) work on all types.
+Comparison operators (`<`, `>`, `<=`, `>=`) work on `int` and `float`.
+
+Equality operators (`==`, `!=`) require operands of the same type — comparing
+two different types, as in `1 == "one"`, is an error. The one exception is
+`catnap`: either side may be `catnap` whatever the other side is, because
+comparing against it asks "is this missing?", which any value may be asked —
+an unset environment variable and an absent map key both answer with it.
+`catnap` equals only `catnap`.
+
+```meow
+nyan token = env.hunt("API_TOKEN")
+sniff (token == catnap) { hiss("API_TOKEN is not set") }
+
+nyan m = {"a": "A"}
+nya(m["missing"] == catnap)   # => yarn
+```
 
 Logical operators (`&&`, `||`) use short-circuit evaluation. `&&` returns the left operand if falsy, otherwise the right. `||` returns the left operand if truthy, otherwise the right.
 

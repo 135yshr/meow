@@ -168,11 +168,16 @@ nya(to_string(to_bytes("hello")))   # => hello
 
 ### `to_bytes(s)`
 
-Convert a string to a list of byte (integer) values.
+Convert a string to a list of its UTF-8 bytes.
 
 - **s** (string): The string to convert.
-- **Returns**: A list of integers representing the UTF-8 byte values.
+- **Returns**: A list of byte values, which print like integers.
 - **Panics**: If the argument is not a string.
+
+The elements are byte values, a type nothing else produces — a list you write
+out yourself, such as `[65]`, holds ints instead. That is what lets `to_string`
+tell a byte list apart from any other list and reassemble it, so `[65]` prints
+as `[65]` while `to_bytes("A")` round-trips back to `"A"`.
 
 ```meow
 nya(to_bytes("ABC"))    # => [65, 66, 67]

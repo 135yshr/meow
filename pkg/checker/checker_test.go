@@ -1239,3 +1239,34 @@ purr i (5) {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
+
+// Comparing against catnap asks "is this missing?", which any type may ask —
+// env.hunt and an absent map key both answer with it.
+func TestCompareAgainstNilIsAllowed(t *testing.T) {
+	sources := []string{
+		`nyan x = "cat"
+nyan missing = x == catnap`,
+		`nyan x = "cat"
+nyan missing = catnap == x`,
+		`nyan x = 42
+nyan present = x != catnap`,
+		`nyan x = catnap
+nyan same = x == catnap`,
+	}
+	for _, src := range sources {
+		_, errs := check(t, src)
+		if len(errs) > 0 {
+			t.Errorf("unexpected errors for %q: %v", src, errs)
+		}
+	}
+}
+
+func TestCompareMismatchedTypesStillErrors(t *testing.T) {
+	_, errs := check(t, `nyan bad = 1 == "one"`)
+	if len(errs) == 0 {
+		t.Fatal("expected a type error comparing int and string")
+	}
+	if !strings.Contains(errs[0].Error(), "Cannot compare") {
+		t.Errorf("expected a Cannot compare error, got %v", errs[0])
+	}
+}

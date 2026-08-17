@@ -1037,7 +1037,13 @@ func (c *Checker) inferBinary(e *ast.BinaryExpr) types.Type {
 		// Allow comparison between different collar types (runtime handles it)
 		_, leftIsCollar := uleft.(types.CollarType)
 		_, rightIsCollar := uright.(types.CollarType)
-		if !(leftIsCollar && rightIsCollar) && !uleft.Equals(uright) {
+		// Comparing against catnap asks "is this missing?", which every type
+		// may ask — env.hunt and absent map keys both answer with it.
+		_, leftIsNil := uleft.(types.NilType)
+		_, rightIsNil := uright.(types.NilType)
+		nilCompare := leftIsNil || rightIsNil
+		canCompare := nilCompare || (leftIsCollar && rightIsCollar) || uleft.Equals(uright)
+		if !canCompare {
 			c.addError(e.Token.Pos, "Cannot compare %s and %s", left, right)
 		}
 		return types.BoolType{}
