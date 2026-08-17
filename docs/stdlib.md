@@ -62,6 +62,10 @@ Nothing after `scram` runs, and `gag` cannot catch it: the program is over. As
 with `hiss`, a typed function that ends in `scram` still needs a `bring` after
 it, since the checker reads the function as having a path with no return.
 
+Inside a fully typed function a refused status is raised rather than returned —
+such a function has no way to hand a Furball back — so `gag` catches it there
+the way it catches a `hiss`.
+
 In the playground there is no process to end, so the run simply stops where
 `scram` was called and keeps whatever it printed on the way.
 

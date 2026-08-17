@@ -31,6 +31,31 @@ func Scram(args ...Value) Value {
 	return NewNil()
 }
 
+// ScramOrHiss ends the program, or raises the reason the status was refused.
+//
+// It is what a fully typed function calls, because such a function returns a
+// native Go type and has no way to hand back a Furball. Raising it is the same
+// bridge hiss uses there: gag's deferred recover turns it back into a Furball
+// at the boundary. Called as a bare statement the returned Furball would simply
+// be dropped, and a refused status would vanish.
+func ScramOrHiss(args ...Value) Value {
+	v := Scram(args...)
+	if f, ok := v.(*Furball); ok {
+		panic(f.String())
+	}
+	return v
+}
+
+// ScramSignal is raised by the playground interpreter, which has no process to
+// end, to unwind to the top of the run.
+//
+// It lives here beside Scram so that Gag can tell it apart from a failure and
+// let it past: a program that asked to end is not an error to be caught, and a
+// compiled program could not catch os.Exit either.
+type ScramSignal struct {
+	Code int
+}
+
 // ScramCode reads the status Scram was given, reporting a Furball if it is not
 // one a process can report.
 //

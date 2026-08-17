@@ -1000,15 +1000,17 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			args[i] = g.boxValue(a)
 		}
 		return fmt.Sprintf("meow.Nya(%s)", strings.Join(args, ", "))
-	// scram ends the program rather than returning, so unlike hiss it needs no
-	// bridge into the typed path's panic-and-recover: there is nothing left to
-	// return a value to.
+	// A status a process can report never comes back, but a refused one is a
+	// Furball — and a typed function returns a native Go type, so it has no way
+	// to pass one on. ScramOrHiss raises it instead, the same bridge hiss uses
+	// here; emitting a bare call would drop it and carry on as if the program
+	// had asked for nothing.
 	case "scram":
 		args := make([]string, len(e.Args))
 		for i, a := range e.Args {
 			args[i] = g.boxValue(a)
 		}
-		return fmt.Sprintf("meow.Scram(%s)", strings.Join(args, ", "))
+		return fmt.Sprintf("meow.ScramOrHiss(%s)", strings.Join(args, ", "))
 	case "hiss":
 		// In typed contexts a function returns a native Go type (int64, etc.)
 		// and cannot return a Furball value. Panic so that `gag`'s deferred

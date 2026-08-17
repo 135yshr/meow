@@ -27,17 +27,6 @@ type returnSignal struct {
 // stepLimitExceeded signals that the step limit was reached.
 type stepLimitExceeded struct{}
 
-// scramSignal signals that the program asked to end, carrying the status it
-// asked to end with.
-//
-// A compiled program hands that status to whatever started it. The playground
-// has nothing to hand it to, so the run simply stops here and the status is
-// kept for a caller that wants it — what a program printed before scramming is
-// still worth showing.
-type scramSignal struct {
-	Code int
-}
-
 // Interpreter executes a Meow AST directly.
 type Interpreter struct {
 	globals    *Environment
@@ -110,7 +99,7 @@ func (interp *Interpreter) Run(prog *ast.Program) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			sig, ok := r.(scramSignal)
+			sig, ok := r.(meowrt.ScramSignal)
 			if !ok {
 				panic(r)
 			}
@@ -493,7 +482,7 @@ func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (me
 		if fb != nil {
 			return fb, true
 		}
-		panic(scramSignal{Code: code})
+		panic(meowrt.ScramSignal{Code: code})
 	case "len":
 		requireArgs("len", args, 1)
 		return meowrt.Len(args[0]), true

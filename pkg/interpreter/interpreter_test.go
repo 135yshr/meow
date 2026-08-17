@@ -1112,3 +1112,38 @@ nya("still running")
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// gag catches failures, and a program asking to end is not one — a compiled
+// program cannot catch os.Exit either. The catch expression goes through the
+// same recovery, so both are checked here.
+func TestScramIsNotCaught(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+	}{
+		{"gag", "nya(\"before\")\nnya(gag(paw() { scram(3) }))\nnya(\"after\")\n"},
+		{"catch", "nya(\"before\")\nnya(scram(3) ~> \"caught\")\nnya(\"after\")\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.source, "test.nyan")
+			p := parser.New(l.Tokens())
+			prog, parseErrs := p.Parse()
+			if len(parseErrs) > 0 {
+				t.Fatalf("parse errors: %v", parseErrs)
+			}
+			var buf bytes.Buffer
+			interp := New(&buf)
+			if err := interp.RunSafe(prog); err != nil {
+				t.Fatalf("runtime error: %v", err)
+			}
+
+			if buf.String() != "before\n" {
+				t.Errorf("got %q, want %q", buf.String(), "before\n")
+			}
+			if interp.ExitCode() != 3 {
+				t.Errorf("exit code %d, want 3", interp.ExitCode())
+			}
+		})
+	}
+}

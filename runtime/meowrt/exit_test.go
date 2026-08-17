@@ -1,6 +1,9 @@
 package meowrt
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // withFakeExit replaces the exit hook for one test, so a test that scrams does
 // not take the test binary with it.
@@ -65,4 +68,56 @@ func TestScramRefusesAStatusAProcessCannotReport(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A typed function returns a native Go type and cannot pass a Furball back, so
+// a refused status is raised there instead — the same bridge hiss uses. A bare
+// call would drop it and the program would carry on as if nothing was asked.
+func TestScramOrHissRaisesARefusedStatus(t *testing.T) {
+	got := withFakeExit(t)
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected a panic")
+		}
+		if msg, ok := r.(string); !ok || !strings.Contains(msg, "0 to 255") {
+			t.Errorf("panicked with %v, want the reason the status was refused", r)
+		}
+		if *got != -1 {
+			t.Errorf("exited with %d, want no exit at all", *got)
+		}
+	}()
+
+	ScramOrHiss(NewInt(300))
+}
+
+func TestScramOrHissEndsOnAGoodStatus(t *testing.T) {
+	got := withFakeExit(t)
+
+	ScramOrHiss(NewInt(3))
+
+	if *got != 3 {
+		t.Errorf("exited with %d, want 3", *got)
+	}
+}
+
+// gag catches failures, and a program asking to end is not one. A compiled
+// program could not catch os.Exit either, so letting the signal past is what
+// keeps the playground in step with it.
+func TestGagDoesNotCatchAProgramEnding(t *testing.T) {
+	defer func() {
+		r := recover()
+		sig, ok := r.(ScramSignal)
+		if !ok {
+			t.Fatalf("got %v, want the scram signal back", r)
+		}
+		if sig.Code != 3 {
+			t.Errorf("status %d, want 3", sig.Code)
+		}
+	}()
+
+	Gag(NewFunc("thunk", func(...Value) Value {
+		panic(ScramSignal{Code: 3})
+	}))
 }

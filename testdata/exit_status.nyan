@@ -16,9 +16,13 @@ nya(scram(0, 1) ~> "too many arguments")
 # None of those ended anything, so the program is still here.
 nya("still running")
 
-# Ending with no argument, or with 0, reports success. The golden harness runs
-# these programs and would call any other status a failed run, so a non-zero one
-# is covered by TestScramSetsTheExitStatus in compiler/ instead.
-scram(0)
+# gag catches failures, and a program asking to end is not one — a compiled
+# program cannot catch os.Exit either. So this ends the program with 0 rather
+# than answering with a Furball.
+#
+# The golden harness runs these programs and would call any status but 0 a
+# failed run, so the other statuses are covered by TestScramSetsTheExitStatus in
+# compiler/ instead.
+nya(gag(paw() { scram(0) }))
 
 nya("unreachable")

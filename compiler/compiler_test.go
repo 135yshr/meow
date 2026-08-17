@@ -277,3 +277,30 @@ func TestRunReportsNoErrorWhenTheProgramSucceeds(t *testing.T) {
 		t.Errorf("got %v, want no error", err)
 	}
 }
+
+// A fully typed function returns a native Go type and cannot pass a Furball
+// back, so a refused status is raised there rather than dropped. Emitting a
+// bare call left the program running as if nothing had been asked: this printed
+// 7 and succeeded.
+func TestScramRefusedInsideATypedFunction(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	source := "meow f() int {\n  scram(300)\n  bring 7\n}\nnya(to_string(f()))\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	binPath := filepath.Join(dir, "prog")
+	if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	out, err := exec.Command(binPath).CombinedOutput()
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("got %v and output %q, want a failure", err, string(out))
+	}
+	if !strings.Contains(string(out), "0 to 255") {
+		t.Errorf("output %q, want the reason the status was refused", string(out))
+	}
+}
