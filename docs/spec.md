@@ -129,7 +129,7 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | Type | Description | Syntax |
 |------|-------------|--------|
 | `litter` | Ordered collection of values | `[1, 2, 3]` |
-| `basket` | String-keyed dictionary | `{"key": value}` |
+| `basket` | String-keyed dictionary — keys are string literals | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |

@@ -906,13 +906,25 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 	isListRange, isMapRange := false, false
 	if !types.IsAny(endType) {
 		switch t := endType.(type) {
-		case types.ListType:
-			isListRange, listType = elementwise, t
-		case types.MapType:
-			isMapRange, mapType = elementwise, t
+		case types.ListType, types.MapType:
+			// A collection is walkable, but only in the elementwise form. As the
+			// end of `purr i (a..b)` it is a count, and there is no counting to
+			// a litter — that used to be caught here and would otherwise fail at
+			// run time with a positionless "expected int but got List".
+			if !elementwise {
+				c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
+				break
+			}
+			if lt, ok := t.(types.ListType); ok {
+				isListRange, listType = true, lt
+			} else {
+				isMapRange, mapType = true, t.(types.MapType)
+			}
 		case types.StringType:
 			if elementwise {
 				c.addError(s.Token.Pos, "Cannot iterate over string directly, use to_runes() to convert first")
+			} else {
+				c.addError(s.Token.Pos, "Range end must be int, got %s", endType)
 			}
 		case types.IntType:
 			// counted
@@ -921,8 +933,11 @@ func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
 		}
 	}
 	// The two-variable form needs something to put in the first variable: a
-	// litter's index or a basket's key. Counting has only the one number.
-	if s.IndexVar != "" && !isListRange && !isMapRange && !types.IsAny(endType) {
+	// litter's index or a basket's key. Counting has only the one number, so it
+	// is rejected even where the subject's type is unknown — accepting it there
+	// would leave a program that binds two variables when it turns out to be a
+	// litter and one when it turns out to be a number.
+	if s.IndexVar != "" && !isListRange && !isMapRange {
 		c.addError(s.Token.Pos, "Two-variable form is only allowed for litter or basket iteration")
 	}
 	c.pushScope()
@@ -1024,6 +1039,12 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		return rightType
 	case *ast.MapLit:
 		for _, k := range e.Keys {
+			// A basket is keyed by string literals. Anything else was accepted
+			// here and then dropped while generating code, so `{1: "a"}` built
+			// an empty basket rather than saying it could not be built.
+			if _, ok := k.(*ast.StringLit); !ok {
+				c.addError(e.Token.Pos, "Basket keys must be string literals")
+			}
 			c.inferExpr(k)
 		}
 		for _, v := range e.Vals {

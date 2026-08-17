@@ -102,3 +102,33 @@ nya(t.now() > 0)`},
 		})
 	}
 }
+
+// A basket is keyed by string literals. Anything else was accepted and then
+// dropped while generating code, so `{1: "a"}` built an empty basket rather
+// than saying it could not be built.
+func TestBasketKeysMustBeStringLiterals(t *testing.T) {
+	rejected := []struct {
+		name string
+		src  string
+	}{
+		{"int key", `nyan m = {1: "a"}`},
+		{"bool key", `nyan m = {yarn: "a"}`},
+		{"variable key", `nyan k = "a"
+nyan m = {k: 1}`},
+		{"expression key", `nyan m = {"a" + "b": 1}`},
+	}
+	for _, tt := range rejected {
+		t.Run(tt.name, func(t *testing.T) {
+			got := checkErrors(t, tt.src)
+			if !strings.Contains(got, "Basket keys must be string literals") {
+				t.Errorf("got %q, want it to reject the key", got)
+			}
+		})
+	}
+
+	t.Run("string literal keys are accepted", func(t *testing.T) {
+		if got := checkErrors(t, `nyan m = {"a": 1, "b": 2}`); got != "" {
+			t.Errorf("unexpected errors: %s", got)
+		}
+	})
+}

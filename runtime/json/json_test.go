@@ -1,6 +1,8 @@
 package json
 
 import (
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -49,6 +51,50 @@ func TestFractionsStayFloats(t *testing.T) {
 	m := got.(*meowrt.Map)
 	if _, ok := m.Items["ratio"].(*meowrt.Float); !ok {
 		t.Errorf("ratio is %T, want *meowrt.Float", m.Items["ratio"])
+	}
+}
+
+// float64 cannot hold an int64 exactly past 2^53, so decoding every number
+// through one silently corrupted large ids: 9007199254740993 came back as
+// ...992, and MaxInt64 came back negative.
+func TestLargeIntegersAreExact(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+	}{
+		{"two to the 53 plus one", "9007199254740993"},
+		{"max int64", strconv.FormatInt(math.MaxInt64, 10)},
+		{"min int64", strconv.FormatInt(math.MinInt64, 10)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Unravel(meowrt.NewString(tt.in))
+			if _, ok := got.(*meowrt.Int); !ok {
+				t.Fatalf("got %T, want *meowrt.Int", got)
+			}
+			if got.String() != tt.in {
+				t.Errorf("got %s, want %s", got.String(), tt.in)
+			}
+		})
+	}
+}
+
+// Past int64 there is nothing exact left to offer. JSON numbers have no bound,
+// so this reads as a Float rather than being refused — the same answer most
+// readers give, and better than rejecting a valid document.
+func TestIntegersBeyondInt64BecomeFloats(t *testing.T) {
+	got := Unravel(meowrt.NewString("99999999999999999999"))
+
+	if _, ok := got.(*meowrt.Float); !ok {
+		t.Errorf("got %T, want *meowrt.Float", got)
+	}
+}
+
+// Decode stops at the end of the first value, so trailing text would otherwise
+// go unnoticed.
+func TestTrailingTextIsRejected(t *testing.T) {
+	if _, ok := Unravel(meowrt.NewString(`{"a":1} nonsense`)).(*meowrt.Furball); !ok {
+		t.Error("expected a Furball for text after the value")
 	}
 }
 

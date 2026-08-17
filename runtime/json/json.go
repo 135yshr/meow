@@ -7,9 +7,10 @@
 package json
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"math"
+	"strconv"
 
 	"github.com/135yshr/meow/runtime/meowrt"
 )
@@ -41,9 +42,21 @@ func Unravel(args ...meowrt.Value) meowrt.Value {
 	if !ok {
 		return furball("unravel expects a String, got %s", typeName(args[0]))
 	}
+	// UseNumber keeps each number as the text that was written. Decoding into
+	// `any` would route every one through float64, which cannot hold an int64
+	// exactly past 2^53 — an id of 9007199254740993 would come back as
+	// ...992, and one of MaxInt64 would come back negative. Silently wrong ids
+	// are worse than no ids.
+	dec := json.NewDecoder(bytes.NewReader([]byte(s.Val)))
+	dec.UseNumber()
 	var decoded any
-	if err := json.Unmarshal([]byte(s.Val), &decoded); err != nil {
+	if err := dec.Decode(&decoded); err != nil {
 		return furball("cannot read that as JSON: %s", err)
+	}
+	// Decode stops at the end of the first value, so trailing text would go
+	// unnoticed; `{"a":1} nonsense` is not a document.
+	if dec.More() {
+		return furball("cannot read that as JSON: unexpected text after the value")
 	}
 	return toMeow(decoded, 0)
 }
@@ -91,11 +104,18 @@ func toMeow(v any, depth int) meowrt.Value {
 		return meowrt.NewBool(v)
 	case string:
 		return meowrt.NewString(v)
-	case float64:
-		if v == math.Trunc(v) && !math.IsInf(v, 0) && math.Abs(v) <= math.MaxInt64 {
-			return meowrt.NewInt(int64(v))
+	case json.Number:
+		// A whole value becomes an Int, so an id or a count does not come back
+		// reading 42.0. Parsing the text rather than a float keeps every int64
+		// exact.
+		if n, err := strconv.ParseInt(v.String(), 10, 64); err == nil {
+			return meowrt.NewInt(n)
 		}
-		return meowrt.NewFloat(v)
+		f, err := v.Float64()
+		if err != nil {
+			return furball("cannot read %s as a number", v.String())
+		}
+		return meowrt.NewFloat(f)
 	case []any:
 		items := make([]meowrt.Value, 0, len(v))
 		for _, item := range v {

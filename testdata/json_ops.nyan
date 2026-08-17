@@ -21,6 +21,12 @@ purr k (doc) { nya(k) }
 nya(json.unravel("{\"id\": 42}")["id"])
 nya(json.unravel("{\"ratio\": 2.5}")["ratio"])
 
+# float64 cannot hold an int64 exactly past 2^53, so reading every number
+# through one would corrupt a large id silently.
+nya(json.unravel("9007199254740993"))
+nya(json.unravel("9223372036854775807"))
+nya(json.unravel("-9223372036854775808"))
+
 # The other scalar shapes.
 nya(json.unravel("true"))
 nya(json.unravel("null") == catnap)

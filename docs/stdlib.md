@@ -785,7 +785,9 @@ nya(json.unravel("<html>") ~> "not json")   # => not json
 
 JSON has one number type and Meow has two, so a whole value comes back as an
 `int` and anything else as a `float` — an id or a count does not arrive
-reading `42.0`.
+reading `42.0`. Whole values are read exactly, including ones past 2^53 that a
+float could not hold; past `int64` there is nothing exact left to offer, so
+those read as floats rather than being refused.
 
 ### `json.wind(value)`
 
