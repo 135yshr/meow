@@ -1,3 +1,8 @@
+# [v0.15.1](https://github.com/135yshr/meow/compare/v0.15.0...v0.15.1) (2026-08-17)
+
+## 🐛 Bug Fixes
+- [`21ff5d4`](https://github.com/135yshr/meow/commit/21ff5d4)  fix: Compile nested functions, and stop typed calls losing failures (#122) (Issues: [`#122`](https://github.com/135yshr/meow/issues/122) [`#118`](https://github.com/135yshr/meow/issues/118) [`#114`](https://github.com/135yshr/meow/issues/114) [`#118`](https://github.com/135yshr/meow/issues/118) [`#114`](https://github.com/135yshr/meow/issues/114))
+
 # [v0.15.0](https://github.com/135yshr/meow/compare/v0.14.0...v0.15.0) (2026-08-17)
 
 ## ✨ New Features
