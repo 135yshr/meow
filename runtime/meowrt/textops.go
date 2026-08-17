@@ -3,6 +3,7 @@ package meowrt
 import (
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -81,12 +82,15 @@ func Pad(s, width Value) Value {
 	if fb != nil {
 		return fb
 	}
+	// Bounded before the sign is dropped: negating the most negative int64
+	// leaves it negative, so a width of -9223372036854775808 would otherwise
+	// slip past this check and be asked for.
+	if n < -maxPad || n > maxPad {
+		return NewFurball("Hiss! pad expects a width of at most %d, got %d, nya~", maxPad, n)
+	}
 	right := n >= 0
 	if n < 0 {
 		n = -n
-	}
-	if n > maxPad {
-		return NewFurball("Hiss! pad expects a width of at most %d, got %d, nya~", maxPad, n)
 	}
 	// Counted in characters, as nibble and track are, so a padded column lines
 	// up for text that is not all ASCII.
@@ -132,9 +136,10 @@ func Sort(v Value) Value {
 	}
 	items := make([]Value, len(list.Items))
 	copy(items, list.Items)
-	if len(items) < 2 {
-		return NewList(items...)
-	}
+	// Checked even when there is nothing to compare, so that a litter of one
+	// basket is refused for the same reason a litter of two is. Otherwise a
+	// program reading variable-length data would start failing only once a
+	// second element turned up.
 	kind, fb := sortableKind(items)
 	if fb != nil {
 		return fb
@@ -145,9 +150,7 @@ func Sort(v Value) Value {
 			return items[i].(*String).Val < items[j].(*String).Val
 		})
 	default:
-		sort.SliceStable(items, func(i, j int) bool {
-			return numberOf(items[i]) < numberOf(items[j])
-		})
+		sort.SliceStable(items, lessNumber(items))
 	}
 	return NewList(items...)
 }
@@ -177,8 +180,37 @@ func sortableKind(items []Value) (string, *Furball) {
 	return kind, nil
 }
 
-// numberOf reads any of the numeric kinds as a float for comparison.
-func numberOf(v Value) float64 {
+// lessNumber orders two numbers of any of the numeric kinds.
+//
+// Two whole numbers are compared as whole numbers rather than as floats: past
+// 2^53 a float64 has no digits left to tell 9007199254740992 from
+// 9007199254740993 with, and sorting would leave them in whichever order they
+// arrived. Only a comparison that actually involves a float falls back to one,
+// where the imprecision is the float's own.
+func lessNumber(items []Value) func(i, j int) bool {
+	return func(i, j int) bool {
+		a, aWhole := integerOf(items[i])
+		b, bWhole := integerOf(items[j])
+		if aWhole && bWhole {
+			return a < b
+		}
+		return floatOf(items[i]) < floatOf(items[j])
+	}
+}
+
+// integerOf reads the whole-number kinds exactly, reporting whether v was one.
+func integerOf(v Value) (int64, bool) {
+	switch v := v.(type) {
+	case *Int:
+		return v.Val, true
+	case *Byte:
+		return int64(v.Val), true
+	}
+	return 0, false
+}
+
+// floatOf reads any of the numeric kinds as a float.
+func floatOf(v Value) float64 {
 	switch v := v.(type) {
 	case *Int:
 		return float64(v.Val)
@@ -225,8 +257,58 @@ func Round(x, places Value) Value {
 	if math.IsNaN(val) || math.IsInf(val, 0) {
 		return NewFloat(val)
 	}
-	factor := math.Pow(10, float64(n))
-	return NewFloat(math.Round(val*factor) / factor)
+	return NewFloat(roundDecimal(val, int(n)))
+}
+
+// roundDecimal rounds val to places decimal digits, half away from zero.
+//
+// It rounds the digits the number reads as rather than scaling by a power of
+// ten, because scaling answers the wrong question twice. Multiplying puts
+// 1.005 just under 100.5, so rounding to two places gave 1.00 where the number
+// on the page says 1.01; and scaling something near the top of a float64's
+// range overflows to infinity, so round(1e308, 1) came back as +Inf.
+func roundDecimal(val float64, places int) float64 {
+	// The shortest decimal that reads back as this float — the digits a program
+	// printing the number would show.
+	s := strconv.FormatFloat(val, 'f', -1, 64)
+	negative := strings.HasPrefix(s, "-")
+	if negative {
+		s = s[1:]
+	}
+	dot := strings.IndexByte(s, '.')
+	if dot < 0 {
+		return val // already whole
+	}
+	whole, frac := s[:dot], s[dot+1:]
+	if len(frac) <= places {
+		return val // already shorter than asked for
+	}
+	digits := []byte(whole + frac[:places])
+	if frac[places] >= '5' {
+		i := len(digits) - 1
+		for ; i >= 0; i-- {
+			if digits[i] != '9' {
+				digits[i]++
+				break
+			}
+			digits[i] = '0'
+		}
+		if i < 0 {
+			digits = append([]byte{'1'}, digits...)
+		}
+	}
+	out := string(digits[:len(digits)-places])
+	if places > 0 {
+		out += "." + string(digits[len(digits)-places:])
+	}
+	if negative {
+		out = "-" + out
+	}
+	rounded, err := strconv.ParseFloat(out, 64)
+	if err != nil {
+		return val
+	}
+	return rounded
 }
 
 // typeNameOf names a value for an error message, allowing for a missing one.

@@ -1260,8 +1260,13 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return types.StringType{}
 		case "sort", "reverse":
 			return types.ListType{Elem: types.AnyType{}}
+		// round answers with the same kind of number it was handed, so that
+		// round(42, 2) still prints as 42 rather than 42.0. That leaves it
+		// without one static type to promise: calling it float made a typed
+		// function unbox an Int as a float and stop with "expected float but
+		// got Int".
 		case "round":
-			return types.FloatType{}
+			return types.AnyType{}
 		case "nya", "hiss", "gag":
 			return types.AnyType{}
 		case "head":

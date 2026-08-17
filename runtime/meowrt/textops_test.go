@@ -70,9 +70,13 @@ func TestPad(t *testing.T) {
 	}
 }
 
+// The width is bounded before its sign is dropped: negating the most negative
+// int64 leaves it negative, so checking afterwards would let it through.
 func TestPadRejectsAnAbsurdWidth(t *testing.T) {
-	if _, ok := Pad(NewString("a"), NewInt(math.MaxInt64)).(*Furball); !ok {
-		t.Error("expected a Furball")
+	for _, width := range []int64{math.MaxInt64, math.MinInt64, maxPad + 1, -maxPad - 1} {
+		if _, ok := Pad(NewString("a"), NewInt(width)).(*Furball); !ok {
+			t.Errorf("expected a Furball for a width of %d", width)
+		}
 	}
 }
 
@@ -88,6 +92,18 @@ func TestSort(t *testing.T) {
 		{"ints and floats together", NewList(NewFloat(1.5), NewInt(1)), "[1, 1.5]"},
 		{"empty", NewList(), "[]"},
 		{"one element", NewList(NewString("only")), "[only]"},
+		// Past 2^53 a float64 has no digits left to tell these apart with, so
+		// comparing through one would leave them in the order they arrived.
+		{
+			"whole numbers too large for a float to tell apart",
+			NewList(NewInt(9007199254740993), NewInt(9007199254740992)),
+			"[9007199254740992, 9007199254740993]",
+		},
+		{
+			"the ends of the int64 range",
+			NewList(NewInt(math.MaxInt64), NewInt(math.MinInt64)),
+			"[-9223372036854775808, 9223372036854775807]",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -119,6 +135,10 @@ func TestSortRefusesWhatItCannotOrder(t *testing.T) {
 	}{
 		{"numbers and strings", NewList(NewInt(1), NewString("a"))},
 		{"baskets", NewList(NewMap(map[string]Value{}), NewMap(map[string]Value{}))},
+		// Refused with nothing to compare it to as well, so that a program
+		// reading variable-length data does not start failing only once a
+		// second element turns up.
+		{"a single basket", NewList(NewMap(map[string]Value{}))},
 		{"not a litter", NewString("cat")},
 	}
 	for _, tt := range tests {
@@ -169,6 +189,14 @@ func TestRound(t *testing.T) {
 		// A whole number is already rounded, and stays an Int rather than
 		// printing 42.0.
 		{"an int is unchanged", NewInt(42), 2, "42"},
+		// Rounded on the digits the number reads as. Scaling by a power of ten
+		// instead put 1.005 just under 100.5 and answered 1.
+		{"a decimal halfway case", NewFloat(1.005), 2, "1.01"},
+		{"a decimal halfway case when negative", NewFloat(-1.005), 2, "-1.01"},
+		{"carrying through nines", NewFloat(0.999), 2, "1"},
+		// Scaling this by ten would overflow to +Inf.
+		{"near the top of the range", NewFloat(math.MaxFloat64), 1, "1.7976931348623157e+308"},
+		{"fewer digits than asked for", NewFloat(1.5), 6, "1.5"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

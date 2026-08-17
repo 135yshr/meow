@@ -17,6 +17,7 @@ nothing to search for
 [1.5, 2.5]
 []
 [only]
+[9007199254740992, 9007199254740993]
 [3, 2, 1]
 []
 no order for a mixture
@@ -26,8 +27,11 @@ no order for a mixture
 4
 -3
 42
+1.01
+1
 0.3333
 places out of range
+42 3.14
 ERROR      2  33.3%
 INFO       2  33.3%
 WARN       2  33.3%

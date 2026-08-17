@@ -1067,7 +1067,8 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			"trim":       types.StringType{},
 			"replace":    types.StringType{},
 			"pad":        types.StringType{},
-			"round":      types.FloatType{},
+			// round is deliberately absent: it hands back the kind of number it
+			// was given, so there is no one type to unbox it to.
 		}
 		args := make([]string, len(e.Args))
 		for i, a := range e.Args {

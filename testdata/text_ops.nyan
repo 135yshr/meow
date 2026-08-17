@@ -36,6 +36,9 @@ nya(sort(["pear", "apple", "fig"]))
 nya(sort([2.5, 1.5]))
 nya(sort([]))
 nya(sort(["only"]))
+# Past 2^53 a float has no digits left to tell these apart with, so comparing
+# whole numbers through one left them in the order they arrived.
+nya(sort([9007199254740993, 9007199254740992]))
 nya(reverse([1, 2, 3]))
 nya(reverse([]))
 
@@ -52,8 +55,22 @@ nya(round(3.5, 0))
 nya(round(0.0 - 2.5, 0))
 # A whole number is already rounded, and stays an int rather than printing 42.0.
 nya(round(42, 2))
+# Rounded on the digits the number reads as: scaling by a power of ten instead
+# put 1.005 just under 100.5 and answered 1.
+nya(round(1.005, 2))
+nya(round(0.999, 2))
 nya(round(1.0 / 3.0, 4))
 nya(round(1.5, 0 - 1) ~> "places out of range")
+
+# round answers with the kind of number it was handed, so inside a fully typed
+# function a whole number must not be unboxed as a float. Declaring round to
+# return a float stopped this with "expected float but got Int".
+meow both(n int, x float) string {
+  nyan whole = round(n, 2)
+  nyan part = round(x, 2)
+  bring to_string(whole) + " " + to_string(part)
+}
+nya(both(42, 3.14159))
 
 # Together: a lined-up report, which is what these were missing for.
 meow row(name string, count int, total int) string {
