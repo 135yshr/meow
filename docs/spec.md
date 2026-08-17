@@ -398,6 +398,20 @@ meow greet(name string) string {
 }
 ```
 
+#### Nested Functions
+
+A `meow` may be declared inside another. It is visible only within the enclosing
+body, it may read the enclosing scope, and it shadows a top-level function of the
+same name. Declarations are collected before the body runs, so one nested
+function may call another written after it, and may call itself.
+
+```meow
+meow outer(x int) int {
+  meow inner(y int) int { bring x + y }
+  bring inner(10)
+}
+```
+
 #### Pure Functions (trill)
 
 Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`, `whiff`,

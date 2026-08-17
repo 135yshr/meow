@@ -1,0 +1,57 @@
+# A `meow` written inside another.
+#
+# These ran in the playground and did not compile at all: the declaration became
+# an unsupported-statement comment, so every call to one referred to a name that
+# was never emitted. They are generated as closures now, which is also what lets
+# them read the enclosing scope.
+
+# Closes over an enclosing parameter.
+meow outer(x int) int {
+  meow inner(y int) int { bring x + y }
+  bring inner(10)
+}
+nya(to_string(outer(5)))
+
+# Calls a sibling written after it. The interpreter registers every nested
+# function before running anything, so order does not matter there; the
+# declarations are hoisted here for the same reason.
+meow siblings(n int) int {
+  meow first(v int) int { bring second(v) + 1 }
+  meow second(v int) int { bring v * 2 }
+  bring first(n)
+}
+nya(to_string(siblings(3)))
+
+# Calls itself.
+meow fact(n int) int {
+  meow go_down(v int) int {
+    sniff (v <= 1) { bring 1 }
+    bring v * go_down(v - 1)
+  }
+  bring go_down(n)
+}
+nya(to_string(fact(5)))
+
+# Shadows a top-level function of the same name, as it does for the checker.
+meow helper(v int) int { bring 100 }
+meow shadowing(n int) int {
+  meow helper(v int) int { bring v + 1 }
+  bring helper(n)
+}
+nya(to_string(shadowing(1)))
+nya(to_string(helper(1)))
+
+# Declared and never called. Go rejects a variable that is only assigned, so
+# this would have stopped the build without the `_ =` that goes with it.
+meow unused(n int) int {
+  meow never(v int) int { bring v }
+  bring n
+}
+nya(to_string(unused(9)))
+
+# Inside an untyped enclosing function, and inside a lambda.
+meow untyped_outer(x int) string {
+  meow shout(s string) string { bring upper(s) + "!" }
+  bring shout("meow")
+}
+nya(untyped_outer(0))

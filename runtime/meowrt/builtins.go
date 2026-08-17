@@ -236,6 +236,21 @@ func Gag(fn Value) (result Value) {
 	return f.Call()
 }
 
+// Propagate returns v, raising it instead if it is a Furball.
+//
+// It is what a call written as a statement inside a fully typed function goes
+// through. Such a function returns a native Go type and cannot pass a Furball
+// on, and a statement's value is discarded — so without this a failing call
+// would leave no trace at all and the function would report success. Raising it
+// is the same bridge hiss uses there: gag's deferred recover turns it back into
+// a Furball at the boundary.
+func Propagate(v Value) Value {
+	if f, ok := v.(*Furball); ok && !f.Handled {
+		panic(f.String())
+	}
+	return v
+}
+
 // markHandled returns a new Furball with the same message marked as handled,
 // preserving the original for any code path that still references it.
 func markHandled(f *Furball) *Furball {

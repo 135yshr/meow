@@ -52,6 +52,78 @@ type Generator struct {
 	// Holding the node itself rather than a depth counter keeps a `nyan` nested
 	// inside a top-level `sniff` or `purr` block a local, which is what it is.
 	hoistedVar *ast.VarStmt
+	// nestedFuncs names the `meow`s declared inside the body being generated.
+	// They are emitted as closures held in meow.Value variables rather than as
+	// package-level Go functions, so that they can read the enclosing scope the
+	// way the playground interpreter lets them. A call therefore dispatches
+	// through meow.Call, and a name here shadows a top-level function of the
+	// same name, as it does for the checker.
+	nestedFuncs map[string]bool
+}
+
+// enterNestedScope starts tracking nested function names, returning a function
+// that restores the previous set.
+func (g *Generator) enterNestedScope() func() {
+	prev := g.nestedFuncs
+	g.nestedFuncs = make(map[string]bool, len(prev))
+	maps.Copy(g.nestedFuncs, prev)
+	return func() { g.nestedFuncs = prev }
+}
+
+// isNestedFunc reports whether name is a `meow` declared inside the body being
+// generated, and so held as a value rather than emitted as a Go function.
+func (g *Generator) isNestedFunc(name string) bool {
+	return g.nestedFuncs[name]
+}
+
+// hoistNestedFuncs declares every `meow` written in body up front, so that one
+// can call another regardless of which comes first — which is what the
+// interpreter does, since it registers them all before running anything.
+//
+// The declaration is separate from the assignment because a closure that refers
+// to itself, or to a sibling declared later, needs the name to exist before the
+// function value does.
+func (g *Generator) hoistNestedFuncs(body []ast.Stmt) string {
+	var b strings.Builder
+	for _, stmt := range body {
+		fn, ok := stmt.(*ast.FuncStmt)
+		if !ok {
+			continue
+		}
+		g.nestedFuncs[fn.Name] = true
+		// _ = name because Go rejects a variable that is only ever assigned,
+		// and a nested function nothing calls is still valid Meow.
+		fmt.Fprintf(&b, "\tvar %s meow.Value\n\t_ = %s\n", fn.Name, fn.Name)
+	}
+	return b.String()
+}
+
+// genNestedFunc emits a `meow` written inside another as a closure bound to the
+// name hoisted for it. The body is generated boxed, like a lambda's, so it
+// reads an enclosing typed function's parameters through the same boxing an
+// ordinary runtime call gets.
+func (g *Generator) genNestedFunc(fn *ast.FuncStmt) string {
+	names := make([]string, len(fn.Params))
+	for i, p := range fn.Params {
+		names[i] = p.Name
+	}
+	defer g.enterBoxedScope(names...)()
+	defer g.enterNestedScope()()
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s = meow.NewFuncWithArity(%q, %d, func(args ...meow.Value) meow.Value {\n\t%s\n",
+		fn.Name, fn.Name, len(fn.Params), g.genLambdaParamBindings(fn.Params))
+	b.WriteString(g.hoistNestedFuncs(fn.Body))
+	for _, stmt := range fn.Body {
+		b.WriteString("\t")
+		b.WriteString(g.genStmt(stmt))
+		b.WriteString("\n")
+	}
+	if !g.blockAlwaysReturns(fn.Body) {
+		b.WriteString("\treturn meow.NewNil()\n")
+	}
+	b.WriteString("})")
+	return b.String()
 }
 
 // bindNativeVar records that name is currently held in a native Go variable of
@@ -546,7 +618,9 @@ func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
 		names[i] = p.Name
 	}
 	defer g.enterBoxedScope(names...)()
+	defer g.enterNestedScope()()
 	fmt.Fprintf(&b, "func %s(%s) meow.Value {\n", fn.Name, strings.Join(params, ", "))
+	b.WriteString(g.hoistNestedFuncs(fn.Body))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genStmt(stmt))
@@ -576,6 +650,7 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 	g.currentReturnType = ft.Return
 	defer func() { g.currentReturnType = prevReturnType }()
 	defer g.enterNativeScope()()
+	defer g.enterNestedScope()()
 	var b strings.Builder
 	params := make([]string, len(fn.Params))
 	for i, p := range fn.Params {
@@ -583,6 +658,7 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 		g.bindNativeVar(p.Name, ft.Params[i])
 	}
 	fmt.Fprintf(&b, "func %s(%s) %s {\n", fn.Name, strings.Join(params, ", "), goTypeString(ft.Return))
+	b.WriteString(g.hoistNestedFuncs(fn.Body))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
 		b.WriteString(g.genTypedStmt(stmt))
@@ -661,7 +737,19 @@ func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
 
 func (g *Generator) genTypedExprStmt(s *ast.ExprStmt) string {
 	if call, ok := s.Expr.(*ast.CallExpr); ok {
-		return g.genTypedCall(call)
+		code := g.genTypedCall(call)
+		// A statement's value is discarded, so a call that answers with a
+		// Furball would fail in silence — the function would carry on and
+		// report success. Where the result is a native Go type there is nothing
+		// to check: the unboxing, or the callee itself, already raised it.
+		//
+		// hiss is left alone because it raises rather than answering: the typed
+		// path emits it as a Go panic, which is a statement and has no value to
+		// pass through anything.
+		if t := g.getExprType(call); (t == nil || !isNativeType(t)) && !isCallTo(call, "hiss") {
+			return fmt.Sprintf("meow.Propagate(%s)", code)
+		}
+		return code
 	}
 	return g.genExpr(s.Expr)
 }
@@ -1103,8 +1191,10 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			ident.Name, strings.Join(args, ", "))
 	}
 
-	// Typed user-defined functions (only for fully native signatures)
-	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
+	// Typed user-defined functions (only for fully native signatures). A nested
+	// `meow` is held as a value and shadows a top-level one of the same name, so
+	// it is asked about first — FuncTypes only ever names the top-level ones.
+	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok && !g.isNestedFunc(ident.Name) {
 		if len(e.Args) < len(ft.Params) {
 			return g.genPartialCall(ident.Name, ft, e.Args)
 		}
@@ -1117,7 +1207,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		}
 	}
 
-	return g.genCall(e)
+	// Anything left dispatches through meow.Call and answers with a boxed
+	// value: a nested `meow`, a lambda, a partial application. Where the
+	// checker knows what type that value has, a typed context wants it
+	// unboxed — the same thing the builtin table above does.
+	boxed := g.genCall(e)
+	if t := g.getExprType(e); t != nil && !types.IsAny(t) {
+		return unboxToNative(boxed, t)
+	}
+	return boxed
 }
 
 func (g *Generator) boxValue(expr ast.Expr) string {
@@ -1277,6 +1375,11 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 		return g.genIf(s)
 	case *ast.RangeStmt:
 		return g.genRange(s)
+	case *ast.FuncStmt:
+		// A `meow` inside another. Left as an unsupported-statement comment,
+		// every call to it referred to a name that was never emitted, so a whole
+		// construct the playground runs would not compile at all.
+		return g.genNestedFunc(s)
 	default:
 		return fmt.Sprintf("/* unsupported stmt: %T */", stmt)
 	}
@@ -1696,7 +1799,7 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 					ident.Name, argStr)
 			}
 			if g.typeInfo != nil {
-				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok {
+				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok && !g.isNestedFunc(ident.Name) {
 					if len(e.Args) < len(ft.Params) {
 						return g.genPartialCall(ident.Name, ft, e.Args)
 					}
@@ -1857,6 +1960,7 @@ func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 		names[i] = p.Name
 	}
 	defer g.enterBoxedScope(names...)()
+	defer g.enterNestedScope()()
 	return fmt.Sprintf("meow.NewFuncWithArity(\"lambda\", %d, func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+
 		"%s"+
@@ -1871,6 +1975,7 @@ func (g *Generator) genLambdaBody(e *ast.LambdaExpr) string {
 		return fmt.Sprintf("\treturn %s\n", g.genExpr(e.Body))
 	}
 	var b strings.Builder
+	b.WriteString(g.hoistNestedFuncs(e.Block))
 	for i, stmt := range e.Block {
 		b.WriteString("\t")
 		// A trailing expression statement is the lambda's result, mirroring the
@@ -2083,4 +2188,10 @@ func (g *Generator) genPatternCond(subject string, pattern ast.Pattern) string {
 	default:
 		return "true"
 	}
+}
+
+// isCallTo reports whether e calls the named builtin directly.
+func isCallTo(e *ast.CallExpr, name string) bool {
+	ident, ok := e.Fn.(*ast.Ident)
+	return ok && ident.Name == name
 }
