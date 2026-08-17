@@ -66,7 +66,18 @@ func Call(fn Value, args ...Value) Value {
 			return &Furball{Message: fmt.Sprintf("Hiss! %s expects %d arguments but got %d, nya~", f.Name, f.Arity, len(args))}
 		}
 	}
-	return f.Call(args...)
+	// A call that comes back leaves the program where the call was made, not
+	// inside the function it returned from. A call that fails never reaches
+	// this, so the position of the failure itself is what survives.
+	caller := Where()
+	result := f.Call(args...)
+	// Only a call that succeeded goes back to where it was called from. One that
+	// answers with a Furball has failed, and the line it failed on is the one
+	// worth reporting.
+	if _, failed := AsFurball(result); !failed {
+		Here(caller)
+	}
+	return result
 }
 
 // Len returns the length of a string or list.

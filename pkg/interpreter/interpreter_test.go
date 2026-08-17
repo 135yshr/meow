@@ -1203,3 +1203,47 @@ func parseForTest(t *testing.T, source string) *ast.Program {
 	}
 	return prog
 }
+
+// A call that comes back must leave the program where the call was made. It
+// used to leave it inside the function it returned from, so a failure later in
+// the same statement was blamed on the callee's last line — code that worked.
+func TestAFailureAfterACallBlamesTheCaller(t *testing.T) {
+	source := "meow ok(n int) int {\n  nyan doubled = n * 2\n  bring doubled\n}\nnya(\"starting\")\nnya(to_string(ok(1)), to_string(to_float(\"bad\")))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:6:1: Hiss! Cannot read \"bad\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A failure inside the call keeps the callee's line: that is where it happened.
+func TestAFailureInsideACallBlamesTheCallee(t *testing.T) {
+	source := "meow bad(s string) float {\n  nya(\"converting\")\n  bring to_float(s)\n}\nnya(to_string(bad(\"nope\")))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:3:3: Hiss! Cannot read \"nope\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A program that will not stop is exactly the one whose reader needs to know
+// which line it is going round.
+func TestTheStepLimitSaysWhereItGaveUp(t *testing.T) {
+	source := "meow forever(n int) int {\n  bring forever(n + 1)\n}\nnya(to_string(forever(1)))\n"
+
+	var buf bytes.Buffer
+	interp := New(&buf)
+	interp.SetStepLimit(1000)
+	err := interp.RunSafe(parseForTest(t, source))
+
+	if err == nil {
+		t.Fatal("expected the program to give up")
+	}
+	if !strings.HasPrefix(err.Error(), "test.nyan:2:3: Hiss! step limit exceeded") {
+		t.Errorf("got %q, want it to say where it gave up", err.Error())
+	}
+}

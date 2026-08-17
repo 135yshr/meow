@@ -356,3 +356,51 @@ func TestAFailureSaysWhereItHappened(t *testing.T) {
 		})
 	}
 }
+
+// A call that comes back must leave the program where the call was made, and a
+// call that fails must not. Both are checked here because the position is a
+// single note the runtime keeps, and a call is what can leave it stale.
+func TestAFailureIsBlamedOnTheRightLine(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{
+			// The call succeeds; the failure is in the next argument.
+			"after a call that succeeded",
+			"meow ok(n int) int {\n  nyan doubled = n * 2\n  bring doubled\n}\nnya(\"starting\")\nnya(to_string(ok(1)), to_string(to_float(\"bad\")))\n",
+			"prog.nyan:6:1: Hiss! Cannot read \"bad\" as a Float, nya~",
+		},
+		{
+			// The failure is inside the call, so that is the line to report.
+			"inside a call",
+			"meow bad(s string) float {\n  nya(\"converting\")\n  bring to_float(s)\n}\nnya(to_string(bad(\"nope\")))\n",
+			"prog.nyan:3:3: Hiss! Cannot read \"nope\" as a Float, nya~",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			nyanPath := filepath.Join(dir, "prog.nyan")
+			if err := os.WriteFile(nyanPath, []byte(tt.source), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			binPath := filepath.Join(dir, "prog")
+			if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+				t.Fatalf("build failed: %v", err)
+			}
+
+			cmd := exec.Command(binPath)
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err == nil {
+				t.Fatal("expected the program to fail")
+			}
+
+			if got := strings.TrimSpace(stderr.String()); !strings.HasSuffix(got, tt.want) {
+				t.Errorf("got %q, want it to end with %q", got, tt.want)
+			}
+		})
+	}
+}

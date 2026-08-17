@@ -32,3 +32,18 @@ func Located(message string) string {
 	}
 	return here + ": " + message
 }
+
+// Returning restores the position a call was made from and hands back v.
+//
+// Generated code returns through it so that a call which succeeds does not
+// leave the program pointing inside the function it just came back from: a
+// failure later in the same statement would be blamed on the callee's last
+// line, which is code that worked.
+//
+// It restores only on the way back from a call that returned. A call that fails
+// never reaches it, so the innermost position — where the failure actually
+// happened — is the one that survives.
+func Returning[T any](pos string, v T) T {
+	Here(pos)
+	return v
+}
