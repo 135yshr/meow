@@ -68,10 +68,14 @@ func (interp *Interpreter) RunSafe(prog *ast.Program) (err error) {
 		if r := recover(); r != nil {
 			switch r.(type) {
 			case stepLimitExceeded:
-				err = fmt.Errorf("Hiss! step limit exceeded (%d steps), nya~", interp.stepLimit)
+				err = fmt.Errorf("%s", meowrt.Located(
+					fmt.Sprintf("Hiss! step limit exceeded (%d steps), nya~", interp.stepLimit)))
 			default:
+				// Prefixed with where the program was, the way a compiled one
+				// reports a failure, so the same program reads the same either
+				// side of the playground.
 				if msg, ok := r.(string); ok {
-					err = fmt.Errorf("%s", msg)
+					err = fmt.Errorf("%s", meowrt.Located(msg))
 				} else {
 					err = fmt.Errorf("internal error: %v", r)
 				}
@@ -96,6 +100,9 @@ func (interp *Interpreter) Run(prog *ast.Program) {
 	meowrt.ClearMethods()
 	interp.stepCount = 0
 	interp.exitCode = 0
+	// The playground runs one program after another in the same process, so a
+	// position left over from the last one must not be reported against this.
+	meowrt.Here("")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -144,6 +151,16 @@ func (interp *Interpreter) checkStep() {
 // --- Statement Execution ---
 
 func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
+	// Record where the program is, so that a failure raised while this
+	// statement runs can say where. Generated code makes the same note in the
+	// same place, so both backends report a failure identically.
+	//
+	// Noted before the step limit is checked, because reaching the limit is
+	// itself a failure worth a position — a program that will not stop is
+	// exactly the one whose reader needs to know which line it is going round.
+	if pos := stmt.Pos(); pos.Line != 0 {
+		meowrt.Here(pos.String())
+	}
 	interp.checkStep()
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
@@ -297,6 +314,13 @@ func (interp *Interpreter) callUserFunc(fn *ast.FuncStmt, args []meowrt.Value, c
 		}
 	}
 
+	// Where the call was made from. A call that comes back leaves the program
+	// here rather than inside the function it returned from, so a failure later
+	// in the same statement is not blamed on the callee's last line. A call that
+	// fails never reaches the restore, which is what keeps a failure reported
+	// against the line it happened on.
+	caller := meowrt.Where()
+
 	var result meowrt.Value
 	func() {
 		defer func() {
@@ -311,6 +335,13 @@ func (interp *Interpreter) callUserFunc(fn *ast.FuncStmt, args []meowrt.Value, c
 		interp.execBlock(fn.Body, child)
 	}()
 
+	// Only a call that succeeded goes back to where it was called from. One
+	// that answers with a Furball has failed, and the line it failed on is the
+	// one worth reporting — the same rule the compiled path follows, where a
+	// failure raises before it can restore anything.
+	if _, failed := meowrt.AsFurball(result); !failed {
+		meowrt.Here(caller)
+	}
 	if result != nil {
 		return result
 	}
@@ -864,6 +895,14 @@ func (interp *Interpreter) matchPattern(subject meowrt.Value, pattern ast.Patter
 // --- Builtin nya (output capture) ---
 
 func (interp *Interpreter) builtinNya(args []meowrt.Value) meowrt.Value {
+	// A failure is not something to print. Printing it would put the message in
+	// the program's output and let the program run on, where a compiled one
+	// stops — meow.Nya hands the Furball back for exactly that reason.
+	for _, a := range args {
+		if f, ok := meowrt.AsFurball(a); ok {
+			return f
+		}
+	}
 	parts := make([]string, len(args))
 	for i, v := range args {
 		parts[i] = v.String()

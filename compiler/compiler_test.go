@@ -304,3 +304,103 @@ func TestScramRefusedInsideATypedFunction(t *testing.T) {
 		t.Errorf("output %q, want the reason the status was refused", string(out))
 	}
 }
+
+// A failure says what went wrong; without a position it does not say where, and
+// finding which of two hundred lines asked for that number is the reader's
+// problem. The golden harness cannot cover this: it captures stdout, and a
+// failure is reported on stderr.
+func TestAFailureSaysWhereItHappened(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{
+			"a runtime failure at the top level",
+			"nya(\"starting\")\nnyan raw = \"not a number\"\nnya(to_string(to_float(raw)))\n",
+			"prog.nyan:3:1: Hiss! Cannot read \"not a number\" as a Float, nya~",
+		},
+		{
+			// Inside a fully typed function, where failure travels as a panic
+			// rather than as a value.
+			"a failure inside a typed function",
+			"meow ratio(a int, b int) float {\n  sniff (b == 0) {\n    hiss(\"cannot divide by zero\")\n  }\n  bring to_float(a) / to_float(b)\n}\nnya(to_string(ratio(1, 0)))\n",
+			"prog.nyan:3:5: Hiss! cannot divide by zero",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			nyanPath := filepath.Join(dir, "prog.nyan")
+			if err := os.WriteFile(nyanPath, []byte(tt.source), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			binPath := filepath.Join(dir, "prog")
+			if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+				t.Fatalf("build failed: %v", err)
+			}
+
+			cmd := exec.Command(binPath)
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err == nil {
+				t.Fatal("expected the program to fail")
+			}
+
+			// The path is the temporary directory's, so only the file name and
+			// position are compared.
+			got := strings.TrimSpace(stderr.String())
+			if !strings.HasSuffix(got, tt.want) {
+				t.Errorf("got %q, want it to end with %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// A call that comes back must leave the program where the call was made, and a
+// call that fails must not. Both are checked here because the position is a
+// single note the runtime keeps, and a call is what can leave it stale.
+func TestAFailureIsBlamedOnTheRightLine(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{
+			// The call succeeds; the failure is in the next argument.
+			"after a call that succeeded",
+			"meow ok(n int) int {\n  nyan doubled = n * 2\n  bring doubled\n}\nnya(\"starting\")\nnya(to_string(ok(1)), to_string(to_float(\"bad\")))\n",
+			"prog.nyan:6:1: Hiss! Cannot read \"bad\" as a Float, nya~",
+		},
+		{
+			// The failure is inside the call, so that is the line to report.
+			"inside a call",
+			"meow bad(s string) float {\n  nya(\"converting\")\n  bring to_float(s)\n}\nnya(to_string(bad(\"nope\")))\n",
+			"prog.nyan:3:3: Hiss! Cannot read \"nope\" as a Float, nya~",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			nyanPath := filepath.Join(dir, "prog.nyan")
+			if err := os.WriteFile(nyanPath, []byte(tt.source), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			binPath := filepath.Join(dir, "prog")
+			if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+				t.Fatalf("build failed: %v", err)
+			}
+
+			cmd := exec.Command(binPath)
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err == nil {
+				t.Fatal("expected the program to fail")
+			}
+
+			if got := strings.TrimSpace(stderr.String()); !strings.HasSuffix(got, tt.want) {
+				t.Errorf("got %q, want it to end with %q", got, tt.want)
+			}
+		})
+	}
+}

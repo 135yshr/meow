@@ -655,6 +655,14 @@ Errors in Meow use a panic/recover model:
 
 4. **Checking errors**: `is_furball(v)` returns `yarn` if `v` is a `Furball`, `hairball` otherwise.
 
+5. **Reporting errors**: A failure nothing catches ends the program, and is written to standard error prefixed with the position of the statement that was running, in the same `file:line:column` form the compiler's own errors use:
+
+   ```text
+   probe.nyan:12:3: Hiss! Cannot read "3 " as an Int, nya~
+   ```
+
+   The prefix is on the report only. A `Furball` caught with `gag` or `~>` carries the message alone, so a program that prints or matches one sees what it always did.
+
 ## Program Structure
 
 A Meow program is a single `.nyan` file containing a sequence of top-level statements. The generated Go code follows this structure:

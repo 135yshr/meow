@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/parser"
@@ -1145,5 +1146,104 @@ func TestScramIsNotCaught(t *testing.T) {
 				t.Errorf("exit code %d, want 3", interp.ExitCode())
 			}
 		})
+	}
+}
+
+// The playground reports a failure the same way a compiled program does, down
+// to the position — the same note, made in the same place, read by the same
+// runtime.
+func TestAFailureSaysWhereItHappened(t *testing.T) {
+	source := "nya(\"starting\")\nnyan raw = \"not a number\"\nnya(to_string(to_float(raw)))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:3:1: Hiss! Cannot read \"not a number\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A failure is not something to print. Printing it would put the message in the
+// program's output and let the program run on, where a compiled one stops.
+func TestNyaDoesNotPrintAFailure(t *testing.T) {
+	source := "nya(\"before\")\nnya(to_float(\"not a number\"))\nnya(\"after\")\n"
+
+	var buf bytes.Buffer
+	prog := parseForTest(t, source)
+	interp := New(&buf)
+	err := interp.RunSafe(prog)
+
+	if err == nil {
+		t.Fatal("expected the program to fail")
+	}
+	if buf.String() != "before\n" {
+		t.Errorf("got %q, want only what ran before the failure", buf.String())
+	}
+}
+
+// runMeowExpectingFailure runs source and returns the failure it reported.
+func runMeowExpectingFailure(t *testing.T, source string) error {
+	t.Helper()
+	var buf bytes.Buffer
+	err := New(&buf).RunSafe(parseForTest(t, source))
+	if err == nil {
+		t.Fatal("expected the program to fail")
+	}
+	return err
+}
+
+// parseForTest parses source, failing the test on any parse error.
+func parseForTest(t *testing.T, source string) *ast.Program {
+	t.Helper()
+	l := lexer.New(source, "test.nyan")
+	p := parser.New(l.Tokens())
+	prog, parseErrs := p.Parse()
+	if len(parseErrs) > 0 {
+		t.Fatalf("parse errors: %v", parseErrs)
+	}
+	return prog
+}
+
+// A call that comes back must leave the program where the call was made. It
+// used to leave it inside the function it returned from, so a failure later in
+// the same statement was blamed on the callee's last line — code that worked.
+func TestAFailureAfterACallBlamesTheCaller(t *testing.T) {
+	source := "meow ok(n int) int {\n  nyan doubled = n * 2\n  bring doubled\n}\nnya(\"starting\")\nnya(to_string(ok(1)), to_string(to_float(\"bad\")))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:6:1: Hiss! Cannot read \"bad\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A failure inside the call keeps the callee's line: that is where it happened.
+func TestAFailureInsideACallBlamesTheCallee(t *testing.T) {
+	source := "meow bad(s string) float {\n  nya(\"converting\")\n  bring to_float(s)\n}\nnya(to_string(bad(\"nope\")))\n"
+
+	err := runMeowExpectingFailure(t, source)
+
+	want := "test.nyan:3:3: Hiss! Cannot read \"nope\" as a Float, nya~"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
+// A program that will not stop is exactly the one whose reader needs to know
+// which line it is going round.
+func TestTheStepLimitSaysWhereItGaveUp(t *testing.T) {
+	source := "meow forever(n int) int {\n  bring forever(n + 1)\n}\nnya(to_string(forever(1)))\n"
+
+	var buf bytes.Buffer
+	interp := New(&buf)
+	interp.SetStepLimit(1000)
+	err := interp.RunSafe(parseForTest(t, source))
+
+	if err == nil {
+		t.Fatal("expected the program to give up")
+	}
+	if !strings.HasPrefix(err.Error(), "test.nyan:2:3: Hiss! step limit exceeded") {
+		t.Errorf("got %q, want it to say where it gave up", err.Error())
 	}
 }

@@ -117,6 +117,7 @@ func (g *Generator) genNestedFunc(fn *ast.FuncStmt) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s = meow.NewFuncWithArity(%q, %d, func(args ...meow.Value) meow.Value {\n\t%s\n",
 		fn.Name, fn.Name, len(fn.Params), g.genLambdaParamBindings(fn.Params))
+	b.WriteString(g.callerPrologue())
 	b.WriteString(g.hoistNestedFuncs(fn.Body))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
@@ -624,6 +625,7 @@ func (g *Generator) genFuncDecl(fn *ast.FuncStmt) string {
 	defer g.enterBoxedScope(names...)()
 	defer g.enterNestedScope()()
 	fmt.Fprintf(&b, "func %s(%s) meow.Value {\n", fn.Name, strings.Join(params, ", "))
+	b.WriteString(g.callerPrologue())
 	b.WriteString(g.hoistNestedFuncs(fn.Body))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
@@ -662,6 +664,7 @@ func (g *Generator) genTypedFuncDecl(fn *ast.FuncStmt) string {
 		g.bindNativeVar(p.Name, ft.Params[i])
 	}
 	fmt.Fprintf(&b, "func %s(%s) %s {\n", fn.Name, strings.Join(params, ", "), goTypeString(ft.Return))
+	b.WriteString(g.callerPrologue())
 	b.WriteString(g.hoistNestedFuncs(fn.Body))
 	for _, stmt := range fn.Body {
 		b.WriteString("\t")
@@ -692,6 +695,10 @@ func goTypeString(t types.Type) string {
 }
 
 func (g *Generator) genTypedStmt(stmt ast.Stmt) string {
+	return g.located(stmt, g.genTypedStmtInner(stmt))
+}
+
+func (g *Generator) genTypedStmtInner(stmt ast.Stmt) string {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
 		return g.genTypedVarStmt(s)
@@ -724,19 +731,19 @@ func (g *Generator) genTypedVarStmt(s *ast.VarStmt) string {
 
 func (g *Generator) genTypedReturnStmt(s *ast.ReturnStmt) string {
 	if s.Value == nil {
-		return "return"
+		return "meow.Here(__caller)\nreturn"
 	}
 	t := g.getExprType(s.Value)
 	if t != nil && !types.IsAny(t) {
-		return fmt.Sprintf("return %s", g.genTypedExpr(s.Value))
+		return fmt.Sprintf("return meow.Returning(__caller, %s)", g.genTypedExpr(s.Value))
 	}
 	// Expression is AnyType (e.g. match expression) but function has a concrete return type.
 	// Generate the expression with typed boxing, then unbox the meow.Value result.
 	exprCode := g.genTypedExpr(s.Value)
 	if g.currentReturnType != nil && !types.IsAny(g.currentReturnType) {
-		return fmt.Sprintf("return %s", unboxToNative(exprCode, g.currentReturnType))
+		return fmt.Sprintf("return meow.Returning(__caller, %s)", unboxToNative(exprCode, g.currentReturnType))
 	}
-	return fmt.Sprintf("return %s", exprCode)
+	return fmt.Sprintf("return meow.Returning(__caller, %s)", exprCode)
 }
 
 func (g *Generator) genTypedExprStmt(s *ast.ExprStmt) string {
@@ -1322,7 +1329,7 @@ func (g *Generator) blockAlwaysReturns(stmts []ast.Stmt) bool {
 }
 
 func (g *Generator) genStmt(stmt ast.Stmt) string {
-	code := g.genStmtInner(stmt)
+	code := g.located(stmt, g.genStmtInner(stmt))
 	if !g.coverEnabled {
 		return code
 	}
@@ -1354,9 +1361,9 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 		return code
 	case *ast.ReturnStmt:
 		if s.Value != nil {
-			return fmt.Sprintf("return %s", g.genExpr(s.Value))
+			return fmt.Sprintf("return meow.Returning(__caller, %s)", g.genExpr(s.Value))
 		}
-		return "return meow.NewNil()"
+		return "return meow.Returning(__caller, meow.NewNil())"
 	case *ast.ExprStmt:
 		// Evaluate the expression. If the result is a Furball (e.g. from
 		// hiss(...) or a failed runtime helper), short-circuit by returning it.
@@ -1940,7 +1947,8 @@ func (g *Generator) genLambda(e *ast.LambdaExpr) string {
 	return fmt.Sprintf("meow.NewFuncWithArity(\"lambda\", %d, func(args ...meow.Value) meow.Value {\n"+
 		"\t%s\n"+
 		"%s"+
-		"})", len(e.Params), g.genLambdaParamBindings(e.Params), g.genLambdaBody(e))
+		"%s"+
+		"})", len(e.Params), g.genLambdaParamBindings(e.Params), g.callerPrologue(), g.genLambdaBody(e))
 }
 
 // genLambdaBody emits the closure body. The lambda closure has the same shape
@@ -2105,6 +2113,7 @@ func (g *Generator) genLearnMethod(typeName string, fn *ast.FuncStmt) string {
 	methodFuncName := fmt.Sprintf("meow_method_%s_%s", typeName, fn.Name)
 
 	fmt.Fprintf(&b, "func %s(args ...meow.Value) meow.Value {\n", methodFuncName)
+	b.WriteString(g.callerPrologue())
 	// Arity guard: self + params
 	fmt.Fprintf(&b, "\tif len(args) < %d {\n", 1+len(fn.Params))
 	b.WriteString("\t\treturn meow.NewNil()\n")
@@ -2189,4 +2198,27 @@ func (g *Generator) genBlockStmts(stmts []ast.Stmt, gen func(ast.Stmt) string) s
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// located prefixes a statement with a note of where it came from, so that a
+// failure raised while it runs can say where the program was.
+//
+// A statement with no position of its own — one the generator made up rather
+// than read — is left alone, so it does not claim the file's first line.
+func (g *Generator) located(stmt ast.Stmt, code string) string {
+	pos := stmt.Pos()
+	if pos.Line == 0 {
+		return code
+	}
+	return fmt.Sprintf("meow.Here(%q)\n%s", pos.String(), code)
+}
+
+// callerPrologue opens a callable body by remembering where it was called from.
+//
+// Every return hands that position back, so a call which succeeds leaves the
+// program where the call was made rather than inside the function it came back
+// from. A body that never returns normally — one that fails — never restores it,
+// which is what keeps a failure reported against the line it happened on.
+func (g *Generator) callerPrologue() string {
+	return "\t__caller := meow.Where()\n\t_ = __caller\n"
 }
