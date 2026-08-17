@@ -1,3 +1,8 @@
+# [v0.14.0](https://github.com/135yshr/meow/compare/v0.13.0...v0.14.0) (2026-08-17)
+
+## ✨ New Features
+- [`a27b258`](https://github.com/135yshr/meow/commit/a27b258)  feat: Add upper, lower, trim, replace, pad, sort, reverse and round (#120) (Issues: [`#120`](https://github.com/135yshr/meow/issues/120) [`#118`](https://github.com/135yshr/meow/issues/118))
+
 # [v0.13.0](https://github.com/135yshr/meow/compare/v0.12.0...v0.13.0) (2026-08-17)
 
 ## ✨ New Features
