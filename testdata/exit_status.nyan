@@ -1,0 +1,28 @@
+# Ending a program with a status.
+#
+# Without scram a program could only say "this endpoint is down" in words, and
+# the shell, cron job or CI step that ran it had no way to read that.
+
+nya("checking")
+
+# A status no process could report is a Furball rather than a silent wrap: a
+# shell sees the low eight bits, so 256 would arrive as 0 and a program asking
+# to fail would be read as having succeeded.
+nya(scram(300) ~> "status out of range")
+nya(scram(0 - 1) ~> "status out of range")
+nya(scram("3") ~> "not a number")
+nya(scram(0, 1) ~> "too many arguments")
+
+# None of those ended anything, so the program is still here.
+nya("still running")
+
+# gag catches failures, and a program asking to end is not one — a compiled
+# program cannot catch os.Exit either. So this ends the program with 0 rather
+# than answering with a Furball.
+#
+# The golden harness runs these programs and would call any status but 0 a
+# failed run, so the other statuses are covered by TestScramSetsTheExitStatus in
+# compiler/ instead.
+nya(gag(paw() { scram(0) }))
+
+nya("unreachable")

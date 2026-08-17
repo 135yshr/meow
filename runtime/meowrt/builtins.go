@@ -221,6 +221,12 @@ func Gag(fn Value) (result Value) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
+			// A program asking to end is not a failure to be caught. Letting
+			// this past keeps the playground in step with a compiled program,
+			// where gag cannot catch os.Exit either.
+			if sig, ok := r.(ScramSignal); ok {
+				panic(sig)
+			}
 			result = &Furball{Message: fmt.Sprintf("%v", r), Handled: true}
 		}
 		if fb, ok := result.(*Furball); ok {

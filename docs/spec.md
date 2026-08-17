@@ -587,6 +587,7 @@ Any expression can appear as a statement. The result is discarded.
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `nya` | `nya(args...)` | Print values (space-separated) with trailing newline |
+| `scram` | `scram([status])` | End the program with `status` (0–255, default 0); `Furball` outside that range |
 
 ### Error Handling
 

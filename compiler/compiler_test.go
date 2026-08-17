@@ -2,6 +2,7 @@ package compiler_test
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"os"
 	"os/exec"
@@ -138,5 +139,168 @@ func TestParseErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Hiss!") {
 		t.Errorf("expected cat-themed error, got: %s", err)
+	}
+}
+
+// A program's exit status is how it tells a shell, cron or a CI step what it
+// found, so it has to survive being compiled and run. The golden files cannot
+// cover this: their harness treats a non-zero status as a failed run.
+func TestScramSetsTheExitStatus(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   int
+	}{
+		{"a status", "nya(\"checked\")\nscram(3)\n", 3},
+		{"success", "nya(\"checked\")\nscram(0)\n", 0},
+		{"no argument means success", "scram()\n", 0},
+		// Reaching the end is success, the same as a process that ran out of
+		// statements.
+		{"never scrammed", "nya(\"checked\")\n", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := runSource(t, tt.source); got != tt.want {
+				t.Errorf("exited with %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+// What follows scram must not run: a check that decided it is done has decided.
+func TestScramStopsTheProgram(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	source := "nya(\"before\")\nscram(0)\nnya(\"after\")\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	binPath := filepath.Join(dir, "prog")
+	if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	out, err := exec.Command(binPath).Output()
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	if string(out) != "before\n" {
+		t.Errorf("got %q, want %q", string(out), "before\n")
+	}
+}
+
+// env.haul reads what the program was started with, so a program can be told
+// what to work on rather than having it written into its source.
+func TestHaulReadsTheCommandLine(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	source := "nab \"env\"\npurr a (env.haul()) { nya(a) }\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	binPath := filepath.Join(dir, "prog")
+	if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	// -v among them because a program is entitled to its own flags.
+	out, err := exec.Command(binPath, "--target", "https://example.test", "-v").Output()
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+
+	want := "--target\nhttps://example.test\n-v\n"
+	if string(out) != want {
+		t.Errorf("got %q, want %q", string(out), want)
+	}
+}
+
+// runSource builds source and reports the status the program exited with.
+func runSource(t *testing.T, source string) int {
+	t.Helper()
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	binPath := filepath.Join(dir, "prog")
+	if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	cmd := exec.Command(binPath)
+	err := cmd.Run()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode()
+	}
+	if err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+	return 0
+}
+
+// Run is what `meow run` calls, and it is the piece that hands the program its
+// arguments and reports back the status it ended on. Running the binary
+// directly, as the tests above do, would leave both untested.
+func TestRunForwardsArgumentsAndReportsTheStatus(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	// Ends on the number of arguments it was handed, so one run proves both
+	// that they arrived and that the status came back.
+	source := "nab \"env\"\nscram(len(env.haul()))\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := compiler.New(nil).Run(nyanPath, "--target", "https://example.test", "-v")
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("got %v, want an exit status", err)
+	}
+	if exitErr.ExitCode() != 3 {
+		t.Errorf("exited with %d, want 3", exitErr.ExitCode())
+	}
+}
+
+// A program that ends well is not an error, so nothing is reported.
+func TestRunReportsNoErrorWhenTheProgramSucceeds(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	if err := os.WriteFile(nyanPath, []byte("scram(0)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := compiler.New(nil).Run(nyanPath); err != nil {
+		t.Errorf("got %v, want no error", err)
+	}
+}
+
+// A fully typed function returns a native Go type and cannot pass a Furball
+// back, so a refused status is raised there rather than dropped. Emitting a
+// bare call left the program running as if nothing had been asked: this printed
+// 7 and succeeded.
+func TestScramRefusedInsideATypedFunction(t *testing.T) {
+	dir := t.TempDir()
+	nyanPath := filepath.Join(dir, "prog.nyan")
+	source := "meow f() int {\n  scram(300)\n  bring 7\n}\nnya(to_string(f()))\n"
+	if err := os.WriteFile(nyanPath, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	binPath := filepath.Join(dir, "prog")
+	if err := compiler.New(nil).Build(nyanPath, binPath); err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+
+	out, err := exec.Command(binPath).CombinedOutput()
+
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("got %v and output %q, want a failure", err, string(out))
+	}
+	if !strings.Contains(string(out), "0 to 255") {
+		t.Errorf("output %q, want the reason the status was refused", string(out))
 	}
 }

@@ -156,6 +156,7 @@ var builtinNames = map[string]bool{
 	"whiff": true, "track": true, "shred": true, "tangle": true, "nibble": true,
 	"upper": true, "lower": true, "trim": true, "replace": true, "pad": true,
 	"sort": true, "reverse": true, "round": true,
+	"scram": true,
 	"judge": true, "expect": true, "refuse": true, "seed": true,
 }
 
@@ -600,9 +601,10 @@ func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
 // impureBuiltins are builtins that perform I/O or control-flow side effects
 // and are therefore forbidden inside a trill (pure) function body.
 var impureBuiltins = map[string]bool{
-	"nya":  true, // print / I/O
-	"hiss": true, // panic / throw
-	"gag":  true, // recover
+	"nya":   true, // print / I/O
+	"hiss":  true, // panic / throw
+	"gag":   true, // recover
+	"scram": true, // ends the program
 }
 
 // pureBuiltins are builtins with no side effects, allowed inside trill bodies.
@@ -1268,6 +1270,11 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 		case "round":
 			return types.AnyType{}
 		case "nya", "hiss", "gag":
+			return types.AnyType{}
+		// scram does not come back, so it has no result worth a type. It still
+		// answers with a Furball when the status it was given is not one a
+		// process can report.
+		case "scram":
 			return types.AnyType{}
 		case "head":
 			return types.AnyType{}

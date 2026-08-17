@@ -1,12 +1,15 @@
 # healthcheck.nyan — probe every endpoint listed in a file and report.
 #
 #   meow run examples/healthcheck.nyan
+#   meow run examples/healthcheck.nyan path/to/targets.txt
 #
-# Reads examples/targets.txt, one URL per line. Exits non-zero if any endpoint
-# is down, so it can be used as a CI or cron check.
+# Reads a file of URLs, one per line, defaulting to examples/targets.txt. Ends
+# with a status of 1 if any endpoint is down, so cron or a CI step can act on
+# the answer without reading the report.
 nab "http"
 nab "file"
 nab "clock"
+nab "env"
 
 # http.chase reports a non-2xx status in its map rather than as a Furball, which
 # is what a health check wants: 503 is an answer, an unreachable host is not.
@@ -33,12 +36,24 @@ meow down_count(lines litter) int {
   # Bindings are immutable, so a running total is a fold rather than a counter
   # that the loop body assigns to.
   bring curl(lines, 0, paw(acc, l) {
-    sniff (whiff(l, "DOWN")) { bring acc + 1 }
-    bring acc
+    # Every line starts with either a status or DOWN, so anything that does not
+    # start with a 2 is an endpoint that did not answer well. Counting only the
+    # DOWN lines would have a 503 reported and then called healthy.
+    sniff (nibble(l, 0, 1) == "2") { bring acc }
+    bring acc + 1
   })
 }
 
-nyan targets = file.stalk("examples/targets.txt")
+# The file to read comes from the command line when one was given, so the same
+# check can be pointed at staging or production without editing it.
+meow target_file(given litter) string {
+  sniff (len(given) > 0) {
+    bring head(given)
+  }
+  bring "examples/targets.txt"
+}
+
+nyan targets = file.stalk(target_file(env.haul()))
 nyan lines = lick(targets, paw(u) { line(u) })
 
 purr l (sort(lines)) { nya(l) }
@@ -47,6 +62,8 @@ nya("---")
 nyan down = down_count(lines)
 nya(to_string(len(targets)) + " checked, " + to_string(down) + " down")
 
+# A status rather than a hiss: nothing went wrong with the check itself, and
+# the caller wants the answer, not an error message about it.
 sniff (down > 0) {
-  hiss(to_string(down) + " endpoint(s) down")
+  scram(1)
 }

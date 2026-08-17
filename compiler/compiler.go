@@ -144,8 +144,13 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	return nil
 }
 
-// Run compiles and runs a .nyan file.
-func (c *Compiler) Run(nyanPath string) error {
+// Run compiles and runs a .nyan file, passing args on to the program.
+//
+// The arguments are what env.haul reads, so `meow run prog.nyan --verbose` and
+// running the built binary the same way agree. The program's exit status comes
+// back as an *exec.ExitError, which the caller reports as its own — a program
+// that scrams with 3 is no use if the tool that ran it answers 1.
+func (c *Compiler) Run(nyanPath string, args ...string) error {
 	tmpBin, err := os.CreateTemp("", "meow-run-*")
 	if err != nil {
 		return err
@@ -157,7 +162,7 @@ func (c *Compiler) Run(nyanPath string) error {
 		return err
 	}
 
-	cmd := exec.Command(tmpBin.Name())
+	cmd := exec.Command(tmpBin.Name(), args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
