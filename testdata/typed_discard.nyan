@@ -1,0 +1,44 @@
+# A call written as a statement inside a fully typed function.
+#
+# Its value is discarded, so a Furball it answered with used to vanish: the
+# function carried on and reported success, while the same program in the
+# playground failed. A typed function returns a native Go type and cannot pass a
+# Furball on, so the failure is raised instead and `gag` or `~>` catches it at
+# the boundary.
+
+# Answers with a Furball, though it is declared to return a litter.
+meow reversed(s string) litter {
+  bring reverse(s)
+}
+
+meow keeps_going(n int) int {
+  reversed("not a litter")
+  nya("this line must not be reached")
+  bring n
+}
+nya(to_string(keeps_going(5)) ~> "the failure was noticed")
+
+# The same with a native return type, where the unboxing raises it.
+meow doubled(xs litter) string {
+  bring xs[0] + 1
+}
+
+meow also_keeps_going(n int) int {
+  doubled(["oops"])
+  nya("this line must not be reached either")
+  bring n
+}
+nya(to_string(also_keeps_going(5)) ~> "this failure too")
+
+# A call that succeeds is still just a statement: nothing is raised, and what it
+# printed on the way stays printed.
+meow announce(what string) string {
+  nya("announcing " + what)
+  bring what
+}
+
+meow uses_it(n int) int {
+  announce("a number")
+  bring n
+}
+nya(to_string(uses_it(7)))
