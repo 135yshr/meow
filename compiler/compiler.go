@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"go/format"
 	"log/slog"
@@ -404,6 +405,21 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	return nil
 }
 
+// TestsFailed is how RunTest says the test binary ran and came back unhappy,
+// as opposed to never having got that far.
+//
+// The binary names the tests it failed and counts them on its way out, so a
+// caller has nothing to add. Everything else that can go wrong does need
+// saying, and there are two ways to arrive at the same silence from here: a
+// `go build` fails with an exit status of its own, and a binary that never
+// starts — a TMPDIR mounted noexec, an executable bit that did not survive —
+// fails with something that is not an exit status at all. Only a process that
+// really ran is quiet.
+type TestsFailed struct{ Err error }
+
+func (e *TestsFailed) Error() string { return e.Err.Error() }
+func (e *TestsFailed) Unwrap() error { return e.Err }
+
 // RunTest compiles and runs a _test.nyan file.
 func (c *Compiler) RunTest(nyanPath string) error {
 	tmpBin, err := os.CreateTemp("", "meow-test-run-*")
@@ -424,7 +440,16 @@ func (c *Compiler) RunTest(nyanPath string) error {
 	if c.coverProfile != "" {
 		cmd.Env = append(os.Environ(), "MEOW_COVERPROFILE="+c.coverProfile)
 	}
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		// An exit status means the binary ran and spoke for itself. Anything
+		// else means it never started, and only this says so.
+		var exited *exec.ExitError
+		if errors.As(err, &exited) {
+			return &TestsFailed{Err: err}
+		}
+		return err
+	}
+	return nil
 }
 
 // RunMutationTest runs mutation testing on a source file using the given test files.

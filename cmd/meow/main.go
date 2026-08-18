@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -277,11 +278,34 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 		fmt.Fprintf(os.Stdout, "=== Testing %s ===\n", f)
 		if err := c.RunTest(f); err != nil {
 			hasFailure = true
+			reportTestError(os.Stderr, err)
 		}
 	}
 	if hasFailure {
 		os.Exit(1)
 	}
+}
+
+// reportTestError says what went wrong with a test file, unless the file's own
+// test binary has already said it.
+//
+// A binary that ran and failed has named the tests it failed and counted them,
+// so its exit status adds nothing. Everything else — a file the checker turned
+// down, a build that never finished — stopped before the binary existed, and
+// saying nothing left the file failing without a word about why.
+//
+// The two are told apart by which stage failed, not by the kind of error: a
+// `go build` that dies also comes back as an exit status, and one that dies
+// without a word of its own has to be reported or nothing is.
+func reportTestError(stderr io.Writer, err error) {
+	if err == nil {
+		return
+	}
+	var ran *compiler.TestsFailed
+	if errors.As(err, &ran) {
+		return
+	}
+	fmt.Fprintln(stderr, err)
 }
 
 func discoverFiles(dir, pattern string) ([]string, error) {
