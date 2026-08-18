@@ -1,3 +1,8 @@
+# [v0.16.1](https://github.com/135yshr/meow/compare/v0.16.0...v0.16.1) (2026-08-18)
+
+## 🐛 Bug Fixes
+- [`1b763ea`](https://github.com/135yshr/meow/commit/1b763ea)  fix: Stop fmt pushing an index away from its subject, and free up &#x60;tag&#x60; (#125) (Issues: [`#125`](https://github.com/135yshr/meow/issues/125))
+
 # [v0.16.0](https://github.com/135yshr/meow/compare/v0.15.1...v0.16.0) (2026-08-18)
 
 ## ✨ New Features
