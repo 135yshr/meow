@@ -649,6 +649,27 @@ func TestFetchStmtTagWithoutIdent(t *testing.T) {
 	}
 }
 
+// `tag` names a nab alias and means nothing anywhere else, so it stays an
+// ordinary word everywhere else. Reserved outright it took `tag` away from
+// every program — including the `nyan tag = Label("important")` the reference,
+// the tutorial and examples/trick_example.nyan all teach.
+func TestTagIsOnlyAKeywordAfterNab(t *testing.T) {
+	inputs := []string{
+		`nyan tag = "important"`,
+		`meow label(tag string) string { bring tag }`,
+		`nyan tag = 1` + "\n" + `nya(tag)`,
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			l := lexer.New(input, "test.nyan")
+			p := parser.New(l.Tokens())
+			if _, errs := p.Parse(); len(errs) > 0 {
+				t.Errorf("got %v, want no parse errors", errs)
+			}
+		})
+	}
+}
+
 // Escape sequences are decoded on the way to the AST. The lexer keeps the
 // literal as written, so that `meow fmt` can write the source back unchanged.
 func TestStringEscapes(t *testing.T) {
