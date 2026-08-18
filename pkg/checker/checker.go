@@ -855,16 +855,6 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 	}
 }
 
-// isPrimitiveType reports whether t is a simple scalar type (int, byte, float, string, bool, nil).
-func isPrimitiveType(t types.Type) bool {
-	switch t.(type) {
-	case types.IntType, types.ByteType, types.FloatType, types.StringType, types.BoolType, types.NilType:
-		return true
-	default:
-		return false
-	}
-}
-
 // blockAlwaysReturns checks if all control-flow paths end with a return statement.
 func blockAlwaysReturns(stmts []ast.Stmt) bool {
 	if len(stmts) == 0 {
@@ -1488,9 +1478,11 @@ func (c *Checker) inferList(e *ast.ListLit) types.Type {
 	for _, item := range e.Items[1:] {
 		t := c.inferExpr(item)
 		if !types.IsAny(elemType) && !types.IsAny(t) && !elemType.Equals(t) {
-			if isPrimitiveType(elemType) && isPrimitiveType(t) {
-				c.addError(e.Token.Pos, "List elements must have consistent types: %s vs %s", elemType, t)
-			}
+			// A litter of mixed things is a litter of anything. This is what
+			// already happened to `[Cat(...), Dog(...)]`; primitives were
+			// singled out for a refusal on top, so `[1, "a"]` was turned down
+			// while the same shape in kitties was waved through, and the
+			// playground ran both.
 			elemType = types.AnyType{}
 		}
 	}
