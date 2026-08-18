@@ -470,10 +470,45 @@ meow abs(x int) int {
 	}
 }
 
-func TestListMixedTypes(t *testing.T) {
-	_, errs := check(t, `nyan xs = [1, "hello"]`)
-	if len(errs) == 0 {
-		t.Fatal("expected error for mixed-type list, got none")
+// A litter of mixed things is a litter of anything. `[Cat(...), Dog(...)]` was
+// always read that way; primitives alone were refused on top of it, so the two
+// halves of the same idea disagreed — and the playground, which does not run
+// the checker, ran both.
+func TestListOfMixedThingsIsAListOfAnything(t *testing.T) {
+	inputs := []string{
+		`nyan xs = [1, "hello"]`,
+		`nyan xs = [1, yarn, "a", 2.5]`,
+		`nyan xs = [1, catnap]`,
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			info, errs := check(t, input)
+			if len(errs) > 0 {
+				t.Fatalf("got %v, want no errors", errs)
+			}
+			list, ok := info.VarTypes["xs"].(types.ListType)
+			if !ok {
+				t.Fatalf("got %v, want a litter", info.VarTypes["xs"])
+			}
+			if !types.IsAny(list.Elem) {
+				t.Errorf("elements are %v, want anything", list.Elem)
+			}
+		})
+	}
+}
+
+// One kind all the way through still says which kind it is.
+func TestListOfOneKindKeepsIt(t *testing.T) {
+	info, errs := check(t, `nyan xs = [1, 2, 3]`)
+	if len(errs) > 0 {
+		t.Fatalf("got %v, want no errors", errs)
+	}
+	list, ok := info.VarTypes["xs"].(types.ListType)
+	if !ok {
+		t.Fatalf("got %v, want a litter", info.VarTypes["xs"])
+	}
+	if _, ok := list.Elem.(types.IntType); !ok {
+		t.Errorf("elements are %v, want int", list.Elem)
 	}
 }
 

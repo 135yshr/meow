@@ -1,0 +1,27 @@
+# A litter of mixed things is a litter of anything.
+#
+# `[Cat(...), Dog(...)]` was always read that way. Primitives alone were
+# refused on top of it, so the same shape was allowed in kitties and turned
+# down in numbers — and the playground, which does not run the checker, ran
+# both.
+
+nyan mixed = [1, "a", yarn, 2.5, catnap]
+nya("count " + to_string(len(mixed)))
+nya("first " + to_string(mixed[0]))
+nya("second " + mixed[1])
+
+# Walked like any other litter.
+purr x (mixed) {
+  nya("saw " + to_string(x))
+}
+
+# One kind all the way through still says which kind it is, so this stays
+# arithmetic rather than becoming a boxed guess.
+nyan counts = [1, 2, 3]
+nya("sum " + to_string(counts[0] + counts[1] + counts[2]))
+
+# Mixed kitties read the same way, which is where the behaviour came from.
+kitty Cat { name: string }
+kitty Dog { name: string }
+nyan pets = [Cat("Nyantyu"), Dog("Tyomusuke")]
+nya("pets " + to_string(len(pets)))

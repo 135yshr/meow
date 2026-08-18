@@ -136,6 +136,11 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
 | `pose` | Interface (method signatures) | `pose Showable { meow show() string }` |
 
+A `litter` written out with one kind of thing in it is a litter of that kind,
+and one written with several is a litter of anything — `[1, 2, 3]` holds ints,
+`[1, "a"]` holds whatever it holds. Nothing is refused for being mixed; what
+changes is only how much is known about an element before the program runs.
+
 ### Type Alias (breed)
 
 A `breed` declaration creates a transparent alias for an existing type. The alias is fully interchangeable with the original type in all operations.
