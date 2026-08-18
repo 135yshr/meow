@@ -1,3 +1,8 @@
+# [v0.16.3](https://github.com/135yshr/meow/compare/v0.16.2...v0.16.3) (2026-08-18)
+
+## 🐛 Bug Fixes
+- [`58e0b52`](https://github.com/135yshr/meow/commit/58e0b52)  fix: Stop fmt rewriting what nobody writes, and let a litter hold mixed things (#127) (Issues: [`#127`](https://github.com/135yshr/meow/issues/127))
+
 # [v0.16.2](https://github.com/135yshr/meow/compare/v0.16.1...v0.16.2) (2026-08-18)
 
 ## 🐛 Bug Fixes
