@@ -1413,6 +1413,13 @@ func (g *Generator) estimateEndPos(stmt ast.Stmt) (int, int) {
 			return endLine + 1, 1
 		}
 		return pos.Line + 1, 1
+	case *ast.WhileStmt:
+		if len(s.Body) > 0 {
+			last := s.Body[len(s.Body)-1]
+			endLine, _ := g.estimateEndPos(last)
+			return endLine + 1, 1
+		}
+		return pos.Line + 1, 1
 	default:
 		return pos.Line, pos.Column + 1
 	}
@@ -2196,8 +2203,16 @@ func isCallTo(e *ast.CallExpr, name string) bool {
 // was written and nowhere else — the interpreter gives a `sniff` or `purr` body
 // its own scope too. Without one, a nested function inside such a block was
 // assigned to a variable that had never been declared and the build failed.
+// genBlockStmts emits the statements of one braced block.
+//
+// The block gets its own view of which names are held as native Go values. A
+// binding made inside it does not outlive the closing brace in Go, so the
+// generator must stop believing in it there too — otherwise a body that
+// shadowed an int64 parameter with a boxed value left the code after it
+// reaching for the shadow, and the Go compiler rejected what was valid Meow.
 func (g *Generator) genBlockStmts(stmts []ast.Stmt, gen func(ast.Stmt) string) string {
 	defer g.enterNestedScope()()
+	defer g.enterNativeScope()()
 	var b strings.Builder
 	b.WriteString(g.hoistNestedFuncs(stmts))
 	for _, stmt := range stmts {

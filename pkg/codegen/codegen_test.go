@@ -294,6 +294,26 @@ func TestCoverageRegisterInInit(t *testing.T) {
 	}
 }
 
+// A loop is one block, not one character. Recorded as a character the loop's
+// coverage entry — and that of any block ending in one — highlighted the word
+// `purr` alone instead of the turn it stands for.
+func TestCoverageSpansAConditionalPurr(t *testing.T) {
+	code := generateTestWithCoverage(t, `meow probe() {
+  purr (yarn) {
+    nya("looking")
+    bolt
+  }
+}
+
+meow test_probe() {
+  probe()
+}`, "probe_test.nyan")
+
+	if !strings.Contains(code, `meow_coverage.Register("probe_test.nyan", 2, 3, 5, 1, 1)`) {
+		t.Errorf("expected the purr block to span lines 2 to 5, got:\n%s", code)
+	}
+}
+
 func TestCoverageReportInMain(t *testing.T) {
 	code := generateTestWithCoverage(t, `meow test_add() {
   nyan result = 1 + 2

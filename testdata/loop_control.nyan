@@ -67,6 +67,20 @@ meow keep_asking(tries int) int {
 }
 nya(gag(paw() { nya(keep_asking(1)) }))
 
+# A name bound inside a loop body belongs to that body. Here it shadows a typed
+# parameter with something whose type is not known ahead of time, and the
+# parameter is itself again once the loop is done.
+meow greet(times int) int {
+  nyan label = paw(n) { bring "shadowed " + to_string(n) }
+  purr (yarn) {
+    nyan times = label(times)
+    nya(times)
+    bolt
+  }
+  bring times
+}
+nya(greet(3))
+
 # bolt and slink belong to the loop they are written in, so a nested loop bolts
 # out of its own.
 purr outer (2) {
