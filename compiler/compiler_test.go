@@ -404,3 +404,35 @@ func TestAFailureIsBlamedOnTheRightLine(t *testing.T) {
 		})
 	}
 }
+
+// Only a test binary that really ran is allowed to be quiet about its failure,
+// because only it has already named the tests it failed. A binary that never
+// started fails with something that is not an exit status at all, and wrapping
+// that as though the tests had run left `meow test` with nothing to say.
+func TestRunTestMarksOnlyABinaryThatRan(t *testing.T) {
+	dir := t.TempDir()
+
+	failing := filepath.Join(dir, "failing_test.nyan")
+	if err := os.WriteFile(failing, []byte("meow test_math() {\n  expect(1 + 1, 3)\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := compiler.New(nil).RunTest(failing)
+
+	var ran *compiler.TestsFailed
+	if !errors.As(err, &ran) {
+		t.Fatalf("got %T (%v), want the tests to be marked as having run", err, err)
+	}
+	// What it carries is an exit status, and nothing else ever should be.
+	var exited *exec.ExitError
+	if !errors.As(err, &exited) {
+		t.Errorf("got %T underneath, want an exit status", ran.Err)
+	}
+
+	passing := filepath.Join(dir, "passing_test.nyan")
+	if err := os.WriteFile(passing, []byte("meow test_math() {\n  expect(1 + 1, 2)\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := compiler.New(nil).RunTest(passing); err != nil {
+		t.Errorf("got %v, want no error", err)
+	}
+}
