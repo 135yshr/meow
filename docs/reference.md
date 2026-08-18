@@ -11,7 +11,9 @@ A complete reference of all keywords, operators, and syntax in the Meow language
 | `bring` | Return a value | `bring x + 1` |
 | `sniff` | Conditional branch (if) | `sniff (x > 0) { ... }` |
 | `scratch` | Else branch | `} scratch { ... }` |
-| `purr` | Loop (count, range, or list) | `purr i (10) { ... }` |
+| `purr` | Loop (count, range, list, or condition) | `purr i (10) { ... }`, `purr (ready) { ... }` |
+| `bolt` | Leave the loop | `sniff (found) { bolt }` |
+| `slink` | On to the next turn | `sniff (empty) { slink }` |
 | `paw` | Lambda (anonymous function) | `paw(x int) { x * 2 }` |
 | `nya` | Print values | `nya("Hello!")` |
 | `lick` | Transform each element in a list (map) | `lick(nums, paw(x) { x * 2 })` |

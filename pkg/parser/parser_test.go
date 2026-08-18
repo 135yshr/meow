@@ -704,3 +704,56 @@ func TestStringEscapeErrors(t *testing.T) {
 		})
 	}
 }
+
+// The conditional form of purr has no loop variable, so an opening parenthesis
+// right after the keyword is what tells it apart from the range forms.
+func TestPurrConditionalForm(t *testing.T) {
+	prog := parse(t, `purr (ready) {
+  nya("waiting")
+}`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(prog.Stmts))
+	}
+	ws, ok := prog.Stmts[0].(*ast.WhileStmt)
+	if !ok {
+		t.Fatalf("expected WhileStmt, got %T", prog.Stmts[0])
+	}
+	cond, ok := ws.Cond.(*ast.Ident)
+	if !ok {
+		t.Fatalf("expected the condition to be an Ident, got %T", ws.Cond)
+	}
+	if cond.Name != "ready" {
+		t.Errorf("condition is %q, want ready", cond.Name)
+	}
+	if len(ws.Body) != 1 {
+		t.Errorf("body has %d statements, want 1", len(ws.Body))
+	}
+}
+
+// A variable still means a range form, so the existing purrs are untouched.
+func TestPurrWithAVariableIsStillARange(t *testing.T) {
+	prog := parse(t, `purr i (10) { nya(i) }`)
+	if _, ok := prog.Stmts[0].(*ast.RangeStmt); !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+}
+
+func TestBoltAndSlink(t *testing.T) {
+	prog := parse(t, `purr i (3) {
+  bolt
+  slink
+}`)
+	rs, ok := prog.Stmts[0].(*ast.RangeStmt)
+	if !ok {
+		t.Fatalf("expected RangeStmt, got %T", prog.Stmts[0])
+	}
+	if len(rs.Body) != 2 {
+		t.Fatalf("body has %d statements, want 2", len(rs.Body))
+	}
+	if _, ok := rs.Body[0].(*ast.BoltStmt); !ok {
+		t.Errorf("first statement is %T, want a BoltStmt", rs.Body[0])
+	}
+	if _, ok := rs.Body[1].(*ast.SlinkStmt); !ok {
+		t.Errorf("second statement is %T, want a SlinkStmt", rs.Body[1])
+	}
+}

@@ -79,6 +79,8 @@ const (
 	GROOM    // groom (method impl)
 	SELF     // self (self reference)
 	TAG      // tag (import alias)
+	BOLT     // bolt (leave the loop)
+	SLINK    // slink (on to the next turn)
 
 	// Type keywords
 	TYPE_INT     // int
@@ -118,6 +120,8 @@ var keywords = map[string]TokenType{
 	"collar":   COLLAR,
 	"pose":     POSE,
 	"groom":    GROOM,
+	"bolt":     BOLT,
+	"slink":    SLINK,
 	"self":     SELF,
 	"tag":      TAG,
 	"int":      TYPE_INT,

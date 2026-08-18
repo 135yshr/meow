@@ -441,6 +441,45 @@ type RangeStmt struct {
 }
 
 func (n *RangeStmt) Pos() token.Position { return n.Token.Pos }
+
+// WhileStmt represents the conditional form of purr: purr (cond) { ... }.
+//
+// It is a purr rather than a keyword of its own because purr already means
+// "loop"; what changes is what it loops on. Bindings are immutable, so the
+// condition is about something outside the loop — a reply that has not arrived
+// yet, a file that is not there yet — rather than a counter the body advances.
+type WhileStmt struct {
+	// Token is the purr keyword token.
+	Token token.Token
+	// Cond is the condition, tested before each turn.
+	Cond Expr
+	// Body is the list of statements in the loop body.
+	Body []Stmt
+}
+
+func (n *WhileStmt) Pos() token.Position { return n.Token.Pos }
+func (n *WhileStmt) nodeTag()            {}
+func (n *WhileStmt) stmtTag()            {}
+
+// BoltStmt represents bolt: leave the loop.
+type BoltStmt struct {
+	// Token is the bolt keyword token.
+	Token token.Token
+}
+
+func (n *BoltStmt) Pos() token.Position { return n.Token.Pos }
+func (n *BoltStmt) nodeTag()            {}
+func (n *BoltStmt) stmtTag()            {}
+
+// SlinkStmt represents slink: on to the next turn of the loop.
+type SlinkStmt struct {
+	// Token is the slink keyword token.
+	Token token.Token
+}
+
+func (n *SlinkStmt) Pos() token.Position { return n.Token.Pos }
+func (n *SlinkStmt) nodeTag()            {}
+func (n *SlinkStmt) stmtTag()            {}
 func (n *RangeStmt) nodeTag()            {}
 func (n *RangeStmt) stmtTag()            {}
 

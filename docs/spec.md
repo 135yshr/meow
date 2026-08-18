@@ -38,7 +38,7 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 25 identifiers are reserved as keywords:
+The following 27 identifiers are reserved as keywords:
 
 ```text
 nyan      meow      bring     sniff     scratch
@@ -46,6 +46,7 @@ purr      paw       nya       lick      picky
 curl      peek      hiss      nab       flaunt
 catnap    yarn      hairball  kitty     breed
 collar    pose      groom     self      trill
+bolt      slink
 ```
 
 ### Type Keywords
@@ -460,15 +461,21 @@ sniff (x > 0) {
 ```ebnf
 RangeStmt = "purr" identifier [ "," identifier ] "(" RangeExpr ")" Block .
 RangeExpr = Expr [ ".." Expr ] .
+WhileStmt = "purr" "(" Expr ")" Block .
+BoltStmt  = "bolt" .
+SlinkStmt = "slink" .
 ```
 
-Three forms:
+Four forms:
 
 - **Count form**: `purr i (n)` — iterates `i` from `0` to `n-1`.
 - **Range form**: `purr i (a..b)` — iterates `i` from `a` to `b` (inclusive).
 - **Element form**: `purr x (litter)` — iterates over a litter's elements.
   `purr i, x (litter)` also binds the index. Over a `basket`, `purr k (basket)`
   binds each key and `purr k, v (basket)` binds key and value.
+- **Conditional form**: `purr (cond)` — repeats while `cond` holds, tested
+  before each turn. It has no loop variable, which is what tells it apart from
+  the forms above. As with `sniff`, `cond` must be a `bool`.
 
 ```meow
 purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
@@ -478,6 +485,26 @@ purr i, w (["a", "b"]) { nya(i) }     # 0, 1
 purr k ({"a": 1, "b": 2}) { nya(k) }         # a, b
 purr k, v ({"a": 1}) { nya(k + to_string(v)) }   # a1
 ```
+
+`bolt` leaves the loop it is written in; `slink` ends that turn and starts the
+next. Both belong to the nearest enclosing `purr`, and neither may be written
+outside one — including inside a `paw` or a `meow` declared in a loop body, since
+those run when they are called rather than as part of the turn.
+
+```meow
+purr x ([1, 2, 3, 4]) {
+  sniff (x == 4) { bolt }     # stop here
+  sniff (x == 2) { slink }    # skip this one
+  nya(x)                       # 1, 3
+}
+```
+
+Because bindings are immutable, a conditional `purr` cannot count its own way to
+a stopping point: its condition is about something the loop does not change — a
+reply that has not arrived, a file that is not there yet — and it usually ends
+with `bolt` when the body has what it came for. A condition that is already
+false means the body never runs, and a failure while working the condition out
+ends the program rather than reading as false.
 
 A `basket` is walked in sorted key order. Go, which the compiler targets,
 randomizes map iteration, so walking one in its own order would give a program
