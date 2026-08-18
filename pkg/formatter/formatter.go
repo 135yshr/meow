@@ -52,11 +52,14 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 	var prevMeaningful token.TokenType // prev token type ignoring NEWLINE
 	afterBrace := false                // suppress newlines right after {
 	afterUnaryMinus := false           // suppress space after unary minus
-	inlineBlock := false               // inside an inline lambda body
 	firstToken := true
-	// One entry per open brace, true where it opened a basket literal rather
-	// than a block, so its closing brace is treated the same way.
-	var literalBrace []bool
+	// One entry per open brace, saying what that brace opened, so its closing
+	// brace is treated the same way.
+	var braces []braceKind
+	// inside reports whether the innermost open brace is of the given kind.
+	inside := func(k braceKind) bool {
+		return len(braces) > 0 && braces[len(braces)-1] == k
+	}
 
 	writeIndent := func() {
 		for range indent * cfg.IndentWidth {
@@ -86,7 +89,7 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		switch tok.Type {
 		case token.NEWLINE:
-			if firstToken || afterBrace || inlineBlock {
+			if firstToken || afterBrace || inside(braceInline) {
 				continue
 			}
 			// Skip newlines between } and scratch
@@ -131,11 +134,15 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		// Handle RBRACE: decrease indent before writing
 		if tok.Type == token.RBRACE {
-			if n := len(literalBrace); n > 0 && literalBrace[n-1] {
+			closing := braceBlock
+			if n := len(braces); n > 0 {
+				closing = braces[n-1]
+				braces = braces[:n-1]
+			}
+			if closing == braceBasket {
 				// Closing a basket literal. It ends the line it sits on, or
 				// takes the indent of its own line where the source spread the
 				// basket out — either way it forces neither shape.
-				literalBrace = literalBrace[:n-1]
 				if indent > 0 {
 					indent--
 				}
@@ -148,12 +155,8 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 				prevMeaningful = tok.Type
 				continue
 			}
-			if len(literalBrace) > 0 {
-				literalBrace = literalBrace[:len(literalBrace)-1]
-			}
-			if inlineBlock {
+			if closing == braceInline {
 				buf.WriteString(" }")
-				inlineBlock = false
 				lineStart = false
 				firstToken = false
 				prevMeaningful = tok.Type
@@ -214,13 +217,16 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 				// A basket keeps whatever shape it was written in: no newline
 				// is forced after the brace, but the indent is there for one
 				// the source put in itself.
-				literalBrace = append(literalBrace, true)
+				braces = append(braces, braceBasket)
 				indent++
-			case isLambdaBrace(toks, i) && canInlineBlock(toks, i):
-				literalBrace = append(literalBrace, false)
-				inlineBlock = true
+			case canInlineBlock(toks, i):
+				// A body written on one line stays on one line. Only a paw was
+				// allowed to, so `sniff (n > 0) { bring 1 }` was opened out into
+				// three lines — a house style nobody had asked for, applied to
+				// something already perfectly readable.
+				braces = append(braces, braceInline)
 			default:
-				literalBrace = append(literalBrace, false)
+				braces = append(braces, braceBlock)
 				writeNewline()
 				indent++
 				afterBrace = true
@@ -251,58 +257,36 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 	return result
 }
 
-// isLambdaBrace checks if the LBRACE at toks[idx] belongs to a paw lambda.
-func isLambdaBrace(toks []token.Token, idx int) bool {
-	// Find previous meaningful token (should be RPAREN)
-	j := idx - 1
-	for j >= 0 && (toks[j].Type == token.NEWLINE || toks[j].Type == token.COMMENT) {
-		j--
-	}
-	if j < 0 || toks[j].Type != token.RPAREN {
-		return false
-	}
-	// Find matching LPAREN
-	depth := 0
-	for k := j; k >= 0; k-- {
-		switch toks[k].Type {
-		case token.RPAREN:
-			depth++
-		case token.LPAREN:
-			depth--
-			if depth == 0 {
-				// Check if PAW precedes this LPAREN
-				m := k - 1
-				for m >= 0 && (toks[m].Type == token.NEWLINE || toks[m].Type == token.COMMENT) {
-					m--
-				}
-				return m >= 0 && toks[m].Type == token.PAW
-			}
-		}
-	}
-	return false
-}
+// braceKind says what an open brace opened, so that its closing brace can be
+// given back the same way.
+type braceKind int
 
-// canInlineBlock checks if the brace block at toks[idx] (LBRACE) has no
-// nested braces, no comments, and no newlines, so it can be safely rendered
-// on a single line.
+const (
+	braceBlock  braceKind = iota // a body, opened out over lines
+	braceInline                  // a body the source kept on one line
+	braceBasket                  // a basket literal
+)
+
+// canInlineBlock reports whether the brace block at toks[idx] (LBRACE) was
+// written on one line, and so can be given back on one.
+//
+// What decides it is a newline or a comment before the matching brace — those
+// are the things a single line cannot hold. A block inside it is no obstacle:
+// `paw(n) { sniff (c) { bring 1 } scratch { bring 2 } }` is one line, and
+// counting braces rather than newlines opened it out into five.
 func canInlineBlock(toks []token.Token, idx int) bool {
 	depth := 0
 	for i := idx; i < len(toks); i++ {
 		switch toks[i].Type {
 		case token.LBRACE:
 			depth++
-			if depth > 1 {
-				return false
-			}
 		case token.RBRACE:
 			depth--
 			if depth == 0 {
 				return true
 			}
 		case token.NEWLINE, token.COMMENT:
-			if depth == 1 {
-				return false
-			}
+			return false
 		}
 	}
 	return false

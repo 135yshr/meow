@@ -349,3 +349,68 @@ func TestFormatBasketLiteralKeepsItsShape(t *testing.T) {
 		})
 	}
 }
+
+// A body written on one line is given back on one line. Only a paw was allowed
+// to stay, so every other one-line body was opened out into three — a house
+// style nobody asked for, applied to something already readable.
+func TestFormatKeepsAOneLineBody(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"a sniff", "sniff (n > 0) { bring 1 }\n", "sniff (n > 0) { bring 1 }\n"},
+		{"a purr", "purr i (3) { nya(i) }\n", "purr i (3) { nya(i) }\n"},
+		{"a paw, as before", "nyan g = paw(x int) { x * 2 }\n", "nyan g = paw(x int) { x * 2 }\n"},
+		{"a kitty", "kitty Cat { name: string }\n", "kitty Cat { name: string }\n"},
+		{"with a scratch", "sniff (c) { nya(\"a\") } scratch { nya(\"b\") }\n", "sniff (c) { nya(\"a\") } scratch { nya(\"b\") }\n"},
+		{
+			"one inside another",
+			"nyan c = paw(n) { sniff (n > 10) { bring \"big\" } scratch { bring \"small\" } }\n",
+			"nyan c = paw(n) { sniff (n > 10) { bring \"big\" } scratch { bring \"small\" } }\n",
+		},
+		{
+			"nested in a body that is not",
+			"meow f(n int) int {\n  sniff (n > 0) { bring 1 }\n  bring 0\n}\n",
+			"meow f(n int) int {\n  sniff (n > 0) { bring 1 }\n  bring 0\n}\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// What a single line cannot hold is what opens a body out: a newline the source
+// put there, or a comment. Counting braces instead turned a one-line paw
+// holding a one-line sniff into five lines.
+func TestFormatOpensOutABodyThatWasNotOnOneLine(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			"written over lines, kept over lines",
+			"sniff (c) {\n  nya(\"a\")\n}\n",
+			"sniff (c) {\n  nya(\"a\")\n}\n",
+		},
+		// A comment keeps the body open. Where the comment itself lands is the
+		// same as it has always been — it moves onto its own line.
+		{
+			"a comment cannot share the line",
+			"sniff (c) { # why\n  nya(\"a\")\n}\n",
+			"sniff (c) {\n  # why\n  nya(\"a\")\n}\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
