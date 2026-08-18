@@ -1,3 +1,8 @@
+# [v0.16.2](https://github.com/135yshr/meow/compare/v0.16.1...v0.16.2) (2026-08-18)
+
+## 🐛 Bug Fixes
+- [`bddfab3`](https://github.com/135yshr/meow/commit/bddfab3)  fix: Say why a test file could not be tested (#126) (Issues: [`#126`](https://github.com/135yshr/meow/issues/126))
+
 # [v0.16.1](https://github.com/135yshr/meow/compare/v0.16.0...v0.16.1) (2026-08-18)
 
 ## 🐛 Bug Fixes
