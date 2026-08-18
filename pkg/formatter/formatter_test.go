@@ -273,3 +273,79 @@ func TestFormatPipeOperator(t *testing.T) {
 		t.Errorf("expected pipe operator in output, got: %s", got)
 	}
 }
+
+// A purr's subject is part of the loop's opening, not a call. Judged by the
+// token right before the paren — the loop variable — the space was dropped,
+// and every `purr i (10)` in the repository came back looking like a call
+// to `i`.
+func TestFormatPurrKeepsTheSpaceBeforeItsSubject(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"count form", "purr i (5) {\n  nya(i)\n}\n", "purr i (5) {\n  nya(i)\n}\n"},
+		{"element form", "purr x (xs) {\n  nya(x)\n}\n", "purr x (xs) {\n  nya(x)\n}\n"},
+		{"with an index", "purr i, x (xs) {\n  nya(x)\n}\n", "purr i, x (xs) {\n  nya(x)\n}\n"},
+		{"over a basket", "purr k, v (m) {\n  nya(k)\n}\n", "purr k, v (m) {\n  nya(k)\n}\n"},
+		{"conditional form", "purr (ready) {\n  bolt\n}\n", "purr (ready) {\n  bolt\n}\n"},
+		// A call is still a call.
+		{"a call keeps none", "nya(f(1))\n", "nya(f(1))\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// A range is one thing. Spaced out as though `..` were an operator between two
+// numbers, `1..5` came back as `1 .. 5`, a form in no document and no source
+// file here.
+func TestFormatRangeStaysTight(t *testing.T) {
+	tests := []struct{ input, want string }{
+		{"purr i (1..5) {\n  nya(i)\n}\n", "purr i (1..5) {\n  nya(i)\n}\n"},
+		{"nyan r = 1..10\n", "nyan r = 1..10\n"},
+		{"purr i (a..b) {\n  nya(i)\n}\n", "purr i (a..b) {\n  nya(i)\n}\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// A basket literal is a value, not a body. Broken open like a block, a one-line
+// `{"body": "hi"}` came back across three lines and an empty `{}` across two.
+func TestFormatBasketLiteralKeepsItsShape(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"one line stays one line", "nyan m = {\"a\": 1, \"b\": 2}\n", "nyan m = {\"a\": 1, \"b\": 2}\n"},
+		{"empty", "nyan m = {}\n", "nyan m = {}\n"},
+		{"as an argument", "nya({\"a\": 1})\n", "nya({\"a\": 1})\n"},
+		{"as a loop subject", "purr k ({\"a\": 1}) {\n  nya(k)\n}\n", "purr k ({\"a\": 1}) {\n  nya(k)\n}\n"},
+		{"nested", "nyan m = {\"h\": {\"k\": \"v\"}}\n", "nyan m = {\"h\": {\"k\": \"v\"}}\n"},
+		// Spread over lines in the source, it keeps that shape and is indented.
+		{
+			"several lines keep their indent",
+			"nyan m = {\n  \"a\": 1,\n  \"b\": 2\n}\n",
+			"nyan m = {\n  \"a\": 1,\n  \"b\": 2\n}\n",
+		},
+		// A block brace is still a block brace.
+		{"a body still opens", "meow f() {\n  bring 1\n}\n", "meow f() {\n  bring 1\n}\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

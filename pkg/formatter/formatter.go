@@ -54,6 +54,9 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 	afterUnaryMinus := false           // suppress space after unary minus
 	inlineBlock := false               // inside an inline lambda body
 	firstToken := true
+	// One entry per open brace, true where it opened a basket literal rather
+	// than a block, so its closing brace is treated the same way.
+	var literalBrace []bool
 
 	writeIndent := func() {
 		for range indent * cfg.IndentWidth {
@@ -128,6 +131,26 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		// Handle RBRACE: decrease indent before writing
 		if tok.Type == token.RBRACE {
+			if n := len(literalBrace); n > 0 && literalBrace[n-1] {
+				// Closing a basket literal. It ends the line it sits on, or
+				// takes the indent of its own line where the source spread the
+				// basket out — either way it forces neither shape.
+				literalBrace = literalBrace[:n-1]
+				if indent > 0 {
+					indent--
+				}
+				if lineStart {
+					writeIndent()
+				}
+				buf.WriteByte('}')
+				lineStart = false
+				firstToken = false
+				prevMeaningful = tok.Type
+				continue
+			}
+			if len(literalBrace) > 0 {
+				literalBrace = literalBrace[:len(literalBrace)-1]
+			}
 			if inlineBlock {
 				buf.WriteString(" }")
 				inlineBlock = false
@@ -169,7 +192,7 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 		} else {
 			if afterUnaryMinus {
 				// No space after unary minus
-			} else if needsSpaceBefore(tok.Type, prevMeaningful) {
+			} else if needsSpaceBefore(toks, i, prevMeaningful) {
 				buf.WriteByte(' ')
 			}
 		}
@@ -186,9 +209,18 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 
 		// Handle LBRACE: increase indent after writing
 		if tok.Type == token.LBRACE {
-			if isLambdaBrace(toks, i) && canInlineBlock(toks, i) {
+			switch {
+			case opensABasket(prevMeaningful):
+				// A basket keeps whatever shape it was written in: no newline
+				// is forced after the brace, but the indent is there for one
+				// the source put in itself.
+				literalBrace = append(literalBrace, true)
+				indent++
+			case isLambdaBrace(toks, i) && canInlineBlock(toks, i):
+				literalBrace = append(literalBrace, false)
 				inlineBlock = true
-			} else {
+			default:
+				literalBrace = append(literalBrace, false)
 				writeNewline()
 				indent++
 				afterBrace = true
@@ -302,8 +334,48 @@ func isBinaryOp(t token.TokenType) bool {
 		token.LT, token.GT, token.LTE, token.GTE,
 		token.AND, token.OR,
 		token.PIPE, token.TILDEARROW,
-		token.DOTDOT, token.ARROW:
+		token.ARROW:
 		return true
+	}
+	return false
+}
+
+// opensABasket reports whether a brace following prev opens a basket literal
+// rather than a block.
+//
+// A block's brace closes a header — `meow f() {`, `sniff (c) {`, `kitty Cat {`
+// — so it follows a `)`, a name or a type. A basket's brace stands where a
+// value does: after `=`, an open bracket, a comma, a colon, a `bring`, an
+// operator. Treated alike, `{"body": "hi"}` was broken open across three lines
+// as though it were a body, and `{}` across two.
+func opensABasket(prev token.TokenType) bool {
+	switch prev {
+	case token.LPAREN, token.LBRACKET, token.LBRACE,
+		token.COMMA, token.COLON, token.BRING, token.NOT:
+		return true
+	}
+	return isBinaryOp(prev)
+}
+
+// opensALoopSubject reports whether the LPAREN at toks[idx] is the one holding
+// what a purr walks — `purr i (5)`, `purr i, x (xs)`.
+//
+// It reads as part of the loop's opening rather than as a call, so it keeps
+// the space the whole language is written with. Judged by the token just
+// before it, that token is the loop variable and the space was dropped, which
+// turned every `purr i (10)` in the repository into something that looked like
+// a call to `i`.
+func opensALoopSubject(toks []token.Token, idx int) bool {
+	// Back over the loop variable, and the index variable if there is one.
+	for i := idx - 1; i >= 0; i-- {
+		switch toks[i].Type {
+		case token.IDENT, token.COMMA:
+			continue
+		case token.PURR:
+			return true
+		default:
+			return false
+		}
 	}
 	return false
 }
@@ -318,7 +390,13 @@ func isBlockKeyword(t token.TokenType) bool {
 	return false
 }
 
-func needsSpaceBefore(cur, prev token.TokenType) bool {
+// needsSpaceBefore reports whether toks[idx] wants a space in front of it,
+// given the meaningful token before it.
+//
+// A few rules need to see further back than one token, so the whole stream is
+// passed rather than the two types alone.
+func needsSpaceBefore(toks []token.Token, idx int, prev token.TokenType) bool {
+	cur := toks[idx].Type
 	// Never space after open delimiters
 	if prev == token.LPAREN || prev == token.LBRACKET {
 		return false
@@ -347,6 +425,11 @@ func needsSpaceBefore(cur, prev token.TokenType) bool {
 	if cur == token.DOT || prev == token.DOT {
 		return false
 	}
+	// DOTDOT: a range is one thing, written `1..5`. Spaced out as an operator it
+	// came back as `1 .. 5`, which is in no document and in no source file here.
+	if cur == token.DOTDOT || prev == token.DOTDOT {
+		return false
+	}
 	// Space around binary operators
 	if isBinaryOp(cur) || isBinaryOp(prev) {
 		return true
@@ -355,12 +438,20 @@ func needsSpaceBefore(cur, prev token.TokenType) bool {
 	if cur == token.LBRACE {
 		return true
 	}
-	// LPAREN: space only after block keywords (sniff, purr)
-	if cur == token.LPAREN {
-		if isBlockKeyword(prev) {
-			return true
+	// A basket literal packs its contents against its braces — `{"a": 1}`, the
+	// way every source file here writes one. A block's brace is followed by a
+	// newline, so this only ever decides the literal case.
+	if prev == token.LBRACE {
+		brace := idx - 1
+		for brace >= 0 && (toks[brace].Type == token.NEWLINE || toks[brace].Type == token.COMMENT) {
+			brace--
 		}
-		return false
+		return !opensABasket(previousNonTriviaType(toks, brace-1))
+	}
+	// LPAREN: part of an opening rather than a call — `sniff (c)`, `purr (c)`,
+	// and the `purr i (5)` whose loop variable sits between the two.
+	if cur == token.LPAREN {
+		return isBlockKeyword(prev) || opensALoopSubject(toks, idx)
 	}
 	// LBRACKET: an index reaches back into whatever it follows, so it sits
 	// tight against it — `resp["body"]`, not `resp ["body"]`. Opening a litter
