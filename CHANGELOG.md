@@ -1,3 +1,9 @@
+# [v0.16.0](https://github.com/135yshr/meow/compare/v0.15.1...v0.16.0) (2026-08-18)
+
+## ✨ New Features
+- [`a60fbfb`](https://github.com/135yshr/meow/commit/a60fbfb)  feat: Say where a program was when it failed (#123) (Issues: [`#123`](https://github.com/135yshr/meow/issues/123))
+- [`87e6e88`](https://github.com/135yshr/meow/commit/87e6e88)  feat: Add a conditional purr, and bolt / slink to steer a loop (#124) (Issues: [`#124`](https://github.com/135yshr/meow/issues/124))
+
 # [v0.15.1](https://github.com/135yshr/meow/compare/v0.15.0...v0.15.1) (2026-08-17)
 
 ## 🐛 Bug Fixes
