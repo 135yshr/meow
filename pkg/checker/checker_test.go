@@ -1270,3 +1270,65 @@ func TestCompareMismatchedTypesStillErrors(t *testing.T) {
 		t.Errorf("expected a Cannot compare error, got %v", errs[0])
 	}
 }
+
+// Left to the compiler, a bolt with no loop around it became a Go break with
+// nothing to break out of — a message about generated code the reader never
+// wrote.
+func TestBoltAndSlinkNeedALoop(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"bolt at the top level", "bolt\n", "bolt used outside a purr loop"},
+		{"slink at the top level", "slink\n", "slink used outside a purr loop"},
+		{
+			// The lambda runs per element, wherever lick was called from, so
+			// the loop outside is not one it can leave.
+			"bolt inside a lambda in a loop",
+			"purr i (3) {\n  nyan f = lick([1], paw(v) { bolt })\n}\n",
+			"bolt used outside a purr loop",
+		},
+		{
+			"slink inside a function declared in a loop",
+			"purr i (3) {\n  meow inner(v int) int { slink }\n  nya(\"x\")\n}\n",
+			"slink used outside a purr loop",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, errs := check(t, tt.input)
+
+			if !hasError(errs, tt.want) {
+				t.Errorf("got %v, want an error saying %q", errs, tt.want)
+			}
+		})
+	}
+}
+
+func TestBoltAndSlinkInsideALoopAreFine(t *testing.T) {
+	inputs := []string{
+		"purr i (3) {\n  bolt\n}\n",
+		"purr x ([1, 2]) {\n  slink\n}\n",
+		"purr (yarn) {\n  bolt\n}\n",
+		// Nested: the inner one belongs to the inner loop.
+		"purr i (3) {\n  purr j (3) {\n    bolt\n  }\n}\n",
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			if _, errs := check(t, input); len(errs) > 0 {
+				t.Errorf("got %v, want no errors", errs)
+			}
+		})
+	}
+}
+
+// hasError reports whether any error's message contains want.
+func hasError(errs []*checker.TypeError, want string) bool {
+	for _, e := range errs {
+		if strings.Contains(e.Message, want) {
+			return true
+		}
+	}
+	return false
+}

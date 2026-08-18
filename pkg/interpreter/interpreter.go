@@ -27,6 +27,13 @@ type returnSignal struct {
 // stepLimitExceeded signals that the step limit was reached.
 type stepLimitExceeded struct{}
 
+// boltSignal signals that the loop should be left, and slinkSignal that this
+// turn is over. They are raised where they are written and caught by the
+// enclosing loop, the way bring is caught by the enclosing function.
+type boltSignal struct{}
+
+type slinkSignal struct{}
+
 // Interpreter executes a Meow AST directly.
 type Interpreter struct {
 	globals    *Environment
@@ -181,6 +188,12 @@ func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 		interp.execIf(s, env)
 	case *ast.RangeStmt:
 		interp.execRange(s, env)
+	case *ast.WhileStmt:
+		interp.execWhile(s, env)
+	case *ast.BoltStmt:
+		panic(boltSignal{})
+	case *ast.SlinkStmt:
+		panic(slinkSignal{})
 	case *ast.FuncStmt:
 		// Nested function definition
 		interp.registerFunc(s, env)
@@ -234,7 +247,9 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 				child := env.Child()
 				child.Define(s.IndexVar, a)
 				child.Define(s.Var, b)
-				interp.execBlock(s.Body, child)
+				if interp.runLoopBody(s.Body, child) {
+					break
+				}
 			}
 			return
 		}
@@ -242,7 +257,9 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 			interp.checkStep()
 			child := env.Child()
 			child.Define(s.Var, elem)
-			interp.execBlock(s.Body, child)
+			if interp.runLoopBody(s.Body, child) {
+				break
+			}
 		}
 		return
 	}
@@ -259,7 +276,9 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 			interp.checkStep()
 			child := env.Child()
 			child.Define(s.Var, meowrt.NewInt(i))
-			interp.execBlock(s.Body, child)
+			if interp.runLoopBody(s.Body, child) {
+				break
+			}
 		}
 	} else if s.Inclusive {
 		// range form inclusive: purr i (a..b) → i = a..b
@@ -267,7 +286,9 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 			interp.checkStep()
 			child := env.Child()
 			child.Define(s.Var, meowrt.NewInt(i))
-			interp.execBlock(s.Body, child)
+			if interp.runLoopBody(s.Body, child) {
+				break
+			}
 		}
 	} else {
 		// range form exclusive
@@ -275,7 +296,9 @@ func (interp *Interpreter) execRange(s *ast.RangeStmt, env *Environment) {
 			interp.checkStep()
 			child := env.Child()
 			child.Define(s.Var, meowrt.NewInt(i))
-			interp.execBlock(s.Body, child)
+			if interp.runLoopBody(s.Body, child) {
+				break
+			}
 		}
 	}
 }
@@ -915,4 +938,46 @@ func (interp *Interpreter) builtinNya(args []meowrt.Value) meowrt.Value {
 	}
 	fmt.Fprintln(interp.output)
 	return meowrt.NewNil()
+}
+
+// execWhile runs the conditional form of purr.
+//
+// The condition is checked for failure rather than only for truthiness: read as
+// a plain truthiness test a Furball is false, which would end the loop quietly
+// and let the program carry on as though the condition had stopped holding.
+func (interp *Interpreter) execWhile(s *ast.WhileStmt, env *Environment) {
+	for {
+		interp.checkStep()
+		cond := interp.evalExpr(s.Cond, env)
+		propagateFurball(cond)
+		if !cond.IsTruthy() {
+			return
+		}
+		if interp.runLoopBody(s.Body, env.Child()) {
+			return
+		}
+	}
+}
+
+// runLoopBody runs one turn of a loop, reporting whether the loop should stop.
+//
+// bolt and slink are raised where they are written, so this is where they are
+// caught — the same shape as bring, which the enclosing function catches.
+func (interp *Interpreter) runLoopBody(stmts []ast.Stmt, env *Environment) (stop bool) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		switch r.(type) {
+		case boltSignal:
+			stop = true
+		case slinkSignal:
+			// This turn is over; the next one starts as usual.
+		default:
+			panic(r)
+		}
+	}()
+	interp.execBlock(stmts, env)
+	return false
 }

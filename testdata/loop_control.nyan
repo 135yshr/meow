@@ -1,0 +1,65 @@
+# Leaving a loop early, and skipping a turn.
+#
+# Without these, "stop at the first bad one" had to be written as a fold that
+# kept walking every remaining element and threw the rest away.
+
+# bolt leaves the loop; slink is done with this turn.
+purr x ([1, 2, 3, 4, 5]) {
+  sniff (x == 4) { bolt }
+  sniff (x == 2) { slink }
+  nya("elem " + to_string(x))
+}
+
+purr i (5) {
+  sniff (i == 3) { bolt }
+  nya("count " + to_string(i))
+}
+
+purr i (1..5) {
+  sniff (i > 2) { bolt }
+  nya("range " + to_string(i))
+}
+
+# A basket is walked by sorted key, so bolt stops at a known place.
+purr k ({"a": 1, "b": 2, "c": 3}) {
+  sniff (k == "c") { bolt }
+  nya("key " + k)
+}
+
+# The conditional form of purr. Bindings are immutable, so its condition is
+# about something the loop does not itself change — a reply that has not arrived
+# yet, a file that is not there yet. A condition that is already false means the
+# body never runs.
+nyan ready = hairball
+purr (ready) {
+  nya("this must not be reached")
+}
+nya("skipped a loop that was already done")
+
+# Which is why the conditional form usually ends with bolt: the body decides
+# when it has what it came for.
+purr (yarn) {
+  nya("looking")
+  bolt
+}
+
+# A failure while working out the condition ends the program rather than
+# reading as false, which would end the loop quietly and look like the
+# condition had simply stopped holding.
+meow answered(s string) bool {
+  bring to_int(s) > 0
+}
+nya(gag(paw() {
+  purr (answered("not a number")) {
+    nya("this must not be reached either")
+  }
+}))
+
+# bolt and slink belong to the loop they are written in, so a nested loop bolts
+# out of its own.
+purr outer (2) {
+  purr inner (5) {
+    sniff (inner == 1) { bolt }
+    nya("inner " + to_string(outer) + "." + to_string(inner))
+  }
+}

@@ -99,6 +99,14 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseIfStmt()
 	case token.PURR:
 		return p.parsePurrStmt()
+	case token.BOLT:
+		tok := p.advance()
+		p.consumeTerminator()
+		return &ast.BoltStmt{Token: tok}
+	case token.SLINK:
+		tok := p.advance()
+		p.consumeTerminator()
+		return &ast.SlinkStmt{Token: tok}
 	case token.NAB:
 		return p.parseFetchStmt()
 	case token.KITTY:
@@ -277,7 +285,30 @@ func (p *Parser) parseIfStmt() *ast.IfStmt {
 	return &ast.IfStmt{Token: tok, Condition: cond, Body: body, ElseBody: elseBody}
 }
 
-func (p *Parser) parsePurrStmt() *ast.RangeStmt {
+// parsePurrStmt parses a purr in any of its forms. The conditional form has no
+// loop variable, so an opening parenthesis right after the keyword tells the two
+// apart before anything else is read.
+func (p *Parser) parsePurrStmt() ast.Stmt {
+	if p.peekAfterPurrIsCondition() {
+		return p.parseWhileStmt()
+	}
+	return p.parseRangeStmt()
+}
+
+func (p *Parser) peekAfterPurrIsCondition() bool {
+	return p.peek.Type == token.LPAREN
+}
+
+func (p *Parser) parseWhileStmt() *ast.WhileStmt {
+	tok := p.advance() // consume purr
+	p.expect(token.LPAREN)
+	cond := p.parseExpr(0)
+	p.expect(token.RPAREN)
+	body := p.parseBlock()
+	return &ast.WhileStmt{Token: tok, Cond: cond, Body: body}
+}
+
+func (p *Parser) parseRangeStmt() *ast.RangeStmt {
 	tok := p.advance() // consume purr
 	firstName := p.expect(token.IDENT)
 	var indexVar string

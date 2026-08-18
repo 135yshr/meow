@@ -57,6 +57,27 @@ type Checker struct {
 	// They are nameable from a function written above them, because the binding
 	// still runs before the call does.
 	topLevelNames map[string]bool
+	// loopDepth counts the purr loops enclosing the statement being checked, so
+	// that bolt and slink can be refused where there is no loop to leave. It is
+	// saved and cleared when a function or lambda body is entered, because a
+	// loop outside is not one the body can bolt from — Go would reject the
+	// generated break, and the interpreter would unwind past the loop.
+	loopDepth int
+}
+
+// enterLoop counts a loop for bolt and slink, returning a function that
+// restores the previous count.
+func (c *Checker) enterLoop() func() {
+	c.loopDepth++
+	return func() { c.loopDepth-- }
+}
+
+// leaveLoops forgets the enclosing loops for the duration of a function or
+// lambda body, returning a function that restores them.
+func (c *Checker) leaveLoops() func() {
+	prev := c.loopDepth
+	c.loopDepth = 0
+	return func() { c.loopDepth = prev }
 }
 
 // New creates a new Checker.
@@ -418,6 +439,12 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		c.checkIfStmt(s)
 	case *ast.RangeStmt:
 		c.checkRangeStmt(s)
+	case *ast.WhileStmt:
+		c.checkWhileStmt(s)
+	case *ast.BoltStmt:
+		c.checkLoopJump(s.Token.Pos, "bolt")
+	case *ast.SlinkStmt:
+		c.checkLoopJump(s.Token.Pos, "slink")
 	case *ast.ExprStmt:
 		c.inferExpr(s.Expr)
 	case *ast.FetchStmt:
@@ -542,6 +569,9 @@ func (c *Checker) checkVarStmt(s *ast.VarStmt) {
 }
 
 func (c *Checker) checkFuncStmt(fn *ast.FuncStmt) {
+	// A loop outside this function is not one its body can bolt from: the body
+	// runs when it is called, wherever that is.
+	defer c.leaveLoops()()
 	// A function written inside another one has to be nameable by the body that
 	// contains it, and by itself so it can recurse. Top-level functions are
 	// registered before checking begins; this covers the nested ones.
@@ -903,6 +933,7 @@ func (c *Checker) checkIfStmt(s *ast.IfStmt) {
 }
 
 func (c *Checker) checkRangeStmt(s *ast.RangeStmt) {
+	defer c.enterLoop()()
 	if s.Start != nil {
 		startType := types.Unwrap(c.inferExpr(s.Start))
 		if !types.IsAny(startType) {
@@ -1398,6 +1429,9 @@ func (c *Checker) checkFuncCall(e *ast.CallExpr, ft types.FuncType, calleeName s
 }
 
 func (c *Checker) inferLambda(e *ast.LambdaExpr) types.Type {
+	// As for a named function: a lambda passed to lick runs per element, and a
+	// bolt inside it has no loop of its own to leave.
+	defer c.leaveLoops()()
 	c.pushScope()
 	paramTypes := make([]types.Type, len(e.Params))
 	for i, p := range e.Params {
@@ -1450,4 +1484,29 @@ func (c *Checker) inferList(e *ast.ListLit) types.Type {
 		}
 	}
 	return types.ListType{Elem: elemType}
+}
+
+// checkWhileStmt checks the conditional form of purr.
+//
+// The condition is not required to be a bool: everything in Meow has a
+// truthiness, and `purr (queue)` reading "while the queue is not empty" is the
+// same shape `sniff` already allows.
+func (c *Checker) checkWhileStmt(s *ast.WhileStmt) {
+	c.inferExpr(s.Cond)
+	defer c.enterLoop()()
+	c.pushScope()
+	for _, stmt := range s.Body {
+		c.checkStmt(stmt)
+	}
+	c.popScope()
+}
+
+// checkLoopJump reports bolt or slink written where there is no loop to leave.
+//
+// Without this the compiler passed the break straight to Go, which rejected it
+// with a message about generated code the reader never wrote.
+func (c *Checker) checkLoopJump(pos token.Position, keyword string) {
+	if c.loopDepth == 0 {
+		c.addError(pos, "%s used outside a purr loop", keyword)
+	}
 }

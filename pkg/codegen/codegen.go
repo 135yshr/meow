@@ -710,6 +710,8 @@ func (g *Generator) genTypedStmtInner(stmt ast.Stmt) string {
 		return g.genTypedIf(s)
 	case *ast.RangeStmt:
 		return g.genTypedRange(s)
+	case *ast.WhileStmt:
+		return g.genTypedWhile(s)
 	default:
 		return g.genStmt(stmt)
 	}
@@ -1379,6 +1381,12 @@ func (g *Generator) genStmtInner(stmt ast.Stmt) string {
 		// every call to it referred to a name that was never emitted, so a whole
 		// construct the playground runs would not compile at all.
 		return g.genNestedFunc(s)
+	case *ast.WhileStmt:
+		return g.genWhile(s)
+	case *ast.BoltStmt:
+		return "break"
+	case *ast.SlinkStmt:
+		return "continue"
 	default:
 		return fmt.Sprintf("/* unsupported stmt: %T */", stmt)
 	}
@@ -2221,4 +2229,37 @@ func (g *Generator) located(stmt ast.Stmt, code string) string {
 // which is what keeps a failure reported against the line it happened on.
 func (g *Generator) callerPrologue() string {
 	return "\t__caller := meow.Where()\n\t_ = __caller\n"
+}
+
+// genWhile emits the conditional purr.
+//
+// The condition is tested inside the loop rather than in the for clause so that
+// a failure while working it out is propagated. Read as a plain truthiness test
+// a Furball is false, which would end the loop quietly and let the program carry
+// on as though the condition had simply stopped holding.
+func (g *Generator) genWhile(s *ast.WhileStmt) string {
+	var b strings.Builder
+	b.WriteString("for {\n")
+	fmt.Fprintf(&b, "\t__cond := %s\n", g.genExpr(s.Cond))
+	b.WriteString("\tif __f, __ok := meow.AsFurball(__cond); __ok {\n\t\treturn __f\n\t}\n")
+	b.WriteString("\tif !__cond.IsTruthy() {\n\t\tbreak\n\t}\n")
+	b.WriteString(g.genBlockStmts(s.Body, g.genStmt))
+	b.WriteString("}")
+	return b.String()
+}
+
+// genTypedWhile emits the conditional purr inside a fully typed function, where
+// a condition the checker knows to be a bool needs no truthiness test — and
+// where a failure working it out raises rather than answering.
+func (g *Generator) genTypedWhile(s *ast.WhileStmt) string {
+	var b strings.Builder
+	condType := g.getExprType(s.Cond)
+	if condType != nil && !types.IsAny(condType) {
+		fmt.Fprintf(&b, "for %s {\n", g.genTypedExpr(s.Cond))
+	} else {
+		fmt.Fprintf(&b, "for (%s).IsTruthy() {\n", g.genExpr(s.Cond))
+	}
+	b.WriteString(g.genBlockStmts(s.Body, g.genTypedStmt))
+	b.WriteString("}")
+	return b.String()
 }
