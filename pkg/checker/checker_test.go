@@ -1323,6 +1323,37 @@ func TestBoltAndSlinkInsideALoopAreFine(t *testing.T) {
 	}
 }
 
+// A conditional purr is checked the same way sniff is. Without this the count
+// form's `purr i (n)` and the conditional form's `purr (n)` read alike but
+// meant different things, and inside a typed function the second one reached
+// the Go compiler as a loop over an integer.
+func TestPurrConditionMustBeBool(t *testing.T) {
+	_, errs := check(t, "meow f(n int) int {\n  purr (n) {\n    bolt\n  }\n  bring n\n}\nnya(f(3))\n")
+
+	if !hasError(errs, "Condition must be bool, got int") {
+		t.Errorf("got %v, want an error about a non-bool condition", errs)
+	}
+}
+
+// A bring anywhere in a function needs the return type written down, and the
+// conditional purr's body is no exception.
+func TestBringInsideAConditionalPurrNeedsAReturnType(t *testing.T) {
+	_, errs := check(t, "meow f() {\n  purr (yarn) {\n    bring 1\n  }\n}\nnya(f())\n")
+
+	if !hasError(errs, "no return type annotation") {
+		t.Errorf("got %v, want an error about the missing return type", errs)
+	}
+}
+
+// A trill function stays pure all the way down, including inside a loop body.
+func TestConditionalPurrBodyIsCheckedForPurity(t *testing.T) {
+	_, errs := check(t, "trill meow f() int {\n  purr (yarn) {\n    nya(\"side effect\")\n    bolt\n  }\n  bring 1\n}\nnya(f())\n")
+
+	if !hasError(errs, "nya") {
+		t.Errorf("got %v, want an error about the impure call", errs)
+	}
+}
+
 // hasError reports whether any error's message contains want.
 func hasError(errs []*checker.TypeError, want string) bool {
 	for _, e := range errs {

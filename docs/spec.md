@@ -473,9 +473,9 @@ Four forms:
 - **Element form**: `purr x (litter)` — iterates over a litter's elements.
   `purr i, x (litter)` also binds the index. Over a `basket`, `purr k (basket)`
   binds each key and `purr k, v (basket)` binds key and value.
-- **Conditional form**: `purr (cond)` — repeats while `cond` is truthy, tested
+- **Conditional form**: `purr (cond)` — repeats while `cond` holds, tested
   before each turn. It has no loop variable, which is what tells it apart from
-  the forms above.
+  the forms above. As with `sniff`, `cond` must be a `bool`.
 
 ```meow
 purr i (5) { nya(i) }         # 0, 1, 2, 3, 4

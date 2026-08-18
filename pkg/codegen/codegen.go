@@ -2251,13 +2251,18 @@ func (g *Generator) genWhile(s *ast.WhileStmt) string {
 // genTypedWhile emits the conditional purr inside a fully typed function, where
 // a condition the checker knows to be a bool needs no truthiness test — and
 // where a failure working it out raises rather than answering.
+//
+// A condition the checker could not pin down stays boxed, and a failure in it
+// is raised rather than read as false. Reading it as false would end the loop
+// quietly and look exactly like the condition had stopped holding.
 func (g *Generator) genTypedWhile(s *ast.WhileStmt) string {
 	var b strings.Builder
-	condType := g.getExprType(s.Cond)
-	if condType != nil && !types.IsAny(condType) {
+	if condType := g.getExprType(s.Cond); condType != nil && !types.IsAny(condType) {
 		fmt.Fprintf(&b, "for %s {\n", g.genTypedExpr(s.Cond))
 	} else {
-		fmt.Fprintf(&b, "for (%s).IsTruthy() {\n", g.genExpr(s.Cond))
+		b.WriteString("for {\n")
+		fmt.Fprintf(&b, "\t__cond := meow.Propagate(%s)\n", g.genExpr(s.Cond))
+		b.WriteString("\tif !__cond.IsTruthy() {\n\t\tbreak\n\t}\n")
 	}
 	b.WriteString(g.genBlockStmts(s.Body, g.genTypedStmt))
 	b.WriteString("}")

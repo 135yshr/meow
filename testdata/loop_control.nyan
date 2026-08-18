@@ -55,6 +55,18 @@ nya(gag(paw() {
   }
 }))
 
+# The same inside a fully typed function, where the condition is worked out by
+# something the checker cannot pin down.
+meow keep_asking(tries int) int {
+  nyan ask = paw() { bring to_int("still not a number") > 0 }
+  purr (ask()) {
+    nya("nor this")
+    bolt
+  }
+  bring tries
+}
+nya(gag(paw() { nya(keep_asking(1)) }))
+
 # bolt and slink belong to the loop they are written in, so a nested loop bolts
 # out of its own.
 purr outer (2) {

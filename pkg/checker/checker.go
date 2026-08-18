@@ -704,6 +704,11 @@ func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
 		for _, b := range s.Body {
 			c.checkPurityStmt(fnName, b)
 		}
+	case *ast.WhileStmt:
+		c.checkPurityExpr(fnName, s.Cond)
+		for _, b := range s.Body {
+			c.checkPurityStmt(fnName, b)
+		}
 	case *ast.ExprStmt:
 		c.checkPurityExpr(fnName, s.Expr)
 	case *ast.FuncStmt:
@@ -722,10 +727,12 @@ func (c *Checker) checkPurityStmt(fnName string, stmt ast.Stmt) {
 				c.checkPurityStmt(fnName, b)
 			}
 		}
-	case *ast.FetchStmt, *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt:
-		// Declaration statements carry no runtime value expressions, so there
-		// is nothing to walk. Listed explicitly so a newly added statement kind
-		// is not silently skipped without consideration.
+	case *ast.FetchStmt, *ast.KittyStmt, *ast.BreedStmt, *ast.CollarStmt, *ast.TrickStmt,
+		*ast.BoltStmt, *ast.SlinkStmt:
+		// Declaration statements carry no runtime value expressions, and bolt
+		// and slink only steer the loop around them, so there is nothing to
+		// walk. Listed explicitly so a newly added statement kind is not
+		// silently skipped without consideration.
 	}
 }
 
@@ -884,6 +891,10 @@ func hasReturnStmt(stmts []ast.Stmt) bool {
 				return true
 			}
 		case *ast.RangeStmt:
+			if hasReturnStmt(s.Body) {
+				return true
+			}
+		case *ast.WhileStmt:
 			if hasReturnStmt(s.Body) {
 				return true
 			}
@@ -1488,11 +1499,16 @@ func (c *Checker) inferList(e *ast.ListLit) types.Type {
 
 // checkWhileStmt checks the conditional form of purr.
 //
-// The condition is not required to be a bool: everything in Meow has a
-// truthiness, and `purr (queue)` reading "while the queue is not empty" is the
-// same shape `sniff` already allows.
+// The condition must be a bool, the same as `sniff`: a loop that ran on
+// whatever `to_int(line)` happened to return would be asking a different
+// question than the one written down.
 func (c *Checker) checkWhileStmt(s *ast.WhileStmt) {
-	c.inferExpr(s.Cond)
+	condType := types.Unwrap(c.inferExpr(s.Cond))
+	if !types.IsAny(condType) {
+		if _, ok := condType.(types.BoolType); !ok {
+			c.addError(s.Token.Pos, "Condition must be bool, got %s", condType)
+		}
+	}
 	defer c.enterLoop()()
 	c.pushScope()
 	for _, stmt := range s.Body {
