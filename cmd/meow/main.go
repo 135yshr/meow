@@ -293,12 +293,16 @@ func runTestCommand(c *compiler.Compiler, args []string) {
 // so its exit status adds nothing. Everything else — a file the checker turned
 // down, a build that never finished — stopped before the binary existed, and
 // saying nothing left the file failing without a word about why.
+//
+// The two are told apart by which stage failed, not by the kind of error: a
+// `go build` that dies also comes back as an exit status, and one that dies
+// without a word of its own has to be reported or nothing is.
 func reportTestError(stderr io.Writer, err error) {
 	if err == nil {
 		return
 	}
-	var exit *exec.ExitError
-	if errors.As(err, &exit) {
+	var ran *compiler.TestsFailed
+	if errors.As(err, &ran) {
 		return
 	}
 	fmt.Fprintln(stderr, err)

@@ -404,6 +404,19 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	return nil
 }
 
+// TestsFailed is how RunTest says the test binary ran and came back unhappy,
+// as opposed to never having been built.
+//
+// The binary names the tests it failed and counts them on its way out, so a
+// caller has nothing to add. Telling the two apart by the stage that failed
+// rather than by the kind of error keeps that quiet from spreading: `go build`
+// also fails with an exit status, and a build that dies without a word of its
+// own must still be reported.
+type TestsFailed struct{ Err error }
+
+func (e *TestsFailed) Error() string { return e.Err.Error() }
+func (e *TestsFailed) Unwrap() error { return e.Err }
+
 // RunTest compiles and runs a _test.nyan file.
 func (c *Compiler) RunTest(nyanPath string) error {
 	tmpBin, err := os.CreateTemp("", "meow-test-run-*")
@@ -424,7 +437,10 @@ func (c *Compiler) RunTest(nyanPath string) error {
 	if c.coverProfile != "" {
 		cmd.Env = append(os.Environ(), "MEOW_COVERPROFILE="+c.coverProfile)
 	}
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return &TestsFailed{Err: err}
+	}
+	return nil
 }
 
 // RunMutationTest runs mutation testing on a source file using the given test files.
