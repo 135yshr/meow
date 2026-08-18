@@ -78,7 +78,6 @@ const (
 	POSE     // pose (interface)
 	GROOM    // groom (method impl)
 	SELF     // self (self reference)
-	TAG      // tag (import alias)
 	BOLT     // bolt (leave the loop)
 	SLINK    // slink (on to the next turn)
 
@@ -123,7 +122,6 @@ var keywords = map[string]TokenType{
 	"bolt":     BOLT,
 	"slink":    SLINK,
 	"self":     SELF,
-	"tag":      TAG,
 	"int":      TYPE_INT,
 	"float":    TYPE_FLOAT,
 	"string":   TYPE_STRING,

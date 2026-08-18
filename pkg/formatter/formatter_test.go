@@ -161,6 +161,36 @@ func TestFormatFunctionCallNoSpaceAfterName(t *testing.T) {
 	}
 }
 
+// An index belongs to what it follows. Set apart by a space it read as a
+// litter standing on its own next to the thing it was meant to look inside,
+// and every formatted file that reached into a basket came back changed.
+func TestFormatIndexBracketHugsItsSubject(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"basket lookup", "nya(resp[\"body\"])\n", "nya(resp[\"body\"])\n"},
+		{"litter index", "nya(xs[0])\n", "nya(xs[0])\n"},
+		{"indexing a litter literal", "nya([1, 2][0])\n", "nya([1, 2][0])\n"},
+		{"indexing twice", "nya(resp[\"body\"][0])\n", "nya(resp[\"body\"][0])\n"},
+		{"indexing a call's result", "nya(f()[0])\n", "nya(f()[0])\n"},
+		// The same bracket opening a litter is a value, and keeps the spacing
+		// of whatever it follows.
+		{"litter after assignment", "nyan xs = [1, 2]\n", "nyan xs = [1, 2]\n"},
+		{"litter after a keyword", "bring [1, 2]\n", "bring [1, 2]\n"},
+		{"litter as an argument", "nya([1, 2])\n", "nya([1, 2])\n"},
+		{"nested litters", "nyan p = [[1, 2], [3, 4]]\n", "nyan p = [[1, 2], [3, 4]]\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := format(t, tt.input); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFormatEmptyInput(t *testing.T) {
 	got := format(t, "")
 	if got != "" {

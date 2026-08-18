@@ -362,6 +362,12 @@ func needsSpaceBefore(cur, prev token.TokenType) bool {
 		}
 		return false
 	}
+	// LBRACKET: an index reaches back into whatever it follows, so it sits
+	// tight against it — `resp["body"]`, not `resp ["body"]`. Opening a litter
+	// it is a value like any other and takes the spacing of what came before.
+	if cur == token.LBRACKET {
+		return !isExpressionEnd(prev)
+	}
 	// NOT operator: no space after
 	if prev == token.NOT {
 		return false

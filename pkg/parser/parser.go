@@ -342,7 +342,11 @@ func (p *Parser) parseFetchStmt() *ast.FetchStmt {
 	tok := p.advance() // consume nab
 	path := p.expect(token.STRING)
 	var alias string
-	if p.cur.Type == token.TAG {
+	// `tag` names the alias here and means nothing anywhere else, so it is
+	// matched by what it says rather than reserved. Reserved, it took an
+	// ordinary word away from every program that never writes a nab alias —
+	// including the `nyan tag = Label("important")` the docs teach.
+	if p.cur.Type == token.IDENT && p.cur.Literal == "tag" {
 		p.advance() // consume tag
 		aliasToken := p.expect(token.IDENT)
 		alias = aliasToken.Literal
