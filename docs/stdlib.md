@@ -826,6 +826,9 @@ nyan conf = cfg.load_default_config()
 nyan client = sts.new_from_config(conf)
 
 nyan me = gag(paw() { client.get_caller_identity({}) })
+sniff (is_furball(me)) {
+  hiss("not authenticated:", me)
+}
 nya(me["account"])
 nya(me["arn"])
 ```
@@ -864,15 +867,36 @@ nab go "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs" tag logs
 nyan conf = cfg.load_default_config()
 nyan client = logs.new_from_config(conf)
 
+# The API takes at most 10000 events per page, so a larger want is asked for
+# across several pages rather than in one request it would refuse.
+meow page_size(want int) int {
+  sniff (want > 10000) {
+    bring 10000
+  }
+  bring want
+}
+
 meow ask_for(group string, pattern string, want int, token string) basket {
   sniff (token == "") {
-    bring {"log_group_name": group, "filter_pattern": pattern, "limit": want}
+    bring {
+      "log_group_name": group,
+      "filter_pattern": pattern,
+      "limit": page_size(want)
+    }
   }
   bring {
     "log_group_name": group,
     "filter_pattern": pattern,
-    "limit": want,
+    "limit": page_size(want),
     "next_token": token
+  }
+}
+
+meow as_event(e basket) basket {
+  bring {
+    "timestamp": e["timestamp"],
+    "message": e["message"],
+    "stream": e["log_stream_name"]
   }
 }
 
@@ -882,9 +906,12 @@ meow read_page(group string, pattern string, want int, token string, found litte
   }
   nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
   sniff (is_furball(page)) {
-    bring found
+    # The failure is the answer. Handing back the pages that did arrive would
+    # say "these are the events" when the truth is "some of them, maybe" — and
+    # for a check asking whether a marker arrived, that reads as a confident no.
+    bring page
   }
-  nyan more = curl(page["events"], found, paw(acc litter, e basket) { append(acc, e) })
+  nyan more = curl(page["events"], found, paw(acc litter, e basket) { append(acc, as_event(e)) })
   nyan next = to_string(page["next_token"])
   sniff (next == "catnap" || next == "") {
     bring more
@@ -897,10 +924,22 @@ Bindings are immutable, so this is written as recursion rather than as a loop
 with an accumulator.
 
 **Names.** `aws.dig` renamed the SDK's fields; the bridge gives them to you as
-the SDK writes them, in Meow's spelling. An event is `message`, `timestamp` and
-`log_stream_name` rather than `stream`, and the input is `log_group_name`
-rather than `group`. Where the old shape is wanted, a small `meow` function
-converts it.
+the SDK writes them, in Meow's spelling. Where the old shape is wanted, a small
+`meow` function converts it.
+
+| `aws.dig` | the SDK |
+|-----------|---------|
+| `group` (argument) | `log_group_name` |
+| `"pattern"` | `"filter_pattern"` |
+| `"start"` | `"start_time"` |
+| `"end"` | `"end_time"` |
+| `"limit"` | `"limit"`, per page rather than in total |
+| `"stream"` (result) | `"log_stream_name"` |
+
+`"start_time"` and `"end_time"` are milliseconds since the Unix epoch, as they
+were, so `clock.now() * 1000` still lines up with them. `"limit"` is what the
+API takes per page — at most 10000 — rather than the total `aws.dig` gathered,
+which is why the program above asks for it a page at a time.
 
 **A timeout.** Each bridged call is bounded by 30 seconds, as `nab "aws"` was.
 

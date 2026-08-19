@@ -489,6 +489,7 @@ nab "file"
 nab "http"
 nab "env"
 nab "clock"
+nab "json"
 nab "random"
 nab "testing"
 ```
@@ -501,7 +502,7 @@ nyan content = file.snoop("data.txt")
 nya(content)
 ```
 
-Available packages: `file`, `http`, `env`, `clock`, `random`, `testing`. See [stdlib.md](stdlib.md) for details.
+Available packages: `clock`, `env`, `file`, `http`, `json`, `random`, `testing`. See [stdlib.md](stdlib.md) for details.
 
 ### Member Access
 

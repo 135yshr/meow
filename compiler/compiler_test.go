@@ -479,9 +479,31 @@ func TestAPackageMeowDoesNotHaveSaysWhatThereIs(t *testing.T) {
 	if err == nil {
 		t.Fatal("got no error, want one about the package")
 	}
-	for _, want := range []string{"aws", "nab go", "http"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("says %q, want it to mention %q", err, want)
+	said := err.Error()
+	if !strings.Contains(said, `"aws"`) {
+		t.Errorf("says %q, want it to name what was asked for", said)
+	}
+	if !strings.Contains(said, "nab go") {
+		t.Errorf("says %q, want it to point at nab go", said)
+	}
+
+	// The list of what there is has to be read apart from the name asked for,
+	// which supplies an "aws" of its own — checking the whole message for one
+	// would pass even with aws still on the list.
+	after, found := strings.CutPrefix(said[strings.Index(said, "—")+len("—"):], " it has ")
+	if !found {
+		t.Fatalf("says %q, want it to say what there is", said)
+	}
+	list, _, found := strings.Cut(after, ".")
+	if !found {
+		t.Fatalf("says %q, want the list to end", said)
+	}
+	if strings.Contains(list, "aws") {
+		t.Errorf("the list is %q, want aws gone from it", list)
+	}
+	for _, want := range []string{"clock", "env", "file", "http", "json", "random", "testing"} {
+		if !strings.Contains(list, want) {
+			t.Errorf("the list is %q, want %q on it", list, want)
 		}
 	}
 }
