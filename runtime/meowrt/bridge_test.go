@@ -579,15 +579,46 @@ func TestARecordGoesOnAsItselfAsWellAsBeingRead(t *testing.T) {
 	}
 }
 
-// A pointer to such a record goes back as the pointer.
-func TestAPointerToARecordGoesOnAsItself(t *testing.T) {
-	made := meowrt.CallGo("load", func() *settings {
-		return &settings{Region: "ap-northeast-1"}
+// A pointer goes back as the very same pointer, not as a new one to a copy.
+// Checking a field would not tell the two apart, and a call that changes
+// something has to change the thing the program holds.
+func TestAPointerToARecordGoesOnAsTheSamePointer(t *testing.T) {
+	held := &settings{Region: "ap-northeast-1"}
+	made := meowrt.CallGo("load", func() *settings { return held })
+
+	same := meowrt.CallGo("same", func(s *settings) bool { return s == held }, made)
+	if !same.IsTruthy() {
+		t.Error("got a different pointer, want the one that was read")
+	}
+
+	meowrt.CallGo("move", func(s *settings) { s.Region = "eu-west-1" }, made)
+	if held.Region != "eu-west-1" {
+		t.Errorf("the original still says %q, want the call to have reached it", held.Region)
+	}
+}
+
+// A record kept as a pointer, asked for by value, is copied — which is what
+// passing by value means, so nothing is lost that was there.
+func TestAPointerAskedForByValueIsCopied(t *testing.T) {
+	held := &settings{Region: "ap-northeast-1"}
+	made := meowrt.CallGo("load", func() *settings { return held })
+
+	got := meowrt.CallGo("use", func(s settings) string { return s.Region }, made)
+	if got.String() != "ap-northeast-1" {
+		t.Errorf("got %q, want the fields to have arrived", got.String())
+	}
+}
+
+// And a record kept by value, asked for as a pointer, gets one made for it:
+// there was no pointer to keep, so a new one loses nothing.
+func TestARecordAskedForAsAPointerGetsOne(t *testing.T) {
+	made := meowrt.CallGo("load", func() settings {
+		return settings{Region: "ap-northeast-1"}
 	})
 
 	got := meowrt.CallGo("use", func(s *settings) string { return s.Region }, made)
 	if got.String() != "ap-northeast-1" {
-		t.Errorf("got %q, want the record to have arrived whole", got.String())
+		t.Errorf("got %q, want the fields to have arrived", got.String())
 	}
 }
 
