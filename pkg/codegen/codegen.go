@@ -189,7 +189,6 @@ type coverBlock struct {
 }
 
 var stdPackages = map[string]string{
-	"aws":     "github.com/135yshr/meow/runtime/aws",
 	"clock":   "github.com/135yshr/meow/runtime/clock",
 	"env":     "github.com/135yshr/meow/runtime/env",
 	"file":    "github.com/135yshr/meow/runtime/file",
@@ -197,6 +196,17 @@ var stdPackages = map[string]string{
 	"json":    "github.com/135yshr/meow/runtime/json",
 	"random":  "github.com/135yshr/meow/runtime/random",
 	"testing": "github.com/135yshr/meow/runtime/testing",
+}
+
+// knownPackages names Meow's own packages, in order, for an error that has to
+// say what there is.
+func knownPackages() []string {
+	names := make([]string, 0, len(stdPackages))
+	for name := range stdPackages {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // resolveImportName resolves name to a real package name, considering aliases.
@@ -1491,7 +1501,13 @@ func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 		}
 		path, ok := stdPackages[s.Path]
 		if !ok {
-			return "", fmt.Errorf("unknown package: %s", s.Path)
+			// A name Meow has no package for may well be a Go one, which is
+			// what `nab go` is for. Saying so beats saying only that this is
+			// not a name, since that is the next thing to try.
+			return "", fmt.Errorf(
+				"Hiss! Meow has no package %q — it has %s. A Go package is reached "+
+					"by its import path, as nab go \"net/url\", nya~",
+				s.Path, strings.Join(knownPackages(), ", "))
 		}
 		if g.imports == nil {
 			g.imports = make(map[string]string)

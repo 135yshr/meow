@@ -75,7 +75,7 @@ Hello, Nyantyu!
 - **First-class functions** — Lambdas with `paw(x) { x * 2 }`
 - **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
 - **Interfaces & methods** — `pose` (interface), `groom` (method impl)
-- **Standard library** — `nab "file"`, `nab "http"`, `nab "env"`, `nab "clock"`, `nab "random"`, `nab "aws"`
+- **Standard library** — `nab "file"`, `nab "http"`, `nab "env"`, `nab "clock"`, `nab "random"`
 - **Go libraries** — `nab go "net/url"` reaches any Go package by its import path, with no wrapper written for it
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
@@ -365,6 +365,7 @@ Check the [`examples/`](examples/) directory:
 | [`http_example.nyan`](examples/http_example.nyan) | HTTP client with `nab "http"` |
 | [`go_import.nyan`](examples/go_import.nyan) | Calling Go packages directly with `nab go` |
 | [`aws_sts.nyan`](examples/aws_sts.nyan) | Calling the AWS SDK with `nab go`, no wrapper written for it |
+| [`aws_logs.nyan`](examples/aws_logs.nyan) | Paging CloudWatch Logs with `nab go` |
 
 ## Project Structure
 

@@ -1,0 +1,106 @@
+# Searching CloudWatch Logs from Meow, with no wrapper written for it.
+#
+# This is what the old `aws.dig` was for. What it did for you and you now write
+# yourself is the paging: CloudWatch applies "limit" per page and may hand back
+# a partial — or empty — page while more results remain, so one call is not
+# enough. Follow next_token until it runs out.
+#
+# Bindings are immutable, so this is recursion rather than a loop with an
+# accumulator.
+#
+# It needs real AWS credentials and a region, so it is not part of the test
+# suite. With those set:
+#
+#   go run ./cmd/meow run examples/aws_logs.nyan
+
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+nab go "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs" tag logs
+
+nyan conf = cfg.load_default_config()
+nyan client = logs.new_from_config(conf)
+
+# The API takes at most 10000 events per page, so a larger want is asked for
+# across several pages rather than in one request it would refuse.
+meow page_size(want int) int {
+  sniff (want > 10000) {
+    bring 10000
+  }
+  bring want
+}
+
+meow ask_for(group string, pattern string, want int, token string) basket {
+  sniff (token == "") {
+    bring {
+      "log_group_name": group,
+      "filter_pattern": pattern,
+      "limit": page_size(want)
+    }
+  }
+  bring {
+    "log_group_name": group,
+    "filter_pattern": pattern,
+    "limit": page_size(want),
+    "next_token": token
+  }
+}
+
+meow as_event(e basket) basket {
+  bring {
+    "timestamp": e["timestamp"],
+    "message": e["message"],
+    "stream": e["log_stream_name"]
+  }
+}
+
+# An empty page is still a page. CloudWatch can hand back nothing at all and
+# still supply a token, and a Go slice that is nil arrives as catnap rather
+# than as an empty litter — which curl will not read.
+meow events_of(page basket) litter {
+  nyan events = page["events"]
+  sniff (events == catnap) {
+    bring []
+  }
+  bring events
+}
+
+# Only as many as were asked for. "limit" is what the API takes per page, not a
+# total, so a page can hold more than is left to take.
+meow take_events(events litter, found litter, room int) litter {
+  sniff (room <= 0 || len(events) == 0) {
+    bring found
+  }
+  bring take_events(tail(events), append(found, as_event(head(events))), room - 1)
+}
+
+# pages bounds the walk. The token is the server's to hand out, and a run of
+# empty pages leaves want where it was, so nothing else here has to end.
+meow read_page(group string, pattern string, want int, token string, found litter, pages int) litter {
+  sniff (want <= 0) {
+    bring found
+  }
+  # Running out of pages is not the same as running out of events. There is a
+  # token still outstanding here, so handing back what arrived would be the
+  # partial answer the failure below refuses to give.
+  sniff (pages <= 0) {
+    hiss("gave up with pages still unread in", group)
+  }
+  nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
+  sniff (is_furball(page)) {
+    # The failure is the answer. Handing back the pages that did arrive would
+    # say "these are the events" when the truth is "some of them, maybe" — and
+    # for a check asking whether a marker arrived, that reads as a confident no.
+    #
+    # It is raised rather than returned: gag has already caught this one, so
+    # handing it back would print the failure and still leave with 0, which is
+    # the same lie told to whatever reads the exit status.
+    hiss("could not read the log group:", page)
+  }
+  nyan more = take_events(events_of(page), found, want)
+  nyan next = to_string(page["next_token"])
+  sniff (next == "catnap" || next == "") {
+    bring more
+  }
+  bring read_page(group, pattern, want - (len(more) - len(found)), next, more, pages - 1)
+}
+
+nya(len(read_page("/aws/lambda/nyan", "ERROR", 50, "", [], 1000)))
