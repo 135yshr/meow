@@ -3,6 +3,7 @@ package meowrt_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -251,5 +252,184 @@ func TestAHeldThingGoesBackInUntouched(t *testing.T) {
 func TestCallGoNeedsAFunction(t *testing.T) {
 	if _, failed := meowrt.AsFurball(meowrt.CallGo("nope", 42)); !failed {
 		t.Error("calling a number should be a furball")
+	}
+}
+
+// The flow the bridge exists for: make the client, then call on what came
+// back. A client has its state to itself, so reading it as a record would give
+// an empty basket and nothing left to call.
+func TestAClientComesBackAsSomethingToCallOn(t *testing.T) {
+	made := meowrt.CallGo("new_client", func() *probeClient {
+		return &probeClient{region: "eu-west-1"}
+	})
+
+	if _, held := meowrt.AsOpaque(made); !held {
+		t.Fatalf("a client came back as %s (%s), want it held whole", made.String(), made.Type())
+	}
+
+	got := meowrt.CallGoMethod(context.Background(), made, "Describe",
+		meowrt.NewMap(map[string]meowrt.Value{
+			"name":   meowrt.NewString("nyan"),
+			"detail": meowrt.NewBool(true),
+		}))
+
+	m, ok := got.(*meowrt.Map)
+	if !ok {
+		t.Fatalf("got %s (%s), want a basket", got.String(), got.Type())
+	}
+	if s := m.Items["arn"].String(); s != "arn:nyan@eu-west-1" {
+		t.Errorf("arn is %q, want the client the constructor made to have been used", s)
+	}
+}
+
+// A record still comes back as a record: it has fields to read, so reading
+// them is the useful thing.
+func TestARecordStillComesBackAsABasket(t *testing.T) {
+	got := meowrt.CallGo("describe", func() *probeOutput {
+		return &probeOutput{Arn: "arn:nyan", UserId: "AIDA"}
+	})
+
+	m, ok := got.(*meowrt.Map)
+	if !ok {
+		t.Fatalf("got %s (%s), want a basket", got.String(), got.Type())
+	}
+	if m.Items["arn"].String() != "arn:nyan" {
+		t.Errorf("arn is %v, want it readable", m.Items["arn"])
+	}
+}
+
+// Bytes are the shape a Meow program has for a run of bytes, in both
+// directions, so a byte-taking Go function can be called with to_bytes and its
+// answer read with to_string.
+func TestBytesCrossBothWays(t *testing.T) {
+	t.Run("going in", func(t *testing.T) {
+		got := meowrt.CallGo("count", func(p []byte) int { return len(p) },
+			meowrt.ToBytes(meowrt.NewString("nyan")))
+		if got.String() != "4" {
+			t.Errorf("got %q, want 4", got.String())
+		}
+	})
+
+	t.Run("coming out", func(t *testing.T) {
+		got := meowrt.CallGo("shout", func() []byte { return []byte("nyan") })
+		if s := meowrt.ToString(got); s.String() != "nyan" {
+			t.Errorf("to_string read it as %q, want nyan", s.String())
+		}
+	})
+}
+
+// A bool parameter takes a bool. Reading the truthiness of anything else would
+// send the string "hairball" in as true.
+func TestABoolParameterTakesOnlyABool(t *testing.T) {
+	got := meowrt.CallGo("flag", func(b bool) bool { return b }, meowrt.NewString("hairball"))
+
+	if _, failed := meowrt.AsFurball(got); !failed {
+		t.Fatalf("got %s, want a furball rather than a flag turned the wrong way", got.String())
+	}
+}
+
+// A number too big for the Go type it is going into is a mistake worth saying,
+// rather than a different number arriving.
+func TestANumberThatWouldNotFitIsRefused(t *testing.T) {
+	got := meowrt.CallGo("byte", func(b uint8) uint8 { return b }, meowrt.NewInt(300))
+
+	f, failed := meowrt.AsFurball(got)
+	if !failed {
+		t.Fatalf("got %s, want a furball", got.String())
+	}
+	if !strings.Contains(f.Message, "300") {
+		t.Errorf("says %q, want it to name the number that would not fit", f.Message)
+	}
+}
+
+func TestAVariadicFunctionTakesWhatItIsGiven(t *testing.T) {
+	total := func(label string, n ...int) string {
+		sum := 0
+		for _, each := range n {
+			sum += each
+		}
+		return fmt.Sprintf("%s%d", label, sum)
+	}
+
+	t.Run("several", func(t *testing.T) {
+		got := meowrt.CallGo("total", total,
+			meowrt.NewString("n="), meowrt.NewInt(1), meowrt.NewInt(2), meowrt.NewInt(3))
+		if got.String() != "n=6" {
+			t.Errorf("got %q, want n=6", got.String())
+		}
+	})
+
+	t.Run("none", func(t *testing.T) {
+		if got := meowrt.CallGo("total", total, meowrt.NewString("n=")); got.String() != "n=0" {
+			t.Errorf("got %q, want n=0", got.String())
+		}
+	})
+
+	t.Run("not even the fixed one", func(t *testing.T) {
+		got := meowrt.CallGo("total", total)
+		f, failed := meowrt.AsFurball(got)
+		if !failed {
+			t.Fatalf("got %s, want a furball", got.String())
+		}
+		if !strings.Contains(f.Message, "at least 1") {
+			t.Errorf("says %q, want it to say how few that is", f.Message)
+		}
+	})
+}
+
+// The library being called is someone else's code. One that comes apart is a
+// failure like any other, catchable with gag, rather than the end of the
+// program.
+func TestAPanicIsAFailureRatherThanTheEnd(t *testing.T) {
+	got := meowrt.CallGo("boom", func() int { panic("nyaaa") })
+
+	f, failed := meowrt.AsFurball(got)
+	if !failed {
+		t.Fatalf("got %s, want a furball", got.String())
+	}
+	if !strings.Contains(f.Message, "nyaaa") {
+		t.Errorf("says %q, want it to carry what went wrong", f.Message)
+	}
+	if !strings.Contains(f.Message, "boom") {
+		t.Errorf("says %q, want it to name the call", f.Message)
+	}
+}
+
+type ownError struct{ why string }
+
+func (e *ownError) Error() string { return e.why }
+
+// A library that returns its own error type rather than the error interface
+// still fails the call, and a nil one of those is still no failure.
+func TestAnErrorOfItsOwnTypeIsStillTheFailure(t *testing.T) {
+	t.Run("something went wrong", func(t *testing.T) {
+		got := meowrt.CallGo("read", func() (string, *ownError) {
+			return "", &ownError{why: "no such file"}
+		})
+		f, failed := meowrt.AsFurball(got)
+		if !failed {
+			t.Fatalf("got %s, want a furball", got.String())
+		}
+		if !strings.Contains(f.Message, "no such file") {
+			t.Errorf("says %q, want it to carry the reason", f.Message)
+		}
+	})
+
+	t.Run("nothing did", func(t *testing.T) {
+		got := meowrt.CallGo("read", func() (string, *ownError) { return "hi", nil })
+		if got.String() != "hi" {
+			t.Errorf("got %q, want hi", got.String())
+		}
+	})
+}
+
+// A time goes out as text, so that text is what it goes back in as.
+func TestATimeMakesTheRoundTrip(t *testing.T) {
+	when := meowrt.CallGo("now", func() time.Time { return time.Unix(0, 0).UTC() })
+
+	got := meowrt.CallGo("year", func(at time.Time) int { return at.Year() }, when)
+
+	if got.String() != "1970" {
+		t.Errorf("got %q, want 1970", got.String())
 	}
 }

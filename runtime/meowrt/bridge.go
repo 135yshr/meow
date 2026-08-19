@@ -34,6 +34,10 @@ var (
 //
 // what names the call in anything that goes wrong, so a reader is told which
 // call it was rather than which line of reflection.
+//
+// The context it makes ends when it returns, so a call that hands back
+// something holding on to that context — a paginator, a stream — wants
+// CallGoContext and a context that outlives it.
 func CallGo(what string, fn any, args ...Value) Value {
 	ctx, cancel := context.WithTimeout(context.Background(), callTimeoutForBridge)
 	defer cancel()
@@ -105,8 +109,22 @@ func callReflected(ctx context.Context, what string, fn reflect.Value, args []Va
 		in = append(in, gv)
 	}
 
-	out := fn.Call(in)
-	return resultOf(what, out)
+	return callAndRecover(what, fn, in)
+}
+
+// callAndRecover makes the call, turning a panic into a Furball.
+//
+// What is being called is someone else's code, reached by reflection. A
+// library that panics, or an argument reflection will not take after all,
+// would otherwise end the Meow program rather than be caught by gag like any
+// other failure.
+func callAndRecover(what string, fn reflect.Value, in []reflect.Value) (v Value) {
+	defer func() {
+		if r := recover(); r != nil {
+			v = NewFurball("Hiss! %s came apart: %v, nya~", what, r)
+		}
+	}()
+	return resultOf(what, fn.Call(in))
 }
 
 // resultOf turns what a Go function returned into one Meow value.
@@ -114,9 +132,10 @@ func callReflected(ctx context.Context, what string, fn reflect.Value, args []Va
 // A trailing error is the failure itself rather than part of the answer, so it
 // becomes a Furball and the rest is dropped.
 func resultOf(what string, out []reflect.Value) Value {
-	if n := len(out); n > 0 && out[n-1].Type() == errorType {
-		if !out[n-1].IsNil() {
-			return NewFurball("Hiss! %s: %s, nya~", what, out[n-1].Interface().(error))
+	if n := len(out); n > 0 && out[n-1].Type().Implements(errorType) {
+		last := out[n-1]
+		if !isNothing(last) {
+			return NewFurball("Hiss! %s: %s, nya~", what, last.Interface().(error))
 		}
 		out = out[:n-1]
 	}
@@ -144,15 +163,25 @@ func fromGo(rv reflect.Value) Value {
 	}
 	// A Meow value that made the round trip is already what it should be.
 	if rv.Type().Implements(valueType) {
-		if rv.IsNil() {
+		if isNothing(rv) {
 			return NewNil()
 		}
 		return rv.Interface().(Value)
 	}
 	switch rv.Kind() {
-	case reflect.Pointer, reflect.Interface:
+	case reflect.Interface:
 		if rv.IsNil() {
 			return NewNil()
+		}
+		return fromGo(rv.Elem())
+	case reflect.Pointer:
+		if rv.IsNil() {
+			return NewNil()
+		}
+		// A handle is held rather than read, so what a constructor hands back
+		// can be what the next call is made on.
+		if isHandle(rv.Type()) {
+			return NewOpaque(rv.Type().String(), rv.Interface())
 		}
 		return fromGo(rv.Elem())
 	case reflect.Bool:
@@ -168,6 +197,15 @@ func fromGo(rv reflect.Value) Value {
 	case reflect.Slice, reflect.Array:
 		if rv.Kind() == reflect.Slice && rv.IsNil() {
 			return NewNil()
+		}
+		// A run of bytes comes back as bytes, which is what to_bytes makes and
+		// what to_string reads, rather than as a list of plain numbers.
+		if rv.Type().Elem().Kind() == reflect.Uint8 {
+			items := make([]Value, rv.Len())
+			for i := range items {
+				items[i] = NewByte(byte(rv.Index(i).Uint()))
+			}
+			return NewList(items...)
 		}
 		items := make([]Value, rv.Len())
 		for i := range items {
@@ -190,6 +228,39 @@ func fromGo(rv reflect.Value) Value {
 		return structToMap(rv)
 	}
 	return NewOpaque(rv.Type().String(), rv.Interface())
+}
+
+// isNothing reports whether a value is a nil of a kind that can be one. Only
+// some kinds can, and asking the others panics.
+func isNothing(rv reflect.Value) bool {
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface,
+		reflect.Map, reflect.Pointer, reflect.Slice:
+		return rv.IsNil()
+	}
+	return false
+}
+
+// isHandle reports whether a pointer is something to call on rather than
+// something to read.
+//
+// A client keeps its state to itself and answers by method; a record hands its
+// fields over. Reading a client gives an empty basket and loses the very thing
+// it was for, so what has nothing to read and something to call is held whole.
+func isHandle(t reflect.Type) bool {
+	if t.NumMethod() == 0 {
+		return false
+	}
+	el := t.Elem()
+	if el.Kind() != reflect.Struct {
+		return false
+	}
+	for i := range el.NumField() {
+		if el.Field(i).IsExported() {
+			return false
+		}
+	}
+	return true
 }
 
 // structToMap reads a record's exported fields as a basket, under the names a
@@ -240,14 +311,24 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 
 	switch t.Kind() {
 	case reflect.Bool:
-		return reflect.ValueOf(v.IsTruthy()).Convert(t), nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		i, ok := v.(*Int)
+		// Only a bool is a bool. Reading the truthiness of anything else would
+		// send "hairball" in as true and quietly turn a flag the wrong way.
+		b, ok := v.(*Bool)
 		if !ok {
 			return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
 		}
-		return reflect.ValueOf(i.Val).Convert(t), nil
+		return reflect.ValueOf(b.Val).Convert(t), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		switch n := v.(type) {
+		case *Int:
+			return wholeNumber(n.Val, t)
+		case *Byte:
+			// A byte is a number, and a list of them is what to_bytes makes,
+			// which is how a Meow program has a []byte to pass.
+			return wholeNumber(int64(n.Val), t)
+		}
+		return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
 	case reflect.Float32, reflect.Float64:
 		switch n := v.(type) {
 		case *Float:
@@ -294,9 +375,41 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 		}
 		return out, nil
 	case reflect.Struct:
+		// A time went out as the text of it, so that is what comes back in.
+		if t == timeType {
+			s, ok := v.(*String)
+			if !ok {
+				return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
+			}
+			at, err := time.Parse(time.RFC3339, s.Val)
+			if err != nil {
+				return reflect.Value{}, fmt.Errorf("cannot read %q as a %s", s.Val, t)
+			}
+			return reflect.ValueOf(at), nil
+		}
 		return mapToStruct(v, t)
 	}
 	return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
+}
+
+// wholeNumber writes a number as the sized Go integer a call asks for, saying
+// so when it would not fit rather than letting it wrap around into a different
+// number.
+func wholeNumber(n int64, t reflect.Type) (reflect.Value, error) {
+	out := reflect.New(t).Elem()
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if out.OverflowInt(n) {
+			return reflect.Value{}, fmt.Errorf("%d does not fit in a %s", n, t)
+		}
+		out.SetInt(n)
+	default:
+		if n < 0 || out.OverflowUint(uint64(n)) {
+			return reflect.Value{}, fmt.Errorf("%d does not fit in a %s", n, t)
+		}
+		out.SetUint(uint64(n))
+	}
+	return out, nil
 }
 
 // mapToStruct fills a record's exported fields from a basket, by the names a

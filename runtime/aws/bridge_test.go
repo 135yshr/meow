@@ -49,7 +49,11 @@ func TestTheBridgeReadsAnAbsentFieldAsNothing(t *testing.T) {
 	if !ok {
 		t.Fatalf("got %s, want a basket", got.Type())
 	}
-	if v := m.Items["account"]; v.String() != "catnap" {
+	v, present := m.Items["account"]
+	if !present {
+		t.Fatal("no account came through at all")
+	}
+	if v.String() != "catnap" {
 		t.Errorf("an absent account reads as %q, want catnap", v.String())
 	}
 }
