@@ -1308,3 +1308,23 @@ nya(pick(Cat("nyan")))
 		t.Errorf("says %q, want it to name the member asked for", got)
 	}
 }
+
+// The playground checks types too, so a method read where the type is known
+// has to be allowed there as much as in the compiler.
+func TestAGroomedMethodIsAValueWhenTheTypeIsKnown(t *testing.T) {
+	got := runMeow(t, `
+kitty Cat { name: string, age: int }
+groom Cat {
+  meow older(by int) string { bring self.name + " turns " + to_string(self.age + by) }
+}
+nyan c = Cat("nyan", 3)
+nyan older = c.older
+nya(older(1))
+nya(2 |=| c.older)
+nya(lick([1, 2], c.older))
+`)
+	want := "nyan turns 4\nnyan turns 5\n[nyan turns 4, nyan turns 5]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

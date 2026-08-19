@@ -1126,11 +1126,11 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 			if e.Member == "value" {
 				return ct.Underlying
 			}
-			// Check learn methods for collar types
+			// A method read rather than called is that method, bound to what it
+			// was reached through, so it has the method's own type.
 			if methods, ok := c.info.LearnImpls[ct.Name]; ok {
-				if _, ok := methods[e.Member]; ok {
-					c.addError(e.Token.Pos, "Method %s.%s must be called with ()", ct.Name, e.Member)
-					return types.AnyType{}
+				if ft, ok := methods[e.Member]; ok {
+					return ft
 				}
 			}
 			c.addError(e.Token.Pos, "%s has no field or method %s", ct.Name, e.Member)
@@ -1142,11 +1142,11 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 					return f.Type
 				}
 			}
-			// Check learn methods for kitty types
+			// A method read rather than called is that method, bound to what it
+			// was reached through, so it has the method's own type.
 			if methods, ok := c.info.LearnImpls[kt.Name]; ok {
-				if _, ok := methods[e.Member]; ok {
-					c.addError(e.Token.Pos, "Method %s.%s must be called with ()", kt.Name, e.Member)
-					return types.AnyType{}
+				if ft, ok := methods[e.Member]; ok {
+					return ft
 				}
 			}
 			c.addError(e.Token.Pos, "%s has no field or method %s", kt.Name, e.Member)

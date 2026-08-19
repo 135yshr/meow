@@ -777,6 +777,14 @@ nyan c = Cat("Nyantyu", 3)
 nya(c.show())       # => Nyantyu (age 3)
 ```
 
+A groomed method read rather than called is that method bound to the instance,
+and has the method's own type — see [Member Expression](#member-expression):
+
+```meow
+nyan tell = c.show
+nya(tell())         # => Nyantyu (age 3)
+```
+
 The `self` keyword refers to the instance the method is called on. For `kitty` types, `self.field` accesses fields. For `collar` types, `self.value` accesses the wrapped value.
 
 ### Self Expression
