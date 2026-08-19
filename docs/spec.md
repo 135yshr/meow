@@ -567,8 +567,10 @@ nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
 ```
 
 Go names are spelled the way Meow writes names: `strings.to_upper` is
-`strings.ToUpper`, and `sts.new_from_config` is `sts.NewFromConfig`. A name
-holding an initialism cannot be spelled this way — `to_valid_utf8` reaches for
+`strings.ToUpper`, and `sts.new_from_config` is `sts.NewFromConfig`. A keyword
+is a name after a dot like any other — nothing but a member can follow one — so
+Go's `String()` is written `.string()`. A name holding an initialism cannot be
+spelled this way — `to_valid_utf8` reaches for
 `ToValidUtf8`, which is not what Go calls it — so such a name is written as Go
 writes it, `strings.ToValidUTF8`. Getting it wrong is a build error naming the
 spelling that exists, not a surprise at runtime.

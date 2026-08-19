@@ -9,4 +9,6 @@ example.com
 the nyan and the woof
 nyan has 4
 {"name":"nyan","paws":4}
+[0-9]+
+123
 true

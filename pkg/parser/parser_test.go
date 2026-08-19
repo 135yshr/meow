@@ -895,3 +895,47 @@ func TestGoImportNamedByAKeywordNeedsATag(t *testing.T) {
 		t.Errorf("called by %q, want pet", f.Name())
 	}
 }
+
+// Nothing but a member can follow a dot, so a keyword is a name there like any
+// other. Go's most common method of all is String, which a Meow program spells
+// `.string` — and `string` is a type keyword everywhere else.
+func TestAMemberMayBeNamedAfterAKeyword(t *testing.T) {
+	members := []string{
+		"string", "int", "float", "bool", "litter", "basket", "furball",
+		"nyan", "meow", "purr", "paw", "kitty", "self", "nab",
+	}
+	for _, name := range members {
+		t.Run(name, func(t *testing.T) {
+			prog := parse(t, "nyan v = thing."+name+"()")
+			call := prog.Stmts[0].(*ast.VarStmt).Value.(*ast.CallExpr)
+			member, ok := call.Fn.(*ast.MemberExpr)
+			if !ok {
+				t.Fatalf("got %T, want a member call", call.Fn)
+			}
+			if member.Member != name {
+				t.Errorf("member is %q, want %q", member.Member, name)
+			}
+		})
+	}
+}
+
+// Read as a value rather than called, the same holds.
+func TestAMemberNamedAfterAKeywordIsAlsoReadable(t *testing.T) {
+	prog := parse(t, `nyan s = thing.string`)
+	member, ok := prog.Stmts[0].(*ast.VarStmt).Value.(*ast.MemberExpr)
+	if !ok {
+		t.Fatalf("got %T, want a member", prog.Stmts[0].(*ast.VarStmt).Value)
+	}
+	if member.Member != "string" {
+		t.Errorf("member is %q, want string", member.Member)
+	}
+}
+
+// A keyword is still a keyword where a keyword can stand.
+func TestAKeywordIsStillAKeywordOffADot(t *testing.T) {
+	l := lexer.New(`nyan string = 1`, "test.nyan")
+	p := parser.New(l.Tokens())
+	if _, errs := p.Parse(); len(errs) == 0 {
+		t.Error("got no errors, want string refused as a binding name")
+	}
+}
