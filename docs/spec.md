@@ -595,13 +595,65 @@ nyan re = regexp.must_compile("[0-9]+")
 nya(re.find_string("abc 123 def"))     # => 123
 ```
 
-A record read into a basket also remembers what it came from, so it can be
-handed on to the next call as itself. Some records are a basket by their shape
-and a handle by their use — `aws.Config` has fields worth reading and interface
-fields that no basket could be built back into — and this is what lets them be
-both. A basket cannot be changed once made, so what it remembers cannot fall
-out of step with it. A basket a program wrote itself remembers nothing, and is
-built into the record as before.
+What is read also remembers what it was read out of, so reading a value is not
+what stops it being one. It is still called on, and still handed to the next
+call as itself:
+
+```meow
+nab go "net/url" tag u
+nab go "time"
+
+nyan p = u.parse("https://example.com/a/b?x=1")
+nya(p["host"])                         # => example.com
+nya(p.hostname())                      # => example.com
+
+nyan d = time.ParseDuration("90m")
+nya(d)                                 # => 5400000000000
+nya(d.minutes())                       # => 90
+```
+
+Some records are a basket by their shape and a handle by their use —
+`aws.Config` has fields worth reading and interface fields that no basket could
+be built back into — and this is what lets them be both. Being handed on as
+itself rather than as what it read as is also what keeps what the reading does
+not say: a `time.Time` goes to the next call down to the nanosecond, not down to
+the second its text gives.
+
+Only what was read remembers. A basket a program wrote itself remembers nothing
+and is built into the record as before, and a value that is all there — a plain
+string, a plain number — remembers nothing either, since there is nothing more
+of it to reach.
+
+What was read is a reading, taken when it was taken. A Meow value cannot be
+changed once made, and the Go value behind it can be — by a call that is handed
+it, or by a method called on it — so after such a call the two say different
+things: the Go value has moved on and the basket still holds what was read. The
+basket is not wrong when that happens; it is what was there to read at the time,
+which is the only thing an unchanging value can be.
+
+A method with nothing of its own to say gives back a fresh reading of what it
+was called on, so the doing has somewhere to show. Go writes a great many such
+methods — `Set`, `Add`, `Reset` — and what they do is to the thing they are
+called on:
+
+```meow
+nab go "net/url" tag u
+
+nyan q = u.ParseQuery("x=1&y=2")
+nya(q.set("z", "9"))                   # => {x: [1], y: [2], z: [9]}
+nya(q)                                 # => {x: [1], y: [2]}
+```
+
+The change arrives as a new value beside the old one, which is how a language
+whose values do not change says that something happened. A handle is not read,
+so there is nothing to read again: the same handle comes back, and one call can
+follow another.
+
+A method with nothing to say is one with no answer, which is not the same as one
+whose answer is nothing: a search that found nothing still answers `catnap`, and
+a method that failed answers with the furball. A trailing `error` is the failure
+rather than an answer, so a method returning only an `error` has nothing to say
+when it does not fail.
 
 The version is the toolchain's choice unless the program makes it, which it
 does with `@`:

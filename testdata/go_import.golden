@@ -11,4 +11,12 @@ nyan has 4
 {"name":"nyan","paws":4}
 [0-9]+
 123
+https://example.com/a/b?x=1
+example.com
+2026-01-02T03:04:05Z
+2026
+2026/01/02
+{x: [1], y: [2]}
+{x: [1], y: [2], z: [9]}
+{x: [1], y: [2]}
 true

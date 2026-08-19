@@ -14,8 +14,40 @@ type Value interface {
 	IsTruthy() bool
 }
 
+// Origin is a value that remembers the Go value it was read out of.
+//
+// What the bridge reads, it also keeps. A record read into a basket, a
+// time.Time read as its text, a time.Duration read as a count of nanoseconds:
+// the reading is what gives each of them a shape a Meow program can use, and
+// the keeping is what leaves them still callable, and still passable as
+// themselves.
+//
+// Without it the rule runs backwards, and the more of a type Meow can read the
+// less of it is reachable: a url.URL could be read field by field but never
+// asked for its .string(), while a *strings.Replacer, having nothing to read at
+// all, could be called on freely.
+//
+// Only what the bridge read has an origin. A basket a program wrote itself
+// remembers nothing, and a value cannot be changed once made, so what is
+// remembered cannot fall out of step with what was read out of it.
+type Origin interface {
+	// Origin is the Go value this was read out of, or nil for a value that was
+	// not read out of one.
+	Origin() any
+}
+
+// origin is embedded in each kind of value the bridge reads a Go value into.
+type origin struct{ from any }
+
+// Origin is the Go value this was read out of, or nil for a value that was not
+// read out of one.
+func (o origin) Origin() any { return o.from }
+
 // Int represents an integer value.
-type Int struct{ Val int64 }
+type Int struct {
+	Val int64
+	origin
+}
 
 // NewInt creates a new Int value.
 func NewInt(v int64) *Int     { return &Int{Val: v} }
@@ -33,7 +65,10 @@ func (b *Byte) String() string { return fmt.Sprintf("%d", b.Val) }
 func (b *Byte) IsTruthy() bool { return b.Val != 0 }
 
 // Float represents a floating-point value.
-type Float struct{ Val float64 }
+type Float struct {
+	Val float64
+	origin
+}
 
 // NewFloat creates a new Float value.
 func NewFloat(v float64) *Float { return &Float{Val: v} }
@@ -42,7 +77,10 @@ func (f *Float) String() string { return fmt.Sprintf("%g", f.Val) }
 func (f *Float) IsTruthy() bool { return f.Val != 0 }
 
 // String represents a string value.
-type String struct{ Val string }
+type String struct {
+	Val string
+	origin
+}
 
 // NewString creates a new String value.
 func NewString(v string) *String { return &String{Val: v} }
@@ -51,7 +89,10 @@ func (s *String) String() string { return s.Val }
 func (s *String) IsTruthy() bool { return s.Val != "" }
 
 // Bool represents a boolean value.
-type Bool struct{ Val bool }
+type Bool struct {
+	Val bool
+	origin
+}
 
 // NewBool creates a new Bool value.
 func NewBool(v bool) *Bool     { return &Bool{Val: v} }
@@ -147,6 +188,7 @@ func (e *Furball) IsTruthy() bool { return false }
 type List struct {
 	// Items is the slice of values in the list.
 	Items []Value
+	origin
 }
 
 // NewList creates a new List value from the given items.
@@ -225,14 +267,12 @@ func (k *Kitty) GetField(name string) Value {
 // Map represents a map value with string keys.
 type Map struct {
 	Items map[string]Value
-	// From is the Go value a basket was read out of, when it was read out of
-	// one. A record like aws.Config is a basket by its shape and a handle by
-	// its use: its fields are worth reading, and it is worth passing whole to
-	// the next call, which cannot be done by building it again from what was
-	// read — an interface field is a thing, not a shape. Keeping what it came
-	// from lets it be both. A basket cannot be changed once made, so what is
-	// kept here cannot fall out of step with it.
-	From any
+	// A record like aws.Config is a basket by its shape and a handle by its
+	// use: its fields are worth reading, and it is worth passing whole to the
+	// next call, which cannot be done by building it again out of what was read
+	// — an interface field is a thing, not a shape. Its origin is what lets it
+	// be both. See Origin.
+	origin
 }
 
 // NewMap creates a new Map value from the given items.
@@ -242,10 +282,24 @@ func NewMap(items map[string]Value) *Map {
 
 func (m *Map) Type() string   { return "Map" }
 func (m *Map) IsTruthy() bool { return len(m.Items) > 0 }
+
+// String writes a basket by its keys in order.
+//
+// A basket has no order of its own — nothing is written down about which key
+// came first — so the only order it can be shown in that is the same twice is
+// one worked out from the keys themselves. Reading a basket over a Go map
+// otherwise printed differently from one run to the next, which nya cannot do
+// and a test that reads its output cannot live with. ToJSON has sorted for the
+// same reason.
 func (m *Map) String() string {
+	keys := make([]string, 0, len(m.Items))
+	for k := range m.Items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 	parts := make([]string, 0, len(m.Items))
-	for k, v := range m.Items {
-		parts = append(parts, k+": "+v.String())
+	for _, k := range keys {
+		parts = append(parts, k+": "+m.Items[k].String())
 	}
 	return "{" + strings.Join(parts, ", ") + "}"
 }
