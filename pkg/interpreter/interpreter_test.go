@@ -1328,3 +1328,21 @@ nya(lick([1, 2], c.older))
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// A function named rather than called is the function itself. The playground
+// evaluates the same programs the CLI compiles, so it answers this the same
+// way.
+func TestAFunctionNamedRatherThanCalledIsAValue(t *testing.T) {
+	got := runMeow(t, `
+meow double(n int) int { bring n * 2 }
+nyan f = double
+nya(f(21))
+nya(3 |=| double)
+nya(lick([1, 2, 3], double))
+nya(double)
+`)
+	want := "42\n6\n[2, 4, 6]\n<meow double>\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

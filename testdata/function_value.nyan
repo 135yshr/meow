@@ -1,0 +1,39 @@
+# A function named rather than called is the function itself, so it can be kept,
+# piped into, or mapped over a list like any other value.
+
+meow double(n int) int {
+  bring n * 2
+}
+
+meow join(a string, b string) string {
+  bring a + "-" + b
+}
+
+meow shout(s string) {
+  nya("!" + s)
+}
+
+meow seven() int {
+  bring 7
+}
+
+# Kept, then called.
+nyan f = double
+nya(f(21))
+
+# Piped into, and mapped over a list.
+nya(3 |=| double)
+nya(lick([1, 2, 3], double))
+
+# Its arity is known, so it curries as a call with too few arguments does.
+nyan greet = join("hi")
+nya(greet("nyan"))
+
+# One with no answer of its own, and one that takes nothing.
+nyan say = shout
+nya(say("meow"))
+nyan give = seven
+nya(give())
+
+# And read for what it is.
+nya(double)
