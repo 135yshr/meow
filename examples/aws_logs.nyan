@@ -63,11 +63,26 @@ meow events_of(page basket) litter {
   bring events
 }
 
+# Only as many as were asked for. "limit" is what the API takes per page, not a
+# total, so a page can hold more than is left to take.
+meow take_events(events litter, found litter, room int) litter {
+  sniff (room <= 0 || len(events) == 0) {
+    bring found
+  }
+  bring take_events(tail(events), append(found, as_event(head(events))), room - 1)
+}
+
 # pages bounds the walk. The token is the server's to hand out, and a run of
 # empty pages leaves want where it was, so nothing else here has to end.
 meow read_page(group string, pattern string, want int, token string, found litter, pages int) litter {
-  sniff (want <= 0 || pages <= 0) {
+  sniff (want <= 0) {
     bring found
+  }
+  # Running out of pages is not the same as running out of events. There is a
+  # token still outstanding here, so handing back what arrived would be the
+  # partial answer the failure below refuses to give.
+  sniff (pages <= 0) {
+    hiss("gave up with pages still unread in", group)
   }
   nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
   sniff (is_furball(page)) {
@@ -80,7 +95,7 @@ meow read_page(group string, pattern string, want int, token string, found litte
     # the same lie told to whatever reads the exit status.
     hiss("could not read the log group:", page)
   }
-  nyan more = curl(events_of(page), found, paw(acc litter, e basket) { append(acc, as_event(e)) })
+  nyan more = take_events(events_of(page), found, want)
   nyan next = to_string(page["next_token"])
   sniff (next == "catnap" || next == "") {
     bring more
