@@ -57,5 +57,12 @@ nya(asked)
 nya(asked.set("z", "9"))
 nya(asked)
 
+# A member read rather than called is that method, bound to what it was reached
+# through: a function like any other, so it pipes and it maps.
+nya("the cat" |=| swap.replace)
+nya(lick(["cat", "dog"], swap.replace))
+nyan host = parsed.hostname
+nya(host())
+
 # A failure from Go is a furball like any other.
 nya(is_furball(u.parse("://nope")))

@@ -320,6 +320,28 @@ MemberName = identifier | keyword | type_keyword .
 
 Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
 
+A member that is read rather than called is a value of its own. A field is what
+it holds; a method — one groomed on, or one belonging to something from Go — is
+that method bound to what it was reached through, which is a function like any
+other:
+
+```meow
+nab go "strings"
+
+nyan swap = strings.new_replacer("cat", "nyan")
+nyan speak = swap.replace              # a function, not yet called
+
+nya(speak("the cat"))                  # => the nyan
+nya("the cat" |=| swap.replace)        # => the nyan
+nya(lick(["cat", "dog"], swap.replace))
+```
+
+This is what a language of values has in place of a chain of calls. Rather than
+following one call with another, a member is taken as a function and the value
+is passed into it, which reads left to right and needs nothing to come after a
+closing bracket. A member that is not there fails where it is written rather
+than where the function it would have been is called.
+
 A member may be named after a keyword. Nothing but a member can follow a dot,
 so there is nothing for `x.string` to be ambiguous with, and a Go method named
 `String` is spelled `.string()` — see [Importing a Go package](#importing-a-go-package).
@@ -753,6 +775,14 @@ groom Cat {
 
 nyan c = Cat("Nyantyu", 3)
 nya(c.show())       # => Nyantyu (age 3)
+```
+
+A groomed method read rather than called is that method bound to the instance,
+and has the method's own type — see [Member Expression](#member-expression):
+
+```meow
+nyan tell = c.show
+nya(tell())         # => Nyantyu (age 3)
 ```
 
 The `self` keyword refers to the instance the method is called on. For `kitty` types, `self.field` accesses fields. For `collar` types, `self.value` accesses the wrapped value.

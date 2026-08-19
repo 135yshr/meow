@@ -741,7 +741,41 @@ nyan x = self.name
 	}
 }
 
-func TestBareMethodAccessError(t *testing.T) {
+// A method read rather than called is that method, bound to what it was
+// reached through, and so has the method's own type. Writing one without
+// calling it used to be an error, which made a method the one thing in the
+// language that could not be piped into or handed to lick.
+func TestAMethodReadRatherThanCalledHasTheMethodsType(t *testing.T) {
+	info, errs := check(t, `
+kitty Cat {
+    name: string
+}
+groom Cat {
+    meow older(by int) string {
+        bring self.name
+    }
+}
+nyan c = Cat("Nyantyu")
+nyan f = c.older
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	ft, ok := info.VarTypes["f"].(types.FuncType)
+	if !ok {
+		t.Fatalf("expected a function for f, got %v", info.VarTypes["f"])
+	}
+	if len(ft.Params) != 1 {
+		t.Errorf("takes %d arguments, want the one the method takes", len(ft.Params))
+	}
+	if _, isString := ft.Return.(types.StringType); !isString {
+		t.Errorf("gives back %v, want what the method gives back", ft.Return)
+	}
+}
+
+// A member that is neither a field nor a method is still an error, and still
+// says so where it is written.
+func TestAMemberThatIsNeitherFieldNorMethod(t *testing.T) {
 	_, errs := check(t, `
 kitty Cat {
     name: string
@@ -752,19 +786,19 @@ groom Cat {
     }
 }
 nyan c = Cat("Nyantyu")
-nyan f = c.show
+nyan f = c.purr
 `)
 	if len(errs) == 0 {
-		t.Fatal("expected error for bare method access without (), got none")
+		t.Fatal("expected an error for a member that is not there, got none")
 	}
 	found := false
 	for _, e := range errs {
-		if contains(e.Message, "must be called with ()") {
+		if contains(e.Message, "has no field or method purr") {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected 'must be called with ()' error, got: %v", errs)
+		t.Errorf("expected it to name the member, got: %v", errs)
 	}
 }
 

@@ -876,3 +876,95 @@ func TestAMethodWithNothingToSayGivesBackTheHandleItself(t *testing.T) {
 		t.Errorf("got %s, want the handle it was called on", got.String())
 	}
 }
+
+// A member read rather than called is the method bound to what it was reached
+// through — a function in its own right, which can be piped into or handed to
+// lick. That is what a language of values has instead of a chain of calls.
+func TestAMemberReadRatherThanCalledIsAFunction(t *testing.T) {
+	t.Run("on something held", func(t *testing.T) {
+		held := meowrt.NewOpaque("probe.Client", &probeClient{region: "ap-northeast-1"})
+
+		got := meowrt.GetMember(held, "describe")
+
+		fn, isFunc := got.(*meowrt.Func)
+		if !isFunc {
+			t.Fatalf("got %s (%s), want a function", got.String(), got.Type())
+		}
+		// And it is the method, waiting for its arguments.
+		out := fn.Call(meowrt.NewMap(map[string]meowrt.Value{"name": meowrt.NewString("nyan")}))
+		m, isBasket := out.(*meowrt.Map)
+		if !isBasket {
+			t.Fatalf("calling it gave %s (%s), want a basket", out.String(), out.Type())
+		}
+		if m.Items["arn"].String() != "arn:nyan" {
+			t.Errorf("arn is %v, want it built by the method", m.Items["arn"])
+		}
+	})
+
+	t.Run("on something read out of Go", func(t *testing.T) {
+		made := meowrt.CallGo("load", func() dial { return dial{Region: "eu-west-1"} })
+
+		got := meowrt.GetMember(made, "where")
+
+		fn, isFunc := got.(*meowrt.Func)
+		if !isFunc {
+			t.Fatalf("got %s (%s), want a function", got.String(), got.Type())
+		}
+		if out := fn.Call(); out.String() != "at eu-west-1" {
+			t.Errorf("calling it gave %q, want the method's answer", out.String())
+		}
+	})
+
+	// A basket is indexed rather than reached through a dot, so a dot on one
+	// only ever asks for a method. A field is read with the brackets it was put
+	// under, and asking for it as a member says there is no such method.
+	t.Run("a field is read as a field, not as a member", func(t *testing.T) {
+		made := meowrt.CallGo("load", func() dial { return dial{Region: "eu-west-1"} })
+
+		if got := made.(*meowrt.Map).Items["region"]; got.String() != "eu-west-1" {
+			t.Errorf("the basket says %q, want the field readable as ever", got.String())
+		}
+		if _, failed := meowrt.AsFurball(meowrt.GetMember(made, "region")); !failed {
+			t.Error("reading the field as a member gave something, want a furball")
+		}
+	})
+}
+
+// A member that is not there fails where it is written, rather than when the
+// function it would have been is called.
+func TestReadingAMemberThatIsNotThere(t *testing.T) {
+	tests := []struct {
+		name string
+		of   meowrt.Value
+		says string
+	}{
+		{"on something held", meowrt.NewOpaque("probe.Client", &probeClient{}), "probe.Client"},
+		{"on something read out of Go",
+			meowrt.CallGo("load", func() dial { return dial{} }), "dial"},
+		{"on a basket a program wrote itself",
+			meowrt.NewMap(map[string]meowrt.Value{"a": meowrt.NewInt(1)}), "Cannot read"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := meowrt.GetMember(tt.of, "purr")
+
+			f, failed := meowrt.AsFurball(got)
+			if !failed {
+				t.Fatalf("got %s (%s), want a furball", got.String(), got.Type())
+			}
+			if !strings.Contains(f.Message, tt.says) {
+				t.Errorf("says %q, want it to mention %q", f.Message, tt.says)
+			}
+		})
+	}
+}
+
+// A failure earlier in a chain is the answer to the whole chain, reading a
+// member as much as calling one.
+func TestReadingAMemberOfAFailure(t *testing.T) {
+	furball := meowrt.NewFurball("Hiss! earlier, nya~")
+
+	if got := meowrt.GetMember(furball, "describe"); got != meowrt.Value(furball) {
+		t.Errorf("got %s, want the failure itself", got.String())
+	}
+}

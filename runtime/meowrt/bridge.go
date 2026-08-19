@@ -123,7 +123,10 @@ func CallMember(recv Value, name string, args ...Value) Value {
 		defer cancel()
 		return CallGoMethod(ctx, v, goMethodName(name), args...)
 	case *Kitty:
-		return Call(v.GetField(name), args...)
+		// Reading a member and calling one are the same question asked twice,
+		// so they are answered in one place: a field holding a function, or a
+		// method groomed on, is called the same way either way.
+		return Call(GetMember(v, name), args...)
 	case *Furball:
 		// A failure earlier in a chain is the answer to the whole chain.
 		return v
@@ -730,4 +733,61 @@ func snake(name string) string {
 		b.WriteRune(r)
 	}
 	return b.String()
+}
+
+// GetMember reads a member of a value without calling it.
+//
+// A field of a Meow object is what it holds. A member that is a method — one
+// groomed onto a kitty, or one belonging to something from Go — is that method
+// bound to what it was reached through, which is a function in its own right.
+// It can be piped into, handed to lick, or kept for later like any other.
+//
+// That is what a language of values has instead of a chain of calls:
+// new_replacer gives a thing, .replace on it gives a function, and
+// "aaa" |=| that gives the answer, left to right, with nothing needing to
+// follow a closing bracket.
+//
+// A member that is not there fails here rather than when the function it would
+// have been is called, so the failure names the place it was written.
+func GetMember(recv Value, name string) Value {
+	if f, failed := recv.(*Furball); failed {
+		// A failure earlier in a chain is the answer to the whole chain.
+		return f
+	}
+	if k, isKitty := recv.(*Kitty); isKitty {
+		if held, has := k.Fields[name]; has {
+			return held
+		}
+		if _, groomed := LookupMethod(k.TypeName, name); groomed {
+			return NewFunc(name, func(args ...Value) Value {
+				return DispatchMethod(recv, name, args...)
+			})
+		}
+		return k.GetField(name)
+	}
+	target, what, fromGo := goBehind(recv)
+	if !fromGo {
+		return NewFurball("Hiss! Cannot read %s of a %s, nya~", name, recv.Type())
+	}
+	if method := goMethodName(name); !reflect.ValueOf(target).MethodByName(method).IsValid() {
+		return NewFurball("Hiss! %s has no %s, nya~", what, method)
+	}
+	return NewFunc(name, func(args ...Value) Value {
+		return CallMember(recv, name, args...)
+	})
+}
+
+// goBehind is the Go value a Meow one is held as or was read out of, named the
+// way anything going wrong should name it.
+func goBehind(v Value) (target any, what string, fromGo bool) {
+	if o, held := AsOpaque(v); held {
+		if o.V == nil {
+			return nil, "", false
+		}
+		return o.V, o.String(), true
+	}
+	if o, ok := v.(Origin); ok && o.Origin() != nil {
+		return o.Origin(), fmt.Sprintf("%T", o.Origin()), true
+	}
+	return nil, "", false
 }
