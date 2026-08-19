@@ -19,6 +19,13 @@ type TypeInfo struct {
 	TrickTypes  map[string]types.TrickType
 	LearnImpls  map[string]map[string]types.FuncType // typeName → methodName → FuncType
 	ImportNames map[string]string                    // effective name → package path
+	// FuncRefs holds the identifier occurrences that name a top-level function
+	// rather than something written inside a body that took the name over.
+	//
+	// Which declaration a name reaches is settled here, in the scope it was
+	// written in, and cannot be worked out again from its type: a local holding
+	// a function has the same type as the function it shadows.
+	FuncRefs map[*ast.Ident]bool
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -33,6 +40,7 @@ func NewTypeInfo() *TypeInfo {
 		TrickTypes:  make(map[string]types.TrickType),
 		LearnImpls:  make(map[string]map[string]types.FuncType),
 		ImportNames: make(map[string]string),
+		FuncRefs:    make(map[*ast.Ident]bool),
 	}
 }
 
@@ -112,6 +120,26 @@ func (c *Checker) declaredInOuterScope(name string) bool {
 		}
 	}
 	return false
+}
+
+// reachesTopLevelFunc reports whether a name still reaches the top-level
+// function of that name here.
+//
+// Top-level declarations live in the outermost scope, so a name bound anywhere
+// deeper has been taken over by something written inside a body — a binding, a
+// parameter, a nested meow — and no longer means the function.
+func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
+	for i := len(c.scopes) - 1; i >= 1; i-- {
+		if _, shadowed := c.scopes[i][name]; shadowed {
+			return false
+		}
+	}
+	t, declared := c.scopes[0][name]
+	if !declared {
+		return false
+	}
+	found, isFunc := t.(types.FuncType)
+	return isFunc && found.Equals(ft)
 }
 
 func (c *Checker) lookup(name string) types.Type {
@@ -1050,6 +1078,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 	case *ast.Ident:
 		if !c.known(e.Name) {
 			c.addError(e.Token.Pos, "undefined variable %s", e.Name)
+		}
+		if ft, isFunc := c.info.FuncTypes[e.Name]; isFunc && c.reachesTopLevelFunc(e.Name, ft) {
+			c.info.FuncRefs[e] = true
 		}
 		return c.lookup(e.Name)
 	case *ast.UnaryExpr:

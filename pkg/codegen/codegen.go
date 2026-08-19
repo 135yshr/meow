@@ -1770,21 +1770,16 @@ func (g *Generator) genIdent(e *ast.Ident) string {
 // where it is written, and gives that function's type.
 //
 // A nested meow is already held in a meow.Value and needs no wrapping. A name a
-// local has taken over is the local's, which the type recorded for this very
-// occurrence is what says: the checker resolved it in the scope it was written
-// in, so a shadowed name reads as whatever shadowed it.
+// local has taken over is the local's, which the checker settles by recording
+// the occurrences that reach the top-level declaration — the type cannot say,
+// since a local holding a function has the same type as the function it
+// shadows.
 func (g *Generator) namedFunc(e *ast.Ident) (types.FuncType, bool) {
-	if g.typeInfo == nil || g.isNestedFunc(e.Name) {
+	if g.typeInfo == nil || g.isNestedFunc(e.Name) || !g.typeInfo.FuncRefs[e] {
 		return types.FuncType{}, false
 	}
 	ft, declared := g.typeInfo.FuncTypes[e.Name]
-	if !declared {
-		return types.FuncType{}, false
-	}
-	if _, stillTheFunc := types.Unwrap(g.getExprType(e)).(types.FuncType); !stillTheFunc {
-		return types.FuncType{}, false
-	}
-	return ft, true
+	return ft, declared
 }
 
 func (g *Generator) genUnary(e *ast.UnaryExpr) string {

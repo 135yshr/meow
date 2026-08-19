@@ -1346,3 +1346,21 @@ nya(double)
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// A name a local has taken over is the local's, even when what it holds is a
+// function and so has the same type as the one it shadows.
+func TestALocalFunctionValueShadowsATopLevelFunction(t *testing.T) {
+	got := runMeow(t, `
+meow double(n int) int { bring n * 2 }
+meow shadowed() litter {
+  nyan double = paw(x) { bring x + 100 }
+  bring lick([1, 2], double)
+}
+nya(shadowed())
+nya(lick([1, 2], double))
+`)
+	want := "[101, 102]\n[2, 4]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

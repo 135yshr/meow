@@ -37,3 +37,32 @@ nya(give())
 
 # And read for what it is.
 nya(double)
+
+# A name a local has taken over is the local's, whatever it holds — including a
+# function, which has the same type as the one it shadows and so can only be
+# told apart by where each was written.
+meow shadowed_by_a_function() litter {
+  nyan double = paw(x) { bring x + 100 }
+  bring lick([1, 2], double)
+}
+nya(shadowed_by_a_function())
+
+meow shadowed_by_text() string {
+  nyan double = "text"
+  bring double
+}
+nya(shadowed_by_text())
+
+meow shadowed_by_a_parameter(double int) int {
+  bring double + 1
+}
+nya(shadowed_by_a_parameter(5))
+
+meow shadowed_by_a_nested_meow() litter {
+  meow double(x int) int { bring x + 1000 }
+  bring lick([1, 2], double)
+}
+nya(shadowed_by_a_nested_meow())
+
+# And outside them all the name is still the top-level function.
+nya(lick([1, 2], double))
