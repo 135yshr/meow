@@ -1,3 +1,8 @@
+# [v0.19.0](https://github.com/135yshr/meow/compare/v0.18.0...v0.19.0) (2026-08-19)
+
+## ✨ New Features
+- [`761b8db`](https://github.com/135yshr/meow/commit/761b8db)  feat: Let a record be read and still be passed on as itself (#131) (Issues: [`#131`](https://github.com/135yshr/meow/issues/131) [`#130`](https://github.com/135yshr/meow/issues/130))
+
 # [v0.18.0](https://github.com/135yshr/meow/compare/v0.17.0...v0.18.0) (2026-08-19)
 
 ## ✨ New Features
