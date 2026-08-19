@@ -1,3 +1,8 @@
+# [v0.21.0](https://github.com/135yshr/meow/compare/v0.20.0...v0.21.0) (2026-08-19)
+
+## ✨ New Features
+- [`9858940`](https://github.com/135yshr/meow/commit/9858940)  feat: Let a member be read as well as called (#135) (Issues: [`#135`](https://github.com/135yshr/meow/issues/135))
+
 # [v0.20.0](https://github.com/135yshr/meow/compare/v0.19.1...v0.20.0) (2026-08-19)
 
 ## ✨ New Features
