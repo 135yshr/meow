@@ -236,6 +236,14 @@ func fromGo(rv reflect.Value) Value {
 		if isHandle(rv.Type()) {
 			return NewOpaque(rv.Type().String(), rv.Interface())
 		}
+		// What is kept is the pointer, not the record it points at. A call
+		// given the pointer back is then given the very one the program has,
+		// so a call that changes something changes that.
+		if el := rv.Elem(); el.Kind() == reflect.Struct && el.Type() != timeType {
+			m := structToMap(el)
+			m.From = rv.Interface()
+			return m
+		}
 		return fromGo(rv.Elem())
 	case reflect.Bool:
 		return NewBool(rv.Bool())
@@ -318,7 +326,7 @@ func isHandle(t reflect.Type) bool {
 
 // structToMap reads a record's exported fields as a basket, under the names a
 // Meow program would write them with.
-func structToMap(rv reflect.Value) Value {
+func structToMap(rv reflect.Value) *Map {
 	t := rv.Type()
 	items := make(map[string]Value, t.NumField())
 	for i := range t.NumField() {
@@ -328,7 +336,10 @@ func structToMap(rv reflect.Value) Value {
 		}
 		items[snake(f.Name)] = fromGo(rv.Field(i))
 	}
-	return NewMap(items)
+	// What it came from goes along with what was read out of it, so a record
+	// whose fields cannot all be read back — an interface, a function — can
+	// still be handed to the next call as itself.
+	return &Map{Items: items, From: rv.Interface()}
 }
 
 // toGo reads a Meow value as the Go type a call is asking for.
@@ -351,6 +362,10 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 			return reflect.Zero(t), nil
 		}
 		return reflect.Value{}, fmt.Errorf("cannot read nothing as a %s", t)
+	}
+	// A basket read out of a Go record goes back as that record.
+	if gv, ok := fromOrigin(v, t); ok {
+		return gv, nil
 	}
 	if t.Kind() == reflect.Pointer {
 		inner, err := toGo(v, t.Elem())
@@ -507,6 +522,33 @@ func toAny(v Value) (any, error) {
 		return out, nil
 	}
 	return nil, fmt.Errorf("cannot read a %s as a plain value", v.Type())
+}
+
+// fromOrigin gives back the Go value a basket was read out of, as the type the
+// call is asking for, when the two are the same record.
+//
+// A pointer kept and a pointer asked for is the very same pointer, which is
+// what keeps a call that changes something working on the thing the program
+// holds. The two crossings between a record and a pointer to one are what
+// passing by value and taking an address already mean, so neither loses
+// anything that was there.
+func fromOrigin(v Value, t reflect.Type) (reflect.Value, bool) {
+	m, ok := v.(*Map)
+	if !ok || m.From == nil {
+		return reflect.Value{}, false
+	}
+	from := reflect.ValueOf(m.From)
+	switch {
+	case from.Type() == t:
+		return from, true
+	case t.Kind() == reflect.Pointer && from.Type() == t.Elem():
+		p := reflect.New(t.Elem())
+		p.Elem().Set(from)
+		return p, true
+	case from.Kind() == reflect.Pointer && !from.IsNil() && from.Type().Elem() == t:
+		return from.Elem(), true
+	}
+	return reflect.Value{}, false
 }
 
 // wholeNumber writes a number as the sized Go integer a call asks for, saying

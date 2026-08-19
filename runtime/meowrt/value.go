@@ -225,6 +225,14 @@ func (k *Kitty) GetField(name string) Value {
 // Map represents a map value with string keys.
 type Map struct {
 	Items map[string]Value
+	// From is the Go value a basket was read out of, when it was read out of
+	// one. A record like aws.Config is a basket by its shape and a handle by
+	// its use: its fields are worth reading, and it is worth passing whole to
+	// the next call, which cannot be done by building it again from what was
+	// read — an interface field is a thing, not a shape. Keeping what it came
+	// from lets it be both. A basket cannot be changed once made, so what is
+	// kept here cannot fall out of step with it.
+	From any
 }
 
 // NewMap creates a new Map value from the given items.

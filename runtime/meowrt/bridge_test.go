@@ -548,3 +548,102 @@ func TestAnInterfaceWithMethodsNeedsSomethingThatHasThem(t *testing.T) {
 		t.Fatalf("got %s, want a furball", got.String())
 	}
 }
+
+// A record whose fields cannot all be read back — an interface, a function —
+// is still worth reading and still worth passing on whole. aws.Config is the
+// case in point: a basket by its shape, a handle by its use.
+type settings struct {
+	Region string
+	Log    interface{ Write([]byte) (int, error) }
+}
+
+func TestARecordGoesOnAsItselfAsWellAsBeingRead(t *testing.T) {
+	made := meowrt.CallGo("load", func() settings {
+		return settings{Region: "eu-west-1", Log: nil}
+	})
+
+	m, ok := made.(*meowrt.Map)
+	if !ok {
+		t.Fatalf("got %s (%s), want a basket", made.String(), made.Type())
+	}
+	// Its fields are readable, which is the point of reading it at all.
+	if m.Items["region"].String() != "eu-west-1" {
+		t.Errorf("region is %v, want it readable", m.Items["region"])
+	}
+
+	// And it goes on to the next call as the record itself, which building one
+	// again out of the basket could not manage.
+	got := meowrt.CallGo("use", func(s settings) string { return s.Region }, made)
+	if got.String() != "eu-west-1" {
+		t.Errorf("got %q, want the record to have arrived whole", got.String())
+	}
+}
+
+// A pointer goes back as the very same pointer, not as a new one to a copy.
+// Checking a field would not tell the two apart, and a call that changes
+// something has to change the thing the program holds.
+func TestAPointerToARecordGoesOnAsTheSamePointer(t *testing.T) {
+	held := &settings{Region: "ap-northeast-1"}
+	made := meowrt.CallGo("load", func() *settings { return held })
+
+	same := meowrt.CallGo("same", func(s *settings) bool { return s == held }, made)
+	if !same.IsTruthy() {
+		t.Error("got a different pointer, want the one that was read")
+	}
+
+	meowrt.CallGo("move", func(s *settings) { s.Region = "eu-west-1" }, made)
+	if held.Region != "eu-west-1" {
+		t.Errorf("the original still says %q, want the call to have reached it", held.Region)
+	}
+}
+
+// A record kept as a pointer, asked for by value, is copied — which is what
+// passing by value means, so nothing is lost that was there.
+func TestAPointerAskedForByValueIsCopied(t *testing.T) {
+	held := &settings{Region: "ap-northeast-1"}
+	made := meowrt.CallGo("load", func() *settings { return held })
+
+	got := meowrt.CallGo("use", func(s settings) string { return s.Region }, made)
+	if got.String() != "ap-northeast-1" {
+		t.Errorf("got %q, want the fields to have arrived", got.String())
+	}
+}
+
+// And a record kept by value, asked for as a pointer, gets one made for it:
+// there was no pointer to keep, so a new one loses nothing.
+func TestARecordAskedForAsAPointerGetsOne(t *testing.T) {
+	made := meowrt.CallGo("load", func() settings {
+		return settings{Region: "ap-northeast-1"}
+	})
+
+	got := meowrt.CallGo("use", func(s *settings) string { return s.Region }, made)
+	if got.String() != "ap-northeast-1" {
+		t.Errorf("got %q, want the fields to have arrived", got.String())
+	}
+}
+
+// A basket a program wrote itself came from nothing, so it is built into the
+// record as before.
+func TestABasketWrittenInMeowIsStillBuilt(t *testing.T) {
+	got := meowrt.CallGo("use", func(in probeInput) string { return in.Name },
+		meowrt.NewMap(map[string]meowrt.Value{"name": meowrt.NewString("nyan")}))
+
+	if got.String() != "nyan" {
+		t.Errorf("got %q, want nyan", got.String())
+	}
+}
+
+// What it came from is only used for the very type it came from.
+func TestWhatItCameFromIsNotUsedForAnotherType(t *testing.T) {
+	made := meowrt.CallGo("load", func() settings {
+		return settings{Region: "eu-west-1"}
+	})
+
+	// probeInput has no "region", so building one is refused rather than the
+	// settings being handed over in its place.
+	got := meowrt.CallGo("use", func(in probeInput) string { return in.Name }, made)
+
+	if _, failed := meowrt.AsFurball(got); !failed {
+		t.Fatalf("got %s, want a furball", got.String())
+	}
+}

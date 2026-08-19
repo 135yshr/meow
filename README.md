@@ -364,6 +364,7 @@ Check the [`examples/`](examples/) directory:
 | [`file_io.nyan`](examples/file_io.nyan) | File I/O with `nab "file"` |
 | [`http_example.nyan`](examples/http_example.nyan) | HTTP client with `nab "http"` |
 | [`go_import.nyan`](examples/go_import.nyan) | Calling Go packages directly with `nab go` |
+| [`aws_sts.nyan`](examples/aws_sts.nyan) | Calling the AWS SDK with `nab go`, no wrapper written for it |
 
 ## Project Structure
 
