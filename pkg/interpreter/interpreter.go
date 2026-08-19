@@ -807,10 +807,9 @@ func (interp *Interpreter) evalIndex(e *ast.IndexExpr, env *Environment) meowrt.
 
 func (interp *Interpreter) evalMember(e *ast.MemberExpr, env *Environment) meowrt.Value {
 	obj := interp.evalExpr(e.Object, env)
-	if k, ok := obj.(*meowrt.Kitty); ok {
-		return k.GetField(e.Member)
-	}
-	panic(fmt.Sprintf("Hiss! cannot access field %s on %s, nya~", e.Member, obj.Type()))
+	// A member read rather than called is the same question in both backends,
+	// so it is the same answer: what a kitty holds, or the method bound to it.
+	return meowrt.GetMember(obj, e.Member)
 }
 
 // --- Pipe ---

@@ -19,4 +19,7 @@ example.com
 {x: [1], y: [2]}
 {x: [1], y: [2], z: [9]}
 {x: [1], y: [2]}
+the nyan
+[nyan, woof]
+example.com
 true

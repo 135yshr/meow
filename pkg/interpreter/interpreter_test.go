@@ -1275,3 +1275,36 @@ func TestTheStepLimitSaysWhereItGaveUp(t *testing.T) {
 		t.Errorf("got %q, want it to say where it gave up", err.Error())
 	}
 }
+
+// A member read rather than called is the method bound to what it was reached
+// through, which is a function like any other. The playground evaluates the
+// same programs the CLI compiles, so it answers this the same way.
+func TestAGroomedMethodIsAValueOfItsOwn(t *testing.T) {
+	got := runMeow(t, `
+kitty Cat { name: string, age: int }
+groom Cat {
+  meow older(by int) string { bring self.name + " turns " + to_string(self.age + by) }
+}
+nyan tell = paw(c) { bring c.older }
+nyan older = tell(Cat("nyan", 3))
+nya(older(1))
+nya(lick([1, 2], older))
+`)
+	want := "nyan turns 4\n[nyan turns 4, nyan turns 5]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Reading a member that is neither a field nor a method says so, rather than
+// coming apart.
+func TestReadingAMemberThatIsNotThere(t *testing.T) {
+	got := runMeowError(t, `
+kitty Cat { name: string }
+nyan pick = paw(c) { bring c.purr }
+nya(pick(Cat("nyan")))
+`)
+	if !strings.Contains(got, "purr") {
+		t.Errorf("says %q, want it to name the member asked for", got)
+	}
+}

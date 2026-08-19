@@ -1724,9 +1724,9 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		// Check if this is a self.field access in a learn method
 		if _, isSelf := e.Object.(*ast.SelfExpr); isSelf {
 			if e.Member == "value" {
-				return "self.(*meow.Kitty).GetField(\"value\")"
+				return "meow.GetMember(self, \"value\")"
 			}
-			return fmt.Sprintf("self.(*meow.Kitty).GetField(%q)", e.Member)
+			return fmt.Sprintf("meow.GetMember(self, %q)", e.Member)
 		}
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
@@ -1740,9 +1740,9 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 				g.markPackageUsed(realPkg)
 				return fmt.Sprintf("meow_%s.%s", realPkg, capitalizeFirst(e.Member))
 			}
-			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
+			return fmt.Sprintf("meow.GetMember(%s, %q)", obj.Name, e.Member)
 		}
-		return fmt.Sprintf("(%s).(*meow.Kitty).GetField(%q)", g.genExpr(e.Object), e.Member)
+		return fmt.Sprintf("meow.GetMember(%s, %q)", g.genExpr(e.Object), e.Member)
 	default:
 		return fmt.Sprintf("/* unsupported expr: %T */", expr)
 	}
