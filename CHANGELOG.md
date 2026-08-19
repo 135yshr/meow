@@ -1,3 +1,8 @@
+# [v0.20.0](https://github.com/135yshr/meow/compare/v0.19.1...v0.20.0) (2026-08-19)
+
+## ✨ New Features
+- [`80567e8`](https://github.com/135yshr/meow/commit/80567e8)  feat: Keep what a value read out of Go was read out of (#134) (Issues: [`#134`](https://github.com/135yshr/meow/issues/134) [`#131`](https://github.com/135yshr/meow/issues/131) [`#131`](https://github.com/135yshr/meow/issues/131) [`#131`](https://github.com/135yshr/meow/issues/131))
+
 # [v0.19.1](https://github.com/135yshr/meow/compare/v0.19.0...v0.19.1) (2026-08-19)
 
 ## 🐛 Bug Fixes
