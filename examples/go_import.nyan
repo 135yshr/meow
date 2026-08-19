@@ -1,0 +1,41 @@
+# Reaching a Go library from Meow, without writing a wrapper for it.
+#
+# `nab go` names a Go package by its import path. Nothing has to be written in
+# Go first: the call is made through the bridge, which reads what Meow has a
+# shape for and holds what it has not.
+#
+#   go run ./cmd/meow run examples/go_import.nyan
+
+nab go "strings"
+nab go "regexp"
+nab go "net/url" tag u
+nab go "fmt"
+nab go "encoding/json" tag j
+
+# A package function. The Go name is spelled the way Meow writes names, so
+# strings.to_upper is strings.ToUpper.
+nya(strings.to_upper("nyan"))
+nya(strings.repeat("nya", 3))
+
+# A record comes back as a basket, under the names a Meow program writes.
+nyan parsed = u.parse("https://example.com/a/b?q=1")
+nya(parsed["scheme"] + "://" + parsed["host"] + parsed["path"])
+
+# A handle — something with methods and nothing to read — is held whole, so
+# the next call can be made on it. This is what made a wrapper necessary
+# before: there was nowhere to put a *regexp.Regexp.
+nyan digits = regexp.must_compile("[0-9]+")
+nya(digits.find_string("abc 123 def"))
+nya(digits.replace_all_string("a1b22c333", "#"))
+
+# A function taking an empty interface — which a great many do — gets the plain
+# Go value behind the Meow one: a litter arrives as a slice, a basket as a map.
+nya(fmt.sprintf("%s has %d paws", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan", "paws": 4})))
+
+# A failure from Go is a furball, so gag catches it like any other.
+nya(is_furball(u.parse("://nope")))
+
+# A name holding an initialism cannot be spelled Meow's way — to_valid_utf8
+# would reach for ToValidUtf8 — so it is written the way Go writes it.
+nya(strings.ToValidUTF8("nyan", "?"))

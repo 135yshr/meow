@@ -24,6 +24,14 @@ linters:
         - fmt.Fprintf
         - fmt.Fprintln
         - (*os.Process).Kill
+    staticcheck:
+      checks:
+        - all
+        # ST1005 wants an error to start lowercase. Meow's errors are the
+        # language's own, and they start "Hiss!" — a cat hisses in capitals.
+        # The rule and the convention cannot both hold, and the convention is
+        # what a reader of a Meow program sees.
+        - -ST1005
     govet:
       enable-all: true
       disable:

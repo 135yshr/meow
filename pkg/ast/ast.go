@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/135yshr/meow/pkg/token"
+import (
+	"strings"
+
+	"github.com/135yshr/meow/pkg/token"
+)
 
 // Node is the interface for all AST nodes.
 type Node interface {
@@ -332,15 +336,101 @@ func (n *MemberExpr) exprTag()            {}
 type FetchStmt struct {
 	// Token is the nab keyword token.
 	Token token.Token
-	// Path is the package name.
+	// Path is the package name, or the Go import path when Go is set.
 	Path string
 	// Alias is the import alias (empty if no alias specified).
 	Alias string
+	// Go marks an import written as `nab go "path"`, naming a Go package by
+	// its import path rather than one of Meow's own. Such a package is reached
+	// through the bridge: what it hands back that Meow has a shape for is read,
+	// and what it does not is held.
+	Go bool
+	// Version pins the Go module, when the program said which one. Empty
+	// leaves the choice to the Go toolchain.
+	Version string
 }
 
 func (n *FetchStmt) Pos() token.Position { return n.Token.Pos }
 func (n *FetchStmt) nodeTag()            {}
 func (n *FetchStmt) stmtTag()            {}
+
+// Name is what the program calls the package by: the alias if one was given,
+// otherwise the package's own name. It is empty when a Go import path ends in
+// something that is not a name a program can write, which is what asking for a
+// tag is for.
+func (n *FetchStmt) Name() string {
+	if n.Alias != "" {
+		return n.Alias
+	}
+	if !n.Go {
+		return n.Path
+	}
+	return GoPackageName(n.Path)
+}
+
+// GoPackageName reads the name a Go import path is known by, the way Go itself
+// does: the last element, except that a major-version element belongs to the
+// module rather than the package.
+//
+// It gives back nothing when that name is not one a Meow program can write, so
+// the program can be asked for a tag instead of being handed a name it cannot
+// say.
+func GoPackageName(path string) string {
+	parts := strings.Split(path, "/")
+	last := len(parts) - 1
+	if last > 0 && isMajorVersion(parts[last]) {
+		last--
+	}
+	name := parts[last]
+	if !isWritableName(name) {
+		return ""
+	}
+	return name
+}
+
+// isMajorVersion reports whether an import path element is a major-version
+// suffix, as Go means one: "v2" and up, with no leading zero.
+//
+// Below that there is no suffix — a module at v0 or v1 has none — so "v1" is a
+// package in its own right, which is what k8s.io/api/core/v1 is called.
+func isMajorVersion(s string) bool {
+	if len(s) < 2 || s[0] != 'v' {
+		return false
+	}
+	digits := s[1:]
+	if digits[0] == '0' {
+		return false
+	}
+	for _, r := range digits {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	// From v2 up: a single digit has to be 2 or more, and more than one digit
+	// is already past that.
+	return len(digits) > 1 || digits[0] >= '2'
+}
+
+// isWritableName reports whether a name is one a Meow program could have
+// written itself.
+//
+// A keyword is not: a package called `nyan` could never be said, since `nyan`
+// begins a binding wherever it appears. Such a path is asked for a tag rather
+// than given a name that cannot be used.
+func isWritableName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i, r := range s {
+		switch {
+		case r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z'):
+		case i > 0 && r >= '0' && r <= '9':
+		default:
+			return false
+		}
+	}
+	return token.LookupIdent(s) == token.IDENT
+}
 
 // VarStmt represents a variable declaration (nyan x = ... or nyan x int = ...).
 type VarStmt struct {

@@ -205,9 +205,14 @@ func (c *Checker) Check(prog *ast.Program) (*TypeInfo, []*TypeError) {
 	// Pre-pass: register import names and check for import-import collisions
 	for _, stmt := range prog.Stmts {
 		if fs, ok := stmt.(*ast.FetchStmt); ok {
-			effectiveName := fs.Path
-			if fs.Alias != "" {
-				effectiveName = fs.Alias
+			effectiveName := fs.Name()
+			if effectiveName == "" {
+				// A Go import path can end in something that is not a name a
+				// program can write. Rather than invent one, ask for the tag
+				// that names it.
+				c.addError(fs.Token.Pos,
+					"Cannot tell what to call package %q, so name it with tag", fs.Path)
+				continue
 			}
 			if prevPath, exists := c.info.ImportNames[effectiveName]; exists {
 				c.addError(fs.Token.Pos,

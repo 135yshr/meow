@@ -340,6 +340,15 @@ func (p *Parser) parseRangeStmt() *ast.RangeStmt {
 
 func (p *Parser) parseFetchStmt() *ast.FetchStmt {
 	tok := p.advance() // consume nab
+	// `go` says the path names a Go package rather than one of Meow's own. Like
+	// `tag` below it is matched by what it says rather than reserved, so a
+	// program that uses `go` as an ordinary name keeps it. Nothing else can
+	// stand here, so there is nothing to be ambiguous with.
+	isGo := false
+	if p.cur.Type == token.IDENT && p.cur.Literal == "go" {
+		p.advance() // consume go
+		isGo = true
+	}
 	path := p.expect(token.STRING)
 	var alias string
 	// `tag` names the alias here and means nothing anywhere else, so it is
@@ -352,7 +361,24 @@ func (p *Parser) parseFetchStmt() *ast.FetchStmt {
 		alias = aliasToken.Literal
 	}
 	p.consumeTerminator()
-	return &ast.FetchStmt{Token: tok, Path: path.Literal, Alias: alias}
+
+	spec := path.Literal
+	var version string
+	if isGo {
+		spec, version = splitModuleVersion(spec)
+	}
+	return &ast.FetchStmt{Token: tok, Path: spec, Alias: alias, Go: isGo, Version: version}
+}
+
+// splitModuleVersion separates a pinned version from a Go import path, as it is
+// written on the command line: "github.com/x/y@v1.2.3". A path with nothing
+// after an @ is left whole, so an empty pin is a path rather than a version.
+func splitModuleVersion(spec string) (path, version string) {
+	at := strings.LastIndex(spec, "@")
+	if at <= 0 || at == len(spec)-1 {
+		return spec, ""
+	}
+	return spec[:at], spec[at+1:]
 }
 
 func (p *Parser) parseKittyStmt() *ast.KittyStmt {

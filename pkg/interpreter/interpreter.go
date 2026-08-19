@@ -198,10 +198,22 @@ func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 		// Nested function definition
 		interp.registerFunc(s, env)
 	case *ast.FetchStmt:
-		if s.Alias != "" {
-			panic(fmt.Sprintf("Hiss! nab %q tag %s is not supported in the playground, nya~", s.Path, s.Alias))
+		// The playground has no Go toolchain, so an import of any kind — one of
+		// Meow's own packages or, with `go`, a Go one — is out of reach here.
+		spec := s.Path
+		if s.Version != "" {
+			// The pin was written inside the string, so it belongs back inside
+			// it — an import said back without it is a different import.
+			spec += "@" + s.Version
 		}
-		panic(fmt.Sprintf("Hiss! nab %q is not supported in the playground, nya~", s.Path))
+		what := fmt.Sprintf("nab %q", spec)
+		if s.Go {
+			what = fmt.Sprintf("nab go %q", spec)
+		}
+		if s.Alias != "" {
+			what += fmt.Sprintf(" tag %s", s.Alias)
+		}
+		panic(fmt.Sprintf("Hiss! %s is not supported in the playground, nya~", what))
 	default:
 		// KittyStmt, CollarStmt, etc. already handled in Pass 1
 	}

@@ -1,0 +1,33 @@
+# Reaching a Go package by its import path, with no wrapper written for it.
+# Only the standard library is used here, so the build needs nothing fetched.
+nab go "strings"
+nab go "net/url" tag u
+nab go "fmt"
+nab go "encoding/json" tag j
+
+# A package function. The Go name is spelled the way Meow writes names.
+nya(strings.to_upper("nyan"))
+nya(strings.repeat("nya", 3))
+nya(strings.contains("hairball", "air"))
+
+# What comes back is read as Meow's own shapes.
+nya(strings.split("a,b,c", ","))
+nya(strings.count("nyanyanya", "nya"))
+
+# A record comes back as a basket, under the names a Meow program writes.
+nyan parsed = u.parse("https://example.com/a/b?x=1")
+nya(parsed["scheme"])
+nya(parsed["host"])
+nya(parsed["path"])
+
+# A handle is held rather than read, so the next call can be made on it.
+nyan swap = strings.new_replacer("cat", "nyan", "dog", "woof")
+nya(swap.replace("the cat and the dog"))
+
+# A call taking an empty interface — which a great many Go functions do — gets
+# the plain Go value behind the Meow one.
+nya(fmt.sprintf("%s has %d", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan", "paws": 4})))
+
+# A failure from Go is a furball like any other.
+nya(is_furball(u.parse("://nope")))

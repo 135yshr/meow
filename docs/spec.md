@@ -526,7 +526,7 @@ like a `purr` over a litter written out in full.
 ### Nab Statement
 
 ```ebnf
-NabStmt = "nab" string_lit newline .
+NabStmt = "nab" [ "go" ] string_lit [ "tag" identifier ] newline .
 ```
 
 Imports a standard library package. Available packages: `"aws"`, `"clock"`,
@@ -535,6 +535,80 @@ Imports a standard library package. Available packages: `"aws"`, `"clock"`,
 ```meow
 nab "http"
 ```
+
+#### Importing a Go package
+
+With `go`, the string is a Go import path rather than one of Meow's own
+packages, and any Go package can be named. Nothing has to be written for it
+first: the call is made through the bridge, which reads what Meow has a shape
+for and holds what it has not.
+
+```meow
+nab go "strings"
+nab go "net/url" tag u
+
+nya(strings.to_upper("nyan"))          # => NYAN
+
+nyan parsed = u.parse("https://example.com/a/b")
+nya(parsed["host"])                    # => example.com
+```
+
+The package is called by the last element of its path — `url` for `"net/url"` —
+except that a major-version element belongs to the module rather than the
+package, so `"github.com/x/y/v2"` is `y`. Go has such a suffix only from `v2`
+up, so `"k8s.io/api/core/v1"` really is called `v1`.
+
+When that leaves a name a program cannot write — `"github.com/aws/aws-sdk-go-v2"`
+is not a name, and a package called `nyan` could never be said, since `nyan`
+begins a binding wherever it appears — `tag` names it instead:
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+```
+
+Go names are spelled the way Meow writes names: `strings.to_upper` is
+`strings.ToUpper`, and `sts.new_from_config` is `sts.NewFromConfig`. A name
+holding an initialism cannot be spelled this way — `to_valid_utf8` reaches for
+`ToValidUtf8`, which is not what Go calls it — so such a name is written as Go
+writes it, `strings.ToValidUTF8`. Getting it wrong is a build error naming the
+spelling that exists, not a surprise at runtime.
+
+What comes back is read if Meow has a shape for it and held if not. A record
+becomes a basket, under the names a Meow program writes; a `time.Time` becomes
+its text; a trailing `error` becomes a furball. A client, a connection, a
+handle — anything with methods and nothing to read — is held whole, and the
+next call is made on it:
+
+```meow
+nab go "regexp"
+
+nyan re = regexp.must_compile("[0-9]+")
+nya(re.find_string("abc 123 def"))     # => 123
+```
+
+The version is the toolchain's choice unless the program makes it, which it
+does with `@`:
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/aws/arn@v1.32.0"
+```
+
+A function taking an empty interface — `fmt.Sprintf`, `json.Marshal` — gets the
+plain Go value behind the Meow one, a litter arriving as a slice and a basket as
+a map. An interface with methods is another matter: only something held from Go
+can satisfy one.
+
+```meow
+nab go "fmt"
+nab go "encoding/json" tag j
+
+nya(fmt.sprintf("%s has %d", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan"})))   # => {"name":"nyan"}
+```
+
+Generics, channels, and functions taking functions are not reached this way. A
+Go package is also out of reach in the playground, which has no Go toolchain —
+as every `nab` already is.
 
 ### Kitty Statement
 

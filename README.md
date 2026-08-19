@@ -76,6 +76,7 @@ Hello, Nyantyu!
 - **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
 - **Interfaces & methods** — `pose` (interface), `groom` (method impl)
 - **Standard library** — `nab "file"`, `nab "http"`, `nab "env"`, `nab "clock"`, `nab "random"`, `nab "aws"`
+- **Go libraries** — `nab go "net/url"` reaches any Go package by its import path, with no wrapper written for it
 - **List operations** — `lick` (map), `picky` (filter), `curl` (reduce)
 - **Pattern matching** — `peek` expression with ranges and wildcards
 - **Pipe operator** — Chain operations with `|=|`
@@ -278,6 +279,7 @@ nyan result = peek(score) {
 | `groom` | Method implementation | `groom Cat { meow show() string { ... } }` |
 | `self` | Self reference in methods | `bring self.name` |
 | `nab` | Import stdlib package | `nab "file"` |
+| `nab go` | Import a Go package by path | `nab go "net/url"` |
 | `flaunt` | Export *(planned)* | — |
 | `yarn` | True (boolean literal) | `nyan ok = yarn` |
 | `hairball` | False (boolean literal) | `nyan ng = hairball` |
@@ -361,6 +363,7 @@ Check the [`examples/`](examples/) directory:
 | [`pure_function.nyan`](examples/pure_function.nyan) | `trill` pure functions with compile-time purity checks |
 | [`file_io.nyan`](examples/file_io.nyan) | File I/O with `nab "file"` |
 | [`http_example.nyan`](examples/http_example.nyan) | HTTP client with `nab "http"` |
+| [`go_import.nyan`](examples/go_import.nyan) | Calling Go packages directly with `nab go` |
 
 ## Project Structure
 
