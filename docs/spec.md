@@ -595,13 +595,35 @@ nyan re = regexp.must_compile("[0-9]+")
 nya(re.find_string("abc 123 def"))     # => 123
 ```
 
-A record read into a basket also remembers what it came from, so it can be
-handed on to the next call as itself. Some records are a basket by their shape
-and a handle by their use — `aws.Config` has fields worth reading and interface
-fields that no basket could be built back into — and this is what lets them be
-both. A basket cannot be changed once made, so what it remembers cannot fall
-out of step with it. A basket a program wrote itself remembers nothing, and is
-built into the record as before.
+What is read also remembers what it was read out of, so reading a value is not
+what stops it being one. It is still called on, and still handed to the next
+call as itself:
+
+```meow
+nab go "net/url" tag u
+nab go "time"
+
+nyan p = u.parse("https://example.com/a/b?x=1")
+nya(p["host"])                         # => example.com
+nya(p.hostname())                      # => example.com
+
+nyan d = time.ParseDuration("90m")
+nya(d)                                 # => 5400000000000
+nya(d.minutes())                       # => 90
+```
+
+Some records are a basket by their shape and a handle by their use —
+`aws.Config` has fields worth reading and interface fields that no basket could
+be built back into — and this is what lets them be both. Being handed on as
+itself rather than as what it read as is also what keeps what the reading does
+not say: a `time.Time` goes to the next call down to the nanosecond, not down to
+the second its text gives.
+
+Only what was read remembers. A basket a program wrote itself remembers nothing
+and is built into the record as before, and a value that is all there — a plain
+string, a plain number — remembers nothing either, since there is nothing more
+of it to reach. A value cannot be changed once made, so what it remembers cannot
+fall out of step with what was read out of it.
 
 The version is the toolchain's choice unless the program makes it, which it
 does with `@`:

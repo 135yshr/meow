@@ -65,9 +65,15 @@ func CallGoMethod(ctx context.Context, recv Value, name string, args ...Value) V
 	if o.V == nil {
 		return NewFurball("Hiss! Cannot call %s on nothing, nya~", name)
 	}
-	m := reflect.ValueOf(o.V).MethodByName(name)
+	return callMethodOn(ctx, o.V, o.String(), name, args)
+}
+
+// callMethodOn calls a named method on a Go value. what names the receiver in
+// anything that goes wrong, so a reader is told what it was asked of.
+func callMethodOn(ctx context.Context, target any, what, name string, args []Value) Value {
+	m := reflect.ValueOf(target).MethodByName(name)
 	if !m.IsValid() {
-		return NewFurball("Hiss! %s has no %s, nya~", o.String(), name)
+		return NewFurball("Hiss! %s has no %s, nya~", what, name)
 	}
 	return callReflected(ctx, name, m, args)
 }
@@ -75,9 +81,9 @@ func CallGoMethod(ctx context.Context, recv Value, name string, args ...Value) V
 // CallMember calls a member of a value by name.
 //
 // What that means depends on what the value is: a method on something held
-// from Go, or a field holding a function on a Meow object. A program writes
-// the same thing either way, so the telling apart happens here rather than
-// where it is written.
+// from Go, a method on something read out of Go, or a field holding a function
+// on a Meow object. A program writes the same thing either way, so the telling
+// apart happens here rather than where it is written.
 func CallMember(recv Value, name string, args ...Value) Value {
 	switch v := recv.(type) {
 	case *Opaque:
@@ -89,6 +95,16 @@ func CallMember(recv Value, name string, args ...Value) Value {
 	case *Furball:
 		// A failure earlier in a chain is the answer to the whole chain.
 		return v
+	}
+	// What was read out of Go is still the Go value it was read out of, so what
+	// could be called on it there can be called on it here. Reading a url.URL
+	// into a basket is what makes its fields reachable; it should not be what
+	// makes its methods unreachable.
+	if o, ok := recv.(Origin); ok && o.Origin() != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), callTimeoutForBridge)
+		defer cancel()
+		what := fmt.Sprintf("%T", o.Origin())
+		return callMethodOn(ctx, o.Origin(), what, goMethodName(name), args)
 	}
 	return NewFurball("Hiss! Cannot call %s on a %s, nya~", name, recv.Type())
 }
@@ -206,11 +222,63 @@ func resultOf(what string, out []reflect.Value) Value {
 	}
 }
 
-// fromGo reads a Go value as a Meow one.
+// fromGo reads a Go value as a Meow one, keeping what it was read out of.
 //
 // Anything with no shape in Meow is carried whole rather than refused, which is
 // what lets a client or a handle come back out of a call.
 func fromGo(rv reflect.Value) Value {
+	v := readGo(rv)
+	if worthKeeping(rv, v) {
+		keep(v, rv.Interface())
+	}
+	return v
+}
+
+// worthKeeping reports whether the Go value a Meow one was read out of is worth
+// keeping alongside what was read.
+//
+// A record always is. Its fields may not all be readable back — an interface
+// field is a thing, not a shape — so having kept it is the only way to hand it
+// on whole. Anything else is worth keeping when its Go type has methods, since
+// then what was read is only part of what the value is. A plain string or a
+// plain number is all there, and giving it an origin would say there is more to
+// it than there is.
+func worthKeeping(rv reflect.Value, v Value) bool {
+	if !rv.IsValid() || !rv.CanInterface() {
+		return false
+	}
+	// A Meow value that made the round trip was not read out of anything. It is
+	// what it always was, and a basket a program wrote itself remembers nothing.
+	if rv.Type().Implements(valueType) {
+		return false
+	}
+	if _, isBasket := v.(*Map); isBasket {
+		return true
+	}
+	return rv.Type().NumMethod() > 0
+}
+
+// keep remembers the Go value a Meow one was read out of, for the kinds of
+// value that can remember.
+func keep(v Value, from any) {
+	switch n := v.(type) {
+	case *Int:
+		n.from = from
+	case *Float:
+		n.from = from
+	case *String:
+		n.from = from
+	case *Bool:
+		n.from = from
+	case *List:
+		n.from = from
+	case *Map:
+		n.from = from
+	}
+}
+
+// readGo reads a Go value as a Meow one.
+func readGo(rv reflect.Value) Value {
 	if !rv.IsValid() {
 		return NewNil()
 	}
@@ -240,9 +308,7 @@ func fromGo(rv reflect.Value) Value {
 		// given the pointer back is then given the very one the program has,
 		// so a call that changes something changes that.
 		if el := rv.Elem(); el.Kind() == reflect.Struct && el.Type() != timeType {
-			m := structToMap(el)
-			m.From = rv.Interface()
-			return m
+			return structToMap(el)
 		}
 		return fromGo(rv.Elem())
 	case reflect.Bool:
@@ -336,10 +402,9 @@ func structToMap(rv reflect.Value) *Map {
 		}
 		items[snake(f.Name)] = fromGo(rv.Field(i))
 	}
-	// What it came from goes along with what was read out of it, so a record
-	// whose fields cannot all be read back — an interface, a function — can
-	// still be handed to the next call as itself.
-	return &Map{Items: items, From: rv.Interface()}
+	// What it came from is kept by fromGo, which is what a record read this way
+	// is always reached through.
+	return NewMap(items)
 }
 
 // toGo reads a Meow value as the Go type a call is asking for.
@@ -524,20 +589,26 @@ func toAny(v Value) (any, error) {
 	return nil, fmt.Errorf("cannot read a %s as a plain value", v.Type())
 }
 
-// fromOrigin gives back the Go value a basket was read out of, as the type the
-// call is asking for, when the two are the same record.
+// fromOrigin gives back the Go value a Meow one was read out of, as the type
+// the call is asking for, when the two are the same thing.
 //
 // A pointer kept and a pointer asked for is the very same pointer, which is
 // what keeps a call that changes something working on the thing the program
 // holds. The two crossings between a record and a pointer to one are what
 // passing by value and taking an address already mean, so neither loses
 // anything that was there.
+//
+// A value goes back as itself rather than as what it was read as. What it was
+// read as answers "what does this look like in Meow", which is not the same
+// question, and answering the wrong one loses whatever the reading did not say:
+// a time.Time handed on is the time that was, down to the nanosecond, rather
+// than what survives being written out as text and read back.
 func fromOrigin(v Value, t reflect.Type) (reflect.Value, bool) {
-	m, ok := v.(*Map)
-	if !ok || m.From == nil {
+	o, ok := v.(Origin)
+	if !ok || o.Origin() == nil {
 		return reflect.Value{}, false
 	}
-	from := reflect.ValueOf(m.From)
+	from := reflect.ValueOf(o.Origin())
 	switch {
 	case from.Type() == t:
 		return from, true

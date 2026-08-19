@@ -647,3 +647,126 @@ func TestWhatItCameFromIsNotUsedForAnotherType(t *testing.T) {
 		t.Fatalf("got %s, want a furball", got.String())
 	}
 }
+
+// A dial is a record and a thing with a method, which most useful Go types
+// are. Reading it is what makes its field reachable; it should not be what
+// makes its method unreachable.
+type dial struct{ Region string }
+
+func (d dial) Where() string { return "at " + d.Region }
+
+// tags is a map with a method, which is the shape url.Values has.
+type tags map[string]string
+
+func (t tags) Only(k string) string { return t[k] }
+
+func TestWhatWasReadOutOfGoIsStillCalledOn(t *testing.T) {
+	tests := []struct {
+		name   string
+		fn     any
+		reads  string
+		member string
+		args   []meowrt.Value
+		want   string
+	}{
+		{"a record", func() dial { return dial{Region: "eu-west-1"} },
+			"{region: eu-west-1}", "where", nil, "at eu-west-1"},
+		{"a record behind a pointer", func() *dial { return &dial{Region: "ap-northeast-1"} },
+			"{region: ap-northeast-1}", "where", nil, "at ap-northeast-1"},
+		{"a time", func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC) },
+			"2026-01-02T03:04:05Z", "year", nil, "2026"},
+		{"a number", func() time.Duration { return 90 * time.Minute },
+			"5400000000000", "minutes", nil, "90"},
+		{"a map", func() tags { return tags{"x": "1"} },
+			"{x: 1}", "only", []meowrt.Value{meowrt.NewString("x")}, "1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			made := meowrt.CallGo("load", tt.fn)
+
+			// What it reads as is what it always read as.
+			if made.String() != tt.reads {
+				t.Errorf("reads as %q, want %q", made.String(), tt.reads)
+			}
+			got := meowrt.CallMember(made, tt.member, tt.args...)
+			if got.String() != tt.want {
+				t.Errorf("%s gave %q, want %q", tt.member, got.String(), tt.want)
+			}
+		})
+	}
+}
+
+// A time read as its text is still the time it was, not what the text could be
+// read back as. The two differ by whatever the text does not say — here, half a
+// second — and a call given the text back would be given the wrong moment
+// without anything going wrong to show for it.
+func TestATimeGoesOnAsTheTimeItWasRatherThanAsItsText(t *testing.T) {
+	when := meowrt.CallGo("now", func() time.Time {
+		return time.Date(2026, 1, 2, 3, 4, 5, 500_000_000, time.UTC)
+	})
+
+	if got := when.String(); got != "2026-01-02T03:04:05Z" {
+		t.Fatalf("reads as %q, want the text to be unchanged", got)
+	}
+
+	got := meowrt.CallGo("nanos", func(at time.Time) int { return at.Nanosecond() }, when)
+	if got.String() != "500000000" {
+		t.Errorf("got %s nanoseconds, want the half second the text does not say", got.String())
+	}
+}
+
+// What is all there remembers nothing. A plain string is the whole of what a
+// call gave back, and saying it came from somewhere would say there is more to
+// it than there is.
+func TestWhatIsAllThereRemembersNothing(t *testing.T) {
+	tests := []struct {
+		name string
+		of   meowrt.Value
+	}{
+		{"a plain string", meowrt.CallGo("name", func() string { return "nyan" })},
+		{"a plain number", meowrt.CallGo("paws", func() int { return 4 })},
+		{"a basket written in Meow", meowrt.NewMap(map[string]meowrt.Value{
+			"host": meowrt.NewString("example.com"),
+		})},
+		{"a Meow value that made the round trip", meowrt.CallGo("same",
+			func(v meowrt.Value) meowrt.Value { return v },
+			meowrt.NewMap(map[string]meowrt.Value{"host": meowrt.NewString("example.com")}))},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o, ok := tt.of.(meowrt.Origin)
+			if !ok {
+				t.Fatalf("%s cannot remember at all", tt.of.Type())
+			}
+			if from := o.Origin(); from != nil {
+				t.Errorf("remembers %#v, want nothing", from)
+			}
+
+			// And so there is nothing to call on it.
+			got := meowrt.CallMember(tt.of, "string")
+			f, failed := meowrt.AsFurball(got)
+			if !failed {
+				t.Fatalf("got %s, want a furball", got.String())
+			}
+			if !strings.Contains(f.Message, "Cannot call") {
+				t.Errorf("says %q, want it to say there is nothing to call", f.Message)
+			}
+		})
+	}
+}
+
+// What was read out of Go is named as Go names it when a member is asked for
+// that it does not have, since that is the thing the member was looked for on.
+func TestWhatWasReadSaysWhatItIsWhenThereIsNoSuchMember(t *testing.T) {
+	made := meowrt.CallGo("load", func() dial { return dial{Region: "eu-west-1"} })
+
+	got := meowrt.CallMember(made, "purr")
+
+	f, failed := meowrt.AsFurball(got)
+	if !failed {
+		t.Fatalf("got %s, want a furball", got.String())
+	}
+	if !strings.Contains(f.Message, "dial") || !strings.Contains(f.Message, "Purr") {
+		t.Errorf("says %q, want it to name the record and what was asked of it", f.Message)
+	}
+}

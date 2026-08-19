@@ -5,6 +5,7 @@ nab go "regexp"
 nab go "net/url" tag u
 nab go "fmt"
 nab go "encoding/json" tag j
+nab go "time" tag t
 
 # A package function. The Go name is spelled the way Meow writes names.
 nya(strings.to_upper("nyan"))
@@ -36,6 +37,18 @@ nya(to_string(j.marshal({"name": "nyan", "paws": 4})))
 nyan digits = regexp.must_compile("[0-9]+")
 nya(digits.string())
 nya(digits.find_string("abc 123"))
+
+# What was read is still what it was read out of, so a record read into a
+# basket can be asked the things only the record itself can answer.
+nya(parsed.string())
+nya(parsed.hostname())
+
+# A time reads as its text and a duration as a count of nanoseconds, and both
+# are still called on as the Go values they are.
+nyan at = t.Date(2026, 1, 2, 3, 4, 5, 0, t.UTC)
+nya(at)
+nya(at.year())
+nya(at.format("2006/01/02"))
 
 # A failure from Go is a furball like any other.
 nya(is_furball(u.parse("://nope")))
