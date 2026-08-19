@@ -1,3 +1,8 @@
+# [v0.19.1](https://github.com/135yshr/meow/compare/v0.19.0...v0.19.1) (2026-08-19)
+
+## 🐛 Bug Fixes
+- [`fbebbe1`](https://github.com/135yshr/meow/commit/fbebbe1)  fix: Let a member be named after a keyword (#133) (Issues: [`#133`](https://github.com/135yshr/meow/issues/133) [`#130`](https://github.com/135yshr/meow/issues/130) [`#129`](https://github.com/135yshr/meow/issues/129) [`#132`](https://github.com/135yshr/meow/issues/132))
+
 # [v0.19.0](https://github.com/135yshr/meow/compare/v0.18.0...v0.19.0) (2026-08-19)
 
 ## ✨ New Features
