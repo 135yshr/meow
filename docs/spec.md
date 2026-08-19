@@ -586,6 +586,14 @@ nyan re = regexp.must_compile("[0-9]+")
 nya(re.find_string("abc 123 def"))     # => 123
 ```
 
+A record read into a basket also remembers what it came from, so it can be
+handed on to the next call as itself. Some records are a basket by their shape
+and a handle by their use — `aws.Config` has fields worth reading and interface
+fields that no basket could be built back into — and this is what lets them be
+both. A basket cannot be changed once made, so what it remembers cannot fall
+out of step with it. A basket a program wrote itself remembers nothing, and is
+built into the record as before.
+
 The version is the toolchain's choice unless the program makes it, which it
 does with `@`:
 

@@ -1,0 +1,33 @@
+# Calling the AWS SDK from Meow with no wrapper written for it.
+#
+# This is what `nab "aws"` and its runtime/aws package were for. Nothing here
+# is written in Go: the SDK is named by its import path and reached through
+# the bridge, the same way any other Go library is.
+#
+# It needs real AWS credentials and a region, so it is not part of the test
+# suite. With those set:
+#
+#   go run ./cmd/meow run examples/aws_sts.nyan
+
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+nab go "github.com/aws/aws-sdk-go-v2/service/sts"
+
+# aws.Config is a record by its shape — its fields are worth reading — and a
+# handle by its use. It comes back as a basket that also remembers what it came
+# from, so both work.
+nyan conf = cfg.load_default_config()
+nya(conf["region"])
+
+# The client is a handle: state of its own, nothing to read, everything by
+# method. It is held whole, so the next call is made on it.
+nyan client = sts.new_from_config(conf)
+
+# A failure from the SDK is a furball, so gag catches it like any other.
+nyan who = gag(paw() { client.get_caller_identity({}) })
+sniff (is_furball(who)) {
+  nya("could not ask who we are:", who)
+} scratch {
+  nya(who["account"])
+  nya(who["arn"])
+  nya(who["user_id"])
+}

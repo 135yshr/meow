@@ -328,7 +328,10 @@ func structToMap(rv reflect.Value) Value {
 		}
 		items[snake(f.Name)] = fromGo(rv.Field(i))
 	}
-	return NewMap(items)
+	// What it came from goes along with what was read out of it, so a record
+	// whose fields cannot all be read back — an interface, a function — can
+	// still be handed to the next call as itself.
+	return &Map{Items: items, From: rv.Interface()}
 }
 
 // toGo reads a Meow value as the Go type a call is asking for.
@@ -353,6 +356,11 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 		return reflect.Value{}, fmt.Errorf("cannot read nothing as a %s", t)
 	}
 	if t.Kind() == reflect.Pointer {
+		if m, ok := v.(*Map); ok && m.From != nil {
+			if from := reflect.ValueOf(m.From); from.Type() == t {
+				return from, nil
+			}
+		}
 		inner, err := toGo(v, t.Elem())
 		if err != nil {
 			return reflect.Value{}, err
@@ -447,6 +455,13 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 		}
 		return reflect.ValueOf(plain), nil
 	case reflect.Struct:
+		// A basket read out of this very kind of record goes back as the
+		// record, rather than being built again out of what was read.
+		if m, ok := v.(*Map); ok && m.From != nil {
+			if from := reflect.ValueOf(m.From); from.Type() == t {
+				return from, nil
+			}
+		}
 		// A time went out as the text of it, so that is what comes back in.
 		if t == timeType {
 			s, ok := v.(*String)
