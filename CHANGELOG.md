@@ -1,3 +1,8 @@
+# [v0.18.0](https://github.com/135yshr/meow/compare/v0.17.0...v0.18.0) (2026-08-19)
+
+## ✨ New Features
+- [`fbfa86a`](https://github.com/135yshr/meow/commit/fbfa86a)  feat: Reach a Go package from a .nyan by naming its import path (#130) (Issues: [`#130`](https://github.com/135yshr/meow/issues/130) [`#129`](https://github.com/135yshr/meow/issues/129))
+
 # [v0.17.0](https://github.com/135yshr/meow/compare/v0.16.3...v0.17.0) (2026-08-19)
 
 ## ✨ New Features
