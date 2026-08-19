@@ -622,8 +622,15 @@ the second its text gives.
 Only what was read remembers. A basket a program wrote itself remembers nothing
 and is built into the record as before, and a value that is all there — a plain
 string, a plain number — remembers nothing either, since there is nothing more
-of it to reach. A value cannot be changed once made, so what it remembers cannot
-fall out of step with what was read out of it.
+of it to reach.
+
+What was read is a reading, taken when it was taken. A Meow value cannot be
+changed once made, and the Go value behind it can be — by a call that is handed
+it, or by a method called on it — so after such a call the two say different
+things: the Go value has moved on and the basket still holds what was read. The
+basket is not wrong when that happens; it is what was there to read at the time,
+which is the only thing an unchanging value can be. A reading taken afterwards
+is a fresh one, and says what is there then.
 
 The version is the toolchain's choice unless the program makes it, which it
 does with `@`:

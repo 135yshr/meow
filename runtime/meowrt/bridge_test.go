@@ -770,3 +770,42 @@ func TestWhatWasReadSaysWhatItIsWhenThereIsNoSuchMember(t *testing.T) {
 		t.Errorf("says %q, want it to name the record and what was asked of it", f.Message)
 	}
 }
+
+// nanos is a number that is also a fmt.Stringer, which a great many named Go
+// types are.
+type nanos int64
+
+func (n nanos) String() string { return fmt.Sprintf("%dns", int64(n)) }
+
+// Only something from Go can satisfy an interface with methods, and what was
+// read out of Go is something from Go. Being read is not what should stop it
+// answering for the interface it implements.
+func TestWhatWasReadSatisfiesAnInterfaceItImplements(t *testing.T) {
+	made := meowrt.CallGo("wait", func() nanos { return nanos(5) })
+
+	if made.String() != "5" {
+		t.Fatalf("reads as %q, want the number it is", made.String())
+	}
+
+	got := meowrt.CallGo("show", func(s fmt.Stringer) string { return s.String() }, made)
+	if got.String() != "5ns" {
+		t.Errorf("got %q, want the interface to have been satisfied", got.String())
+	}
+}
+
+// An empty interface is a different question. It asks for the plain value
+// behind the Meow one, which is what a call like json.Marshal is reading for —
+// a record marshaled as a basket keeps the names a Meow program writes, rather
+// than turning back into the Go ones on the way past.
+func TestAnEmptyInterfaceStillTakesThePlainValue(t *testing.T) {
+	made := meowrt.CallGo("load", func() dial { return dial{Region: "eu-west-1"} })
+
+	got := meowrt.CallGo("marshal", func(v any) (string, error) {
+		b, err := json.Marshal(v)
+		return string(b), err
+	}, made)
+
+	if got.String() != `{"region":"eu-west-1"}` {
+		t.Errorf("got %s, want the basket's own names", got.String())
+	}
+}

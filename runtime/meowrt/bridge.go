@@ -612,6 +612,12 @@ func fromOrigin(v Value, t reflect.Type) (reflect.Value, bool) {
 	switch {
 	case from.Type() == t:
 		return from, true
+	// Only something from Go can satisfy an interface with methods, and what
+	// was read out of Go is something from Go. An empty interface is not this
+	// case: it asks for the plain value behind the Meow one, which is what a
+	// call like json.Marshal is reading for.
+	case t.Kind() == reflect.Interface && t.NumMethod() > 0 && from.Type().AssignableTo(t):
+		return from, true
 	case t.Kind() == reflect.Pointer && from.Type() == t.Elem():
 		p := reflect.New(t.Elem())
 		p.Elem().Set(from)
