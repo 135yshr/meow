@@ -40,21 +40,21 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 The following 27 identifiers are reserved as keywords:
 
-```text
-nyan      meow      bring     sniff     scratch
-purr      paw       nya       lick      picky
-curl      peek      hiss      nab       flaunt
-catnap    yarn      hairball  kitty     breed
-collar    pose      groom     self      trill
-bolt      slink
+```ebnf
+keyword = "nyan"   | "meow"  | "bring"    | "sniff" | "scratch"
+        | "purr"   | "paw"   | "nya"      | "lick"  | "picky"
+        | "curl"   | "peek"  | "hiss"     | "nab"   | "flaunt"
+        | "catnap" | "yarn"  | "hairball" | "kitty" | "breed"
+        | "collar" | "pose"  | "groom"    | "self"  | "trill"
+        | "bolt"   | "slink" .
 ```
 
 ### Type Keywords
 
 The following 7 identifiers are reserved as type keywords:
 
-```text
-int    float    string    bool    furball    litter    basket
+```ebnf
+type_keyword = "int" | "float" | "string" | "bool" | "furball" | "litter" | "basket" .
 ```
 
 ### Identifiers
@@ -192,7 +192,7 @@ requirement without repeating the type — in `meow add(a, b int)`, `a` takes th
 type of the next parameter that has one.
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | "basket" | identifier .
+TypeExpr = type_keyword | identifier .
 ```
 
 Variable declaration with type:
@@ -314,10 +314,17 @@ Accesses a list element by zero-based index.
 ### Member Expression
 
 ```ebnf
-MemberExpr = Expr "." identifier .
+MemberExpr = Expr "." MemberName .
+MemberName = identifier | keyword | type_keyword .
 ```
 
 Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
+
+A member may be named after a keyword. Nothing but a member can follow a dot,
+so there is nothing for `x.string` to be ambiguous with, and a Go method named
+`String` is spelled `.string()` — see [Importing a Go package](#importing-a-go-package).
+Everywhere a keyword can stand, it is still a keyword: `nyan string = 1` remains
+an error.
 
 ### Pipe Expression
 
