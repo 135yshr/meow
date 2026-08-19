@@ -900,8 +900,21 @@ meow as_event(e basket) basket {
   }
 }
 
-meow read_page(group string, pattern string, want int, token string, found litter) litter {
-  sniff (want <= 0) {
+# An empty page is still a page. CloudWatch can hand back nothing at all and
+# still supply a token, and a Go slice that is nil arrives as catnap rather
+# than as an empty litter — which curl will not read.
+meow events_of(page basket) litter {
+  nyan events = page["events"]
+  sniff (events == catnap) {
+    bring []
+  }
+  bring events
+}
+
+# pages bounds the walk. The token is the server's to hand out, and a run of
+# empty pages leaves want where it was, so nothing else here has to end.
+meow read_page(group string, pattern string, want int, token string, found litter, pages int) litter {
+  sniff (want <= 0 || pages <= 0) {
     bring found
   }
   nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
@@ -909,19 +922,33 @@ meow read_page(group string, pattern string, want int, token string, found litte
     # The failure is the answer. Handing back the pages that did arrive would
     # say "these are the events" when the truth is "some of them, maybe" — and
     # for a check asking whether a marker arrived, that reads as a confident no.
-    bring page
+    #
+    # It is raised rather than returned: gag has already caught this one, so
+    # handing it back would print the failure and still leave with 0, which is
+    # the same lie told to whatever reads the exit status.
+    hiss("could not read the log group:", page)
   }
-  nyan more = curl(page["events"], found, paw(acc litter, e basket) { append(acc, as_event(e)) })
+  nyan more = curl(events_of(page), found, paw(acc litter, e basket) { append(acc, as_event(e)) })
   nyan next = to_string(page["next_token"])
   sniff (next == "catnap" || next == "") {
     bring more
   }
-  bring read_page(group, pattern, want - (len(more) - len(found)), next, more)
+  bring read_page(group, pattern, want - (len(more) - len(found)), next, more, pages - 1)
 }
 ```
 
 Bindings are immutable, so this is written as recursion rather than as a loop
-with an accumulator.
+with an accumulator. Three things in it are worth keeping in a program of your
+own, all of which `aws.dig` did for you:
+
+- **A failure is raised, not returned.** `gag` marks what it caught as handled,
+  so handing that value back would print the failure and still leave with 0 —
+  the same lie told to whatever reads the exit status.
+- **An empty page is still a page.** CloudWatch can hand back nothing and still
+  supply a token, and a nil Go slice arrives as `catnap` rather than an empty
+  litter, which `curl` will not read.
+- **The walk is bounded.** The token is the server's to hand out, and a run of
+  empty pages leaves `want` where it was, so nothing else here has to end.
 
 **Names.** `aws.dig` renamed the SDK's fields; the bridge gives them to you as
 the SDK writes them, in Meow's spelling. Where the old shape is wanted, a small
