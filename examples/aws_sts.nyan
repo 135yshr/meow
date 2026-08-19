@@ -1,8 +1,8 @@
 # Calling the AWS SDK from Meow with no wrapper written for it.
 #
-# This is what `nab "aws"` and its runtime/aws package were for. Nothing here
-# is written in Go: the SDK is named by its import path and reached through
-# the bridge, the same way any other Go library is.
+# This is what the old `nab "aws"` package was for. Nothing here is written in
+# Go: the SDK is named by its import path and reached through the bridge, the
+# same way any other Go library is.
 #
 # It needs real AWS credentials and a region, so it is not part of the test
 # suite. With those set:

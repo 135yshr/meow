@@ -467,3 +467,21 @@ func TestAPathPinnedTheSameWayTwiceIsFine(t *testing.T) {
 		t.Errorf("got %v, want no error", err)
 	}
 }
+
+// The aws package was removed once `nab go` could reach the SDK directly. A
+// program that used it should be told where its package went rather than only
+// that the name means nothing.
+func TestAPackageMeowDoesNotHaveSaysWhatThereIs(t *testing.T) {
+	c := compiler.New(nil)
+
+	_, err := c.CompileToGo("nab \"aws\"\nnya(1)", "old.nyan")
+
+	if err == nil {
+		t.Fatal("got no error, want one about the package")
+	}
+	for _, want := range []string{"aws", "nab go", "http"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("says %q, want it to mention %q", err, want)
+		}
+	}
+}

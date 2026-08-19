@@ -643,89 +643,98 @@ nya(random.tuft(8))   # => 3f9a1c04b7e25d68
 
 ---
 
-## aws Package
+## Talking to AWS
 
-Import with `nab "aws"`. Talks to Amazon Web Services through the official
-[aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2).
+There is no `aws` package. Meow reaches the AWS SDK the way it reaches any Go
+library, with [`nab go`](reference.md#nab):
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+nab go "github.com/aws/aws-sdk-go-v2/service/sts"
+
+nyan conf = cfg.load_default_config()
+nyan client = sts.new_from_config(conf)
+
+nyan me = gag(paw() { client.get_caller_identity({}) })
+nya(me["account"])
+nya(me["arn"])
+```
 
 Credentials and region are resolved by the SDK's own default chain —
 environment variables, shared config and credentials files, SSO, container and
 instance metadata — so a Meow program authenticates exactly the way the AWS CLI
 does on the same machine, and never has to be handed a secret directly.
 
-Results come back as ordinary Maps and litters, so they can be indexed and
-printed with what the language already has. Every call is bounded by a 30-second
-timeout, and every failure is a Furball, so `~>` recovers from it.
+`examples/aws_sts.nyan` is that program in full.
 
-This is the only part of Meow that depends on a third-party package; everything
-else is standard library only.
+### What became of `nab "aws"`
 
-### `aws.whoami()`
+It was a package of Go wrappers, written by hand, one function at a time.
+`nab go` makes the SDK reachable directly, so the wrappers were work that the
+bridge now does — and doing it by hand meant only the three calls someone had
+written were available, out of the SDK's thousands.
 
-The identity the program is authenticated as.
+| Was | Now |
+|-----|-----|
+| `aws.whoami()` | `sts.new_from_config(conf)`, then `client.get_caller_identity({})` |
+| `aws.region()` | `cfg.load_default_config()`, then `conf["region"]` |
+| `aws.dig(group, opts)` | `logs.new_from_config(conf)`, then `client.filter_log_events({...})` |
 
-- **Returns**: A map with `"account"`, `"arn"` and `"user_id"`.
+Two things `aws.dig` did for you, you now write yourself, because they are the
+program's business rather than the language's:
 
-The cheapest way to answer "are my credentials working, and am I in the account
-I think I am" before doing anything that matters.
-
-```meow
-nab "aws"
-
-nyan me = aws.whoami() ~> paw(err) { hiss("not authenticated:", err) }
-nya(me["account"])
-nya(me["arn"])
-```
-
-### `aws.region()`
-
-The region the SDK resolved, so a program can confirm where it is about to act.
-
-- **Returns**: A string.
+**Paging.** CloudWatch applies `"limit"` per page and may hand back a partial —
+or empty — page while more results remain, so one call is not enough. Follow
+`next_token` until it is empty:
 
 ```meow
-nab "aws"
-nya(aws.region())   # => ap-northeast-1
-```
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+nab go "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs" tag logs
 
-### `aws.dig(group [, options])`
+nyan conf = cfg.load_default_config()
+nyan client = logs.new_from_config(conf)
 
-Search a CloudWatch Logs group and return the matching events.
+meow ask_for(group string, pattern string, want int, token string) basket {
+  sniff (token == "") {
+    bring {"log_group_name": group, "filter_pattern": pattern, "limit": want}
+  }
+  bring {
+    "log_group_name": group,
+    "filter_pattern": pattern,
+    "limit": want,
+    "next_token": token
+  }
+}
 
-- **group** (string): Log group name.
-- **options** (map, optional): See below.
-- **Returns**: A litter of maps, each with `"timestamp"`, `"message"` and
-  `"stream"`.
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `"pattern"` | string | (all events) | CloudWatch Logs filter pattern |
-| `"start"` | int | (none) | Earliest event, in milliseconds since the epoch |
-| `"end"` | int | (none) | Latest event, in milliseconds since the epoch |
-| `"limit"` | int | 10000 | Maximum events to return, 1 to 10000 |
-
-Times are milliseconds since the Unix epoch, the unit the API uses, so
-`clock.now() * 1000` lines up with them.
-
-Paging is handled for you. CloudWatch applies `"limit"` per page and may hand
-back a partial — or empty — page while more results remain, so `dig` follows the
-continuation tokens until it has `"limit"` events or the log group is exhausted.
-
-```meow
-nab "aws"
-nab "clock"
-
-nyan since = (clock.now() - 300) * 1000
-nyan hits = aws.dig("/aws/lambda/canary", {
-  "pattern": "nyan-marker-001", "start": since
-})
-
-sniff (len(hits) > 0) {
-  nya("OK stored:", head(hits)["message"])
-} scratch {
-  nya("NG not stored")
+meow read_page(group string, pattern string, want int, token string, found litter) litter {
+  sniff (want <= 0) {
+    bring found
+  }
+  nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
+  sniff (is_furball(page)) {
+    bring found
+  }
+  nyan more = curl(page["events"], found, paw(acc litter, e basket) { append(acc, e) })
+  nyan next = to_string(page["next_token"])
+  sniff (next == "catnap" || next == "") {
+    bring more
+  }
+  bring read_page(group, pattern, want - (len(more) - len(found)), next, more)
 }
 ```
+
+Bindings are immutable, so this is written as recursion rather than as a loop
+with an accumulator.
+
+**Names.** `aws.dig` renamed the SDK's fields; the bridge gives them to you as
+the SDK writes them, in Meow's spelling. An event is `message`, `timestamp` and
+`log_stream_name` rather than `stream`, and the input is `log_group_name`
+rather than `group`. Where the old shape is wanted, a small `meow` function
+converts it.
+
+**A timeout.** Each bridged call is bounded by 30 seconds, as `nab "aws"` was.
+
+---
 
 ---
 

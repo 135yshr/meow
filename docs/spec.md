@@ -529,8 +529,8 @@ like a `purr` over a litter written out in full.
 NabStmt = "nab" [ "go" ] string_lit [ "tag" identifier ] newline .
 ```
 
-Imports a standard library package. Available packages: `"aws"`, `"clock"`,
-`"env"`, `"file"`, `"http"`, `"json"`, `"random"`, `"testing"`.
+Imports a standard library package. Available packages: `"clock"`, `"env"`,
+`"file"`, `"http"`, `"json"`, `"random"`, `"testing"`.
 
 ```meow
 nab "http"

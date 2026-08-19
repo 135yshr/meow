@@ -29,12 +29,14 @@ For the full contributor guide — including how to add keywords, built-in funct
 
 ## Dependencies
 
-Meow is **standard-library only, with one exception**: `runtime/aws` uses the
-official [aws-sdk-go-v2](https://github.com/aws/aws-sdk-go-v2), because
-reimplementing request signing and the service models would be a large and
-error-prone thing to maintain.
+Meow is **standard-library only**. The compiler, the interpreter and every
+`runtime/` package stay on the standard library, and the module requires
+nothing else.
 
-Everything else — the compiler, the interpreter, and every other `runtime/`
-package — must stay on the standard library. Please do not introduce further
-third-party runtime packages; if a new one seems unavoidable, raise it in an
-issue first.
+A program that needs a third-party library reaches it with `nab go "path"`,
+which imports the Go package into the program being built rather than into
+meow itself. That is where a dependency belongs: the program that wanted it
+carries it, and meow stays a compiler.
+
+Please do not introduce third-party runtime packages. If one seems unavoidable
+— something `nab go` genuinely cannot reach — raise it in an issue first.

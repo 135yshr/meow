@@ -1,0 +1,59 @@
+# Searching CloudWatch Logs from Meow, with no wrapper written for it.
+#
+# This is what the old `aws.dig` was for. What it did for you and you now write
+# yourself is the paging: CloudWatch applies "limit" per page and may hand back
+# a partial — or empty — page while more results remain, so one call is not
+# enough. Follow next_token until it runs out.
+#
+# Bindings are immutable, so this is recursion rather than a loop with an
+# accumulator.
+#
+# It needs real AWS credentials and a region, so it is not part of the test
+# suite. With those set:
+#
+#   go run ./cmd/meow run examples/aws_logs.nyan
+
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+nab go "github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs" tag logs
+
+nyan conf = cfg.load_default_config()
+nyan client = logs.new_from_config(conf)
+
+meow ask_for(group string, pattern string, want int, token string) basket {
+  sniff (token == "") {
+    bring {"log_group_name": group, "filter_pattern": pattern, "limit": want}
+  }
+  bring {
+    "log_group_name": group,
+    "filter_pattern": pattern,
+    "limit": want,
+    "next_token": token
+  }
+}
+
+meow as_event(e basket) basket {
+  bring {
+    "timestamp": e["timestamp"],
+    "message": e["message"],
+    "stream": e["log_stream_name"]
+  }
+}
+
+meow read_page(group string, pattern string, want int, token string, found litter) litter {
+  sniff (want <= 0) {
+    bring found
+  }
+  nyan page = gag(paw() { client.filter_log_events(ask_for(group, pattern, want, token)) })
+  sniff (is_furball(page)) {
+    nya("stopped:", page)
+    bring found
+  }
+  nyan more = curl(page["events"], found, paw(acc litter, e basket) { append(acc, as_event(e)) })
+  nyan next = to_string(page["next_token"])
+  sniff (next == "catnap" || next == "") {
+    bring more
+  }
+  bring read_page(group, pattern, want - (len(more) - len(found)), next, more)
+}
+
+nya(len(read_page("/aws/lambda/nyan", "ERROR", 50, "", [])))
