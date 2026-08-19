@@ -575,6 +575,8 @@ func TestFetchUnsupportedSaysWhatWasWritten(t *testing.T) {
 		{`nab "file" tag f`, `nab "file" tag f`},
 		{`nab go "net/url"`, `nab go "net/url"`},
 		{`nab go "net/url" tag u`, `nab go "net/url" tag u`},
+		{`nab go "net/url@v1.2.3"`, `nab go "net/url@v1.2.3"`},
+		{`nab go "net/url@v1.2.3" tag u`, `nab go "net/url@v1.2.3" tag u`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.source, func(t *testing.T) {

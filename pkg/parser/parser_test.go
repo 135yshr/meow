@@ -855,3 +855,43 @@ func TestBoltAndSlink(t *testing.T) {
 		t.Errorf("second statement is %T, want a SlinkStmt", rs.Body[1])
 	}
 }
+
+// A major-version element belongs to the module, and Go has one only from v2
+// up. Below that there is no suffix at all, so `v1` is a package in its own
+// right — which is what k8s.io/api/core/v1 is called.
+func TestGoPackageNameAndMajorVersions(t *testing.T) {
+	tests := []struct{ path, by string }{
+		{"k8s.io/api/core/v1", "v1"},
+		{"example.com/api/v0", "v0"},
+		{"example.com/api/v01", "v01"},
+		{"github.com/x/y/v2", "y"},
+		{"github.com/x/y/v10", "y"},
+		{"github.com/x/y/v3", "y"},
+		{"example.com/api/vx", "vx"},
+		{"net/url", "url"},
+		{"strings", "strings"},
+		// Not a name a program could write, so it has to be tagged.
+		{"github.com/aws/aws-sdk-go-v2", ""},
+		{"example.com/9lives", ""},
+		// A keyword is not a name a program could write either: `nyan` starts
+		// a binding wherever it appears.
+		{"example.com/nyan", ""},
+		{"example.com/meow", ""},
+		{"example.com/purr", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			if got := ast.GoPackageName(tt.path); got != tt.by {
+				t.Errorf("got %q, want %q", got, tt.by)
+			}
+		})
+	}
+}
+
+// A path whose name is a keyword is asked for a tag, and works once given one.
+func TestGoImportNamedByAKeywordNeedsATag(t *testing.T) {
+	f := parse(t, `nab go "example.com/nyan" tag pet`).Stmts[0].(*ast.FetchStmt)
+	if f.Name() != "pet" {
+		t.Errorf("called by %q, want pet", f.Name())
+	}
+}

@@ -388,21 +388,35 @@ func GoPackageName(path string) string {
 	return name
 }
 
-// isMajorVersion reports whether an import path element is one like "v2".
+// isMajorVersion reports whether an import path element is a major-version
+// suffix, as Go means one: "v2" and up, with no leading zero.
+//
+// Below that there is no suffix — a module at v0 or v1 has none — so "v1" is a
+// package in its own right, which is what k8s.io/api/core/v1 is called.
 func isMajorVersion(s string) bool {
 	if len(s) < 2 || s[0] != 'v' {
 		return false
 	}
-	for _, r := range s[1:] {
+	digits := s[1:]
+	if digits[0] == '0' {
+		return false
+	}
+	for _, r := range digits {
 		if r < '0' || r > '9' {
 			return false
 		}
 	}
-	return true
+	// From v2 up: a single digit has to be 2 or more, and more than one digit
+	// is already past that.
+	return len(digits) > 1 || digits[0] >= '2'
 }
 
 // isWritableName reports whether a name is one a Meow program could have
 // written itself.
+//
+// A keyword is not: a package called `nyan` could never be said, since `nyan`
+// begins a binding wherever it appears. Such a path is asked for a tag rather
+// than given a name that cannot be used.
 func isWritableName(s string) bool {
 	if s == "" {
 		return false
@@ -415,7 +429,7 @@ func isWritableName(s string) bool {
 			return false
 		}
 	}
-	return true
+	return token.LookupIdent(s) == token.IDENT
 }
 
 // VarStmt represents a variable declaration (nyan x = ... or nyan x int = ...).

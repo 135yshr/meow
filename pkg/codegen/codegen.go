@@ -38,8 +38,6 @@ type Generator struct {
 	// through the bridge rather than by a runtime package written for them, so
 	// a call on one is generated differently from a call on one of Meow's own.
 	goPackages map[string]bool
-	// goVersions holds the version a Go import was pinned to, by import path.
-	goVersions map[string]string
 	// nativeVars holds the identifiers currently emitted as native Go values
 	// (int64, string, ...) rather than as meow.Value. It is populated while
 	// generating a fully-typed function body, and is what lets the untyped
@@ -1522,30 +1520,12 @@ func (g *Generator) fetchGoPackage(s *ast.FetchStmt) error {
 	if g.goPackages == nil {
 		g.goPackages = make(map[string]bool)
 	}
+	// The version a program pinned is the build's business rather than the
+	// generated source's, and is read from the program where the build is set
+	// up. Holding it here too would be a second answer to the same question.
 	g.imports[name] = s.Path
 	g.goPackages[name] = true
-	if s.Version != "" {
-		if g.goVersions == nil {
-			g.goVersions = make(map[string]string)
-		}
-		g.goVersions[s.Path] = s.Version
-	}
 	return nil
-}
-
-// GoRequirements gives the Go import paths the program pinned a version for,
-// so that the build can ask for those rather than for whatever is newest.
-// A package imported without a version is left out, and resolved by the Go
-// toolchain like any other.
-func (g *Generator) GoRequirements() map[string]string {
-	if len(g.goVersions) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(g.goVersions))
-	for path, version := range g.goVersions {
-		out[path] = version
-	}
-	return out
 }
 
 func (g *Generator) genIf(s *ast.IfStmt) string {

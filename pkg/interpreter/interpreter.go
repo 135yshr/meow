@@ -200,9 +200,15 @@ func (interp *Interpreter) execStmt(stmt ast.Stmt, env *Environment) {
 	case *ast.FetchStmt:
 		// The playground has no Go toolchain, so an import of any kind — one of
 		// Meow's own packages or, with `go`, a Go one — is out of reach here.
-		what := fmt.Sprintf("nab %q", s.Path)
+		spec := s.Path
+		if s.Version != "" {
+			// The pin was written inside the string, so it belongs back inside
+			// it — an import said back without it is a different import.
+			spec += "@" + s.Version
+		}
+		what := fmt.Sprintf("nab %q", spec)
 		if s.Go {
-			what = fmt.Sprintf("nab go %q", s.Path)
+			what = fmt.Sprintf("nab go %q", spec)
 		}
 		if s.Alias != "" {
 			what += fmt.Sprintf(" tag %s", s.Alias)

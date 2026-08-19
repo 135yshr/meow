@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -75,7 +76,9 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
-	c.recordGoPins(prog)
+	if err := c.recordGoPins(prog); err != nil {
+		return "", err
+	}
 
 	c.logger.Debug("generating Go code", "file", filename)
 	gen := codegen.New()
@@ -93,14 +96,24 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 }
 
 // recordGoPins reads the versions the program pinned its Go imports to.
-func (c *Compiler) recordGoPins(prog *ast.Program) {
+//
+// One path pinned twice to two versions is a mistake rather than a choice,
+// since a build holds one version of a module. Saying so beats keeping
+// whichever came last.
+func (c *Compiler) recordGoPins(prog *ast.Program) error {
 	pins := make(map[string]string)
 	for _, stmt := range prog.Stmts {
-		if fs, ok := stmt.(*ast.FetchStmt); ok && fs.Go && fs.Version != "" {
-			pins[fs.Path] = fs.Version
+		fs, ok := stmt.(*ast.FetchStmt)
+		if !ok || !fs.Go || fs.Version == "" {
+			continue
 		}
+		if had, pinned := pins[fs.Path]; pinned && had != fs.Version {
+			return fmt.Errorf("Hiss! %s is pinned to both %s and %s, nya~", fs.Path, had, fs.Version)
+		}
+		pins[fs.Path] = fs.Version
 	}
 	c.goPins = pins
+	return nil
 }
 
 // fetchGoPins asks for the exact versions the program named, before the rest
@@ -109,17 +122,25 @@ func (c *Compiler) recordGoPins(prog *ast.Program) {
 // It is `go get` rather than a require line written by hand because a pin
 // names an import path, and only the toolchain knows which module provides
 // one — the module is often a prefix of the path, and sometimes the whole of
-// it.
+// it. All the pins go in one call, in a settled order, so that two packages
+// of one module are a conflict the toolchain reports rather than a race
+// between two calls whose winner is whatever the map handed over first.
 func (c *Compiler) fetchGoPins(dir string) error {
+	if len(c.goPins) == 0 {
+		return nil
+	}
+	specs := make([]string, 0, len(c.goPins))
 	for path, version := range c.goPins {
-		spec := path + "@" + version
-		c.logger.Debug("fetching pinned package", "spec", spec)
-		cmd := exec.Command("go", "get", spec)
-		cmd.Dir = dir
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("Hiss! Cannot fetch %s, nya~: %w", spec, err)
-		}
+		specs = append(specs, path+"@"+version)
+	}
+	sort.Strings(specs)
+
+	c.logger.Debug("fetching pinned packages", "specs", specs)
+	cmd := exec.Command("go", append([]string{"get"}, specs...)...)
+	cmd.Dir = dir
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Hiss! Cannot fetch %s, nya~: %w", strings.Join(specs, " "), err)
 	}
 	return nil
 }
@@ -246,7 +267,9 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
-	c.recordGoPins(prog)
+	if err := c.recordGoPins(prog); err != nil {
+		return "", err
+	}
 
 	c.logger.Debug("generating test Go code", "file", filename)
 	gen := codegen.NewTest()
@@ -371,7 +394,9 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
-	c.recordGoPins(prog)
+	if pinErr := c.recordGoPins(prog); pinErr != nil {
+		return "", "", nil, pinErr
+	}
 
 	c.logger.Debug("generating fuzz Go code", "file", filename)
 	gen := codegen.New()
@@ -558,7 +583,9 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	schema := mutation.BuildSchema(combinedProg, mutants)
 
 	// Generate mutated test binary
-	c.recordGoPins(combinedProg)
+	if pinErr := c.recordGoPins(combinedProg); pinErr != nil {
+		return pinErr
+	}
 
 	gen := codegen.NewTest()
 	gen.SetMutations(schema)

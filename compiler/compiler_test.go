@@ -436,3 +436,34 @@ func TestRunTestMarksOnlyABinaryThatRan(t *testing.T) {
 		t.Errorf("got %v, want no error", err)
 	}
 }
+
+// A build holds one version of a module, so one path pinned to two versions
+// is a mistake rather than a choice. Keeping whichever came last would build
+// something the program did not ask for.
+func TestAPathPinnedTwoWaysIsRefused(t *testing.T) {
+	c := compiler.New(nil)
+
+	_, err := c.CompileToGo(
+		"nab go \"net/url@v1.2.3\"\nnab go \"net/url@v1.3.0\" tag u\nnya(1)",
+		"pinned.nyan")
+
+	if err == nil {
+		t.Fatal("got no error, want one about the two versions")
+	}
+	for _, want := range []string{"net/url", "v1.2.3", "v1.3.0"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("says %q, want it to name %q", err, want)
+		}
+	}
+}
+
+// The same version written twice is agreement rather than conflict.
+func TestAPathPinnedTheSameWayTwiceIsFine(t *testing.T) {
+	c := compiler.New(nil)
+
+	if _, err := c.CompileToGo(
+		"nab go \"net/url@v1.2.3\"\nnab go \"net/url@v1.2.3\" tag u\nnya(1)",
+		"pinned.nyan"); err != nil {
+		t.Errorf("got %v, want no error", err)
+	}
+}

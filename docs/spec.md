@@ -555,8 +555,16 @@ nya(parsed["host"])                    # => example.com
 
 The package is called by the last element of its path — `url` for `"net/url"` —
 except that a major-version element belongs to the module rather than the
-package, so `"github.com/x/y/v2"` is `y`. When that leaves a name a program
-cannot write, `tag` names it instead.
+package, so `"github.com/x/y/v2"` is `y`. Go has such a suffix only from `v2`
+up, so `"k8s.io/api/core/v1"` really is called `v1`.
+
+When that leaves a name a program cannot write — `"github.com/aws/aws-sdk-go-v2"`
+is not a name, and a package called `nyan` could never be said, since `nyan`
+begins a binding wherever it appears — `tag` names it instead:
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+```
 
 Go names are spelled the way Meow writes names: `strings.to_upper` is
 `strings.ToUpper`, and `sts.new_from_config` is `sts.NewFromConfig`. A name
