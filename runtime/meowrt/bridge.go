@@ -65,17 +65,49 @@ func CallGoMethod(ctx context.Context, recv Value, name string, args ...Value) V
 	if o.V == nil {
 		return NewFurball("Hiss! Cannot call %s on nothing, nya~", name)
 	}
-	return callMethodOn(ctx, o.V, o.String(), name, args)
+	return callMethodOn(ctx, recv, o.V, o.String(), name, args)
 }
 
 // callMethodOn calls a named method on a Go value. what names the receiver in
 // anything that goes wrong, so a reader is told what it was asked of.
-func callMethodOn(ctx context.Context, target any, what, name string, args []Value) Value {
+func callMethodOn(ctx context.Context, recv Value, target any, what, name string, args []Value) Value {
 	m := reflect.ValueOf(target).MethodByName(name)
 	if !m.IsValid() {
 		return NewFurball("Hiss! %s has no %s, nya~", what, name)
 	}
-	return callReflected(ctx, name, m, args)
+	got := callReflected(ctx, name, m, args)
+	if _, failed := got.(*Furball); failed || !givesNothingBack(m.Type()) {
+		return got
+	}
+	return whatItWasCalledOn(recv, target)
+}
+
+// givesNothingBack reports whether a method has no answer of its own, a
+// trailing error being the failure rather than an answer.
+func givesNothingBack(t reflect.Type) bool {
+	n := t.NumOut()
+	if n > 0 && t.Out(n-1).Implements(errorType) {
+		n--
+	}
+	return n == 0
+}
+
+// whatItWasCalledOn is the answer to a method that has none of its own.
+//
+// Such a method was called to do something rather than to say something, and
+// what it did is to the thing it was called on. Handing back catnap says
+// nothing at all and leaves the doing with nowhere to show; handing back the
+// receiver, read afresh, is how a language whose values do not change says that
+// something happened — as a new value, next to the old one, which still says
+// what it always said.
+//
+// A handle is not read, so there is nothing to read again: it is the same
+// handle, and giving it back is what lets one call follow another.
+func whatItWasCalledOn(recv Value, target any) Value {
+	if _, held := AsOpaque(recv); held {
+		return recv
+	}
+	return fromGo(reflect.ValueOf(target))
 }
 
 // CallMember calls a member of a value by name.
@@ -104,7 +136,7 @@ func CallMember(recv Value, name string, args ...Value) Value {
 		ctx, cancel := context.WithTimeout(context.Background(), callTimeoutForBridge)
 		defer cancel()
 		what := fmt.Sprintf("%T", o.Origin())
-		return callMethodOn(ctx, o.Origin(), what, goMethodName(name), args)
+		return callMethodOn(ctx, recv, o.Origin(), what, goMethodName(name), args)
 	}
 	return NewFurball("Hiss! Cannot call %s on a %s, nya~", name, recv.Type())
 }

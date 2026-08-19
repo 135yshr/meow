@@ -50,5 +50,12 @@ nya(at)
 nya(at.year())
 nya(at.format("2006/01/02"))
 
+# A method called to do rather than to say gives back what it was called on,
+# read again. The reading taken before it says what it always said.
+nyan asked = u.ParseQuery("x=1&y=2")
+nya(asked)
+nya(asked.set("z", "9"))
+nya(asked)
+
 # A failure from Go is a furball like any other.
 nya(is_furball(u.parse("://nope")))

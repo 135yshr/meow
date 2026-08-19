@@ -809,3 +809,70 @@ func TestAnEmptyInterfaceStillTakesThePlainValue(t *testing.T) {
 		t.Errorf("got %s, want the basket's own names", got.String())
 	}
 }
+
+// ledger is something a call is made on to do rather than to say. Go writes a
+// great many of these — Set, Add, Reset, Close.
+type ledger struct{ N int }
+
+func (l *ledger) Inc()          { l.N++ }
+func (l *ledger) Note() error   { l.N++; return nil }
+func (l *ledger) Fail() error   { return errors.New("no") }
+func (l *ledger) Find() *ledger { return nil }
+
+// A method with nothing of its own to say gives back what it was called on,
+// read afresh. Handing back catnap would say nothing at all and leave the doing
+// with nowhere to show; a new value next to the old one is how a language whose
+// values do not change says that something happened.
+func TestAMethodWithNothingToSayGivesBackWhatItWasCalledOn(t *testing.T) {
+	made := meowrt.CallGo("open", func() *ledger { return &ledger{N: 1} })
+
+	t.Run("a method that returns nothing", func(t *testing.T) {
+		got := meowrt.CallMember(made, "inc")
+
+		if got.String() != "{n: 2}" {
+			t.Errorf("got %s, want the reading taken after the call", got.String())
+		}
+		// And the reading taken before it says what it always said.
+		if made.String() != "{n: 1}" {
+			t.Errorf("the older reading now says %s, want it unchanged", made.String())
+		}
+	})
+
+	t.Run("a method that returns only a failure that did not happen", func(t *testing.T) {
+		got := meowrt.CallMember(made, "note")
+
+		if got.String() != "{n: 3}" {
+			t.Errorf("got %s, want the reading taken after the call", got.String())
+		}
+	})
+
+	t.Run("a method that failed", func(t *testing.T) {
+		got := meowrt.CallMember(made, "fail")
+
+		if _, failed := meowrt.AsFurball(got); !failed {
+			t.Errorf("got %s, want the failure rather than the receiver", got.String())
+		}
+	})
+
+	// The rule is about a method with no answer, not about an answer that is
+	// nothing. A search that found nothing found nothing.
+	t.Run("a method that answered with nothing", func(t *testing.T) {
+		got := meowrt.CallMember(made, "find")
+
+		if got.Type() != "Nil" {
+			t.Errorf("got %s (%s), want catnap", got.String(), got.Type())
+		}
+	})
+}
+
+// A handle is not read, so there is nothing to read again. Giving back the same
+// handle is what lets one call follow another.
+func TestAMethodWithNothingToSayGivesBackTheHandleItself(t *testing.T) {
+	held := meowrt.NewOpaque("probe.Ledger", &ledger{})
+
+	got := meowrt.CallMember(held, "inc")
+
+	if got != meowrt.Value(held) {
+		t.Errorf("got %s, want the handle it was called on", got.String())
+	}
+}

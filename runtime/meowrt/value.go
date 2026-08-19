@@ -282,10 +282,24 @@ func NewMap(items map[string]Value) *Map {
 
 func (m *Map) Type() string   { return "Map" }
 func (m *Map) IsTruthy() bool { return len(m.Items) > 0 }
+
+// String writes a basket by its keys in order.
+//
+// A basket has no order of its own — nothing is written down about which key
+// came first — so the only order it can be shown in that is the same twice is
+// one worked out from the keys themselves. Reading a basket over a Go map
+// otherwise printed differently from one run to the next, which nya cannot do
+// and a test that reads its output cannot live with. ToJSON has sorted for the
+// same reason.
 func (m *Map) String() string {
+	keys := make([]string, 0, len(m.Items))
+	for k := range m.Items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 	parts := make([]string, 0, len(m.Items))
-	for k, v := range m.Items {
-		parts = append(parts, k+": "+v.String())
+	for _, k := range keys {
+		parts = append(parts, k+": "+m.Items[k].String())
 	}
 	return "{" + strings.Join(parts, ", ") + "}"
 }

@@ -166,3 +166,24 @@ func TestToJSONUnsupportedType(t *testing.T) {
 		t.Errorf("expected JSON-quoted Hiss error about Func, got %q", got)
 	}
 }
+
+// A basket has no order of its own, so it is shown in one worked out from its
+// keys — the only order that is the same twice.
+func TestABasketIsShownTheSameWayTwice(t *testing.T) {
+	made := func() string {
+		return meowrt.NewMap(map[string]meowrt.Value{
+			"e": meowrt.NewInt(5), "a": meowrt.NewInt(1), "d": meowrt.NewInt(4),
+			"b": meowrt.NewInt(2), "c": meowrt.NewInt(3),
+		}).String()
+	}
+
+	first := made()
+	if first != "{a: 1, b: 2, c: 3, d: 4, e: 5}" {
+		t.Errorf("got %s, want the keys in order", first)
+	}
+	for range 20 {
+		if got := made(); got != first {
+			t.Fatalf("got %s then %s, want the same both times", first, got)
+		}
+	}
+}
