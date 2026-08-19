@@ -1,3 +1,9 @@
+# [v0.17.0](https://github.com/135yshr/meow/compare/v0.16.3...v0.17.0) (2026-08-19)
+
+## ✨ New Features
+- [`3da09e8`](https://github.com/135yshr/meow/commit/3da09e8)  feat: Keep a body that was written on one line (#128) (Issues: [`#128`](https://github.com/135yshr/meow/issues/128))
+- [`be445bb`](https://github.com/135yshr/meow/commit/be445bb)  feat: Let Meow reach a Go library without wrapping it (#129) (Issues: [`#129`](https://github.com/135yshr/meow/issues/129))
+
 # [v0.16.3](https://github.com/135yshr/meow/compare/v0.16.2...v0.16.3) (2026-08-18)
 
 ## 🐛 Bug Fixes
