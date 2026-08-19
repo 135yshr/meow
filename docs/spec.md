@@ -593,6 +593,19 @@ does with `@`:
 nab go "github.com/aws/aws-sdk-go-v2/aws/arn@v1.32.0"
 ```
 
+A function taking an empty interface — `fmt.Sprintf`, `json.Marshal` — gets the
+plain Go value behind the Meow one, a litter arriving as a slice and a basket as
+a map. An interface with methods is another matter: only something held from Go
+can satisfy one.
+
+```meow
+nab go "fmt"
+nab go "encoding/json" tag j
+
+nya(fmt.sprintf("%s has %d", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan"})))   # => {"name":"nyan"}
+```
+
 Generics, channels, and functions taking functions are not reached this way. A
 Go package is also out of reach in the playground, which has no Go toolchain —
 as every `nab` already is.

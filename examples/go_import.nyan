@@ -9,6 +9,8 @@
 nab go "strings"
 nab go "regexp"
 nab go "net/url" tag u
+nab go "fmt"
+nab go "encoding/json" tag j
 
 # A package function. The Go name is spelled the way Meow writes names, so
 # strings.to_upper is strings.ToUpper.
@@ -25,6 +27,11 @@ nya(parsed["scheme"] + "://" + parsed["host"] + parsed["path"])
 nyan digits = regexp.must_compile("[0-9]+")
 nya(digits.find_string("abc 123 def"))
 nya(digits.replace_all_string("a1b22c333", "#"))
+
+# A function taking an empty interface — which a great many do — gets the plain
+# Go value behind the Meow one: a litter arrives as a slice, a basket as a map.
+nya(fmt.sprintf("%s has %d paws", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan", "paws": 4})))
 
 # A failure from Go is a furball, so gag catches it like any other.
 nya(is_furball(u.parse("://nope")))

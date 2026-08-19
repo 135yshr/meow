@@ -427,6 +427,25 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 			out.SetMapIndex(reflect.ValueOf(k).Convert(t.Key()), gv)
 		}
 		return out, nil
+	case reflect.Interface:
+		// An empty interface takes anything, and a great many Go functions ask
+		// for one — Sprintf, Marshal. What goes in is the plain Go value
+		// behind the Meow one.
+		//
+		// An interface with methods is another matter: only something held
+		// from Go can satisfy one, which is settled above by whether it is
+		// assignable.
+		if t.NumMethod() > 0 {
+			return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
+		}
+		plain, err := toAny(v)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		if plain == nil {
+			return reflect.Zero(t), nil
+		}
+		return reflect.ValueOf(plain), nil
 	case reflect.Struct:
 		// A time went out as the text of it, so that is what comes back in.
 		if t == timeType {
@@ -443,6 +462,51 @@ func toGo(v Value, t reflect.Type) (reflect.Value, error) {
 		return mapToStruct(v, t)
 	}
 	return reflect.Value{}, fmt.Errorf("cannot read a %s as a %s", v.Type(), t)
+}
+
+// toAny reads a Meow value as the plain Go value behind it, which is what a
+// call taking an empty interface is asking for.
+//
+// A list becomes a []any and a basket a map[string]any, which is the shape
+// something like json.Marshal reads.
+func toAny(v Value) (any, error) {
+	switch n := v.(type) {
+	case *Opaque:
+		return n.V, nil
+	case *String:
+		return n.Val, nil
+	case *Int:
+		return n.Val, nil
+	case *Byte:
+		return n.Val, nil
+	case *Float:
+		return n.Val, nil
+	case *Bool:
+		return n.Val, nil
+	case *NilValue:
+		return nil, nil
+	case *List:
+		out := make([]any, len(n.Items))
+		for i, item := range n.Items {
+			each, err := toAny(item)
+			if err != nil {
+				return nil, fmt.Errorf("element %d: %w", i+1, err)
+			}
+			out[i] = each
+		}
+		return out, nil
+	case *Map:
+		out := make(map[string]any, len(n.Items))
+		for k, item := range n.Items {
+			each, err := toAny(item)
+			if err != nil {
+				return nil, fmt.Errorf("%q: %w", k, err)
+			}
+			out[k] = each
+		}
+		return out, nil
+	}
+	return nil, fmt.Errorf("cannot read a %s as a plain value", v.Type())
 }
 
 // wholeNumber writes a number as the sized Go integer a call asks for, saying

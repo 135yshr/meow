@@ -2,8 +2,10 @@ package meowrt_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -492,5 +494,57 @@ func TestFromGoReadsAPlainValue(t *testing.T) {
 				t.Errorf("got %q, want %q", got.String(), tt.want)
 			}
 		})
+	}
+}
+
+// A great many Go functions take an empty interface — Sprintf, Marshal — and
+// what goes in is the plain Go value behind the Meow one.
+func TestAnEmptyInterfaceTakesThePlainValue(t *testing.T) {
+	t.Run("several of them", func(t *testing.T) {
+		got := meowrt.CallGo("sprintf", fmt.Sprintf,
+			meowrt.NewString("%s has %d"), meowrt.NewString("nyan"), meowrt.NewInt(4))
+		if got.String() != "nyan has 4" {
+			t.Errorf("got %q, want \"nyan has 4\"", got.String())
+		}
+	})
+
+	t.Run("a basket becomes a map", func(t *testing.T) {
+		got := meowrt.CallGo("marshal", json.Marshal,
+			meowrt.NewMap(map[string]meowrt.Value{"name": meowrt.NewString("nyan")}))
+		if s := meowrt.ToString(got); s.String() != `{"name":"nyan"}` {
+			t.Errorf("got %q, want the basket written out", s.String())
+		}
+	})
+
+	t.Run("a litter becomes a slice", func(t *testing.T) {
+		got := meowrt.CallGo("marshal", json.Marshal,
+			meowrt.NewList(meowrt.NewInt(1), meowrt.NewString("a")))
+		if s := meowrt.ToString(got); s.String() != `[1,"a"]` {
+			t.Errorf("got %q, want the litter written out", s.String())
+		}
+	})
+
+	t.Run("something held goes in as what it holds", func(t *testing.T) {
+		held := meowrt.NewOpaque("probe.Client", &probeClient{region: "eu-west-1"})
+		got := meowrt.CallGo("type", func(v any) string {
+			c, ok := v.(*probeClient)
+			if !ok {
+				return "not a client"
+			}
+			return c.region
+		}, held)
+		if got.String() != "eu-west-1" {
+			t.Errorf("got %q, want the client itself to have arrived", got.String())
+		}
+	})
+}
+
+// An interface with methods is another matter: only something held from Go can
+// satisfy one, so a Meow value is refused rather than guessed at.
+func TestAnInterfaceWithMethodsNeedsSomethingThatHasThem(t *testing.T) {
+	got := meowrt.CallGo("write", func(w io.Writer) int { return 0 }, meowrt.NewString("nyan"))
+
+	if _, failed := meowrt.AsFurball(got); !failed {
+		t.Fatalf("got %s, want a furball", got.String())
 	}
 }

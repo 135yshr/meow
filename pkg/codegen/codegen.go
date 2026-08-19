@@ -34,10 +34,12 @@ type Generator struct {
 	inLearnMethod     bool              // true when generating a learn method body
 	aliasToPackage    map[string]string // alias → real package name
 	packageToAlias    map[string]string // real package name → alias
-	// goPackages names the imports written as `nab go "path"`. They are reached
-	// through the bridge rather than by a runtime package written for them, so
-	// a call on one is generated differently from a call on one of Meow's own.
-	goPackages map[string]bool
+	// goImports holds the imports written as `nab go "path"`, by the name the
+	// program calls them: name → Go import path. They are kept apart from
+	// Meow's own imports and emitted under their own prefix, so a Go package
+	// called `testing` cannot take the place of the one the test wrapper
+	// needs.
+	goImports map[string]string
 	// nativeVars holds the identifiers currently emitted as native Go values
 	// (int64, string, ...) rather than as meow.Value. It is populated while
 	// generating a fully-typed function body, and is what lets the untyped
@@ -412,6 +414,9 @@ func (g *Generator) emitTest() string {
 	for _, name := range g.usedImports(g.testWrapperImports()...) {
 		fmt.Fprintf(&b, "import meow_%s \"%s\"\n", name, g.imports[name])
 	}
+	for _, name := range g.usedGoImports() {
+		fmt.Fprintf(&b, "import go_%s \"%s\"\n", name, g.goImports[name])
+	}
 	b.WriteString("\n")
 
 	if len(g.mutations) > 0 {
@@ -589,6 +594,9 @@ func (g *Generator) emit() string {
 	}
 	for _, name := range g.usedImports() {
 		fmt.Fprintf(&b, "import meow_%s \"%s\"\n", name, g.imports[name])
+	}
+	for _, name := range g.usedGoImports() {
+		fmt.Fprintf(&b, "import go_%s \"%s\"\n", name, g.goImports[name])
 	}
 	b.WriteString("\n")
 
@@ -1514,18 +1522,33 @@ func (g *Generator) fetchGoPackage(s *ast.FetchStmt) error {
 	if name == "" {
 		return fmt.Errorf("cannot tell what to call package %q, so name it with tag", s.Path)
 	}
-	if g.imports == nil {
-		g.imports = make(map[string]string)
-	}
-	if g.goPackages == nil {
-		g.goPackages = make(map[string]bool)
+	if g.goImports == nil {
+		g.goImports = make(map[string]string)
 	}
 	// The version a program pinned is the build's business rather than the
 	// generated source's, and is read from the program where the build is set
 	// up. Holding it here too would be a second answer to the same question.
-	g.imports[name] = s.Path
-	g.goPackages[name] = true
+	g.goImports[name] = s.Path
 	return nil
+}
+
+// resolveGoImport reads name as one of the program's `nab go` packages.
+func (g *Generator) resolveGoImport(name string) (string, bool) {
+	_, imported := g.goImports[name]
+	return name, imported
+}
+
+// usedGoImports names the `nab go` packages a selector was actually emitted
+// for, so an import nothing calls is left out.
+func (g *Generator) usedGoImports() []string {
+	names := make([]string, 0, len(g.goImports))
+	for name := range g.goImports {
+		if g.usedPackages[name] {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (g *Generator) genIf(s *ast.IfStmt) string {
@@ -1691,13 +1714,14 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		}
 		obj, ok := e.Object.(*ast.Ident)
 		if ok {
+			if goPkg, ok := g.resolveGoImport(obj.Name); ok {
+				g.markPackageUsed(goPkg)
+				// Something a Go package holds rather than does: read it if
+				// Meow has a shape for it, hold it if not.
+				return fmt.Sprintf("meow.FromGo(go_%s.%s)", goPkg, goName(e.Member))
+			}
 			if realPkg, ok := g.resolveImportName(obj.Name); ok {
 				g.markPackageUsed(realPkg)
-				if g.goPackages[realPkg] {
-					// Something a Go package holds rather than does: read it if
-					// Meow has a shape for it, hold it if not.
-					return fmt.Sprintf("meow.FromGo(meow_%s.%s)", realPkg, goName(e.Member))
-				}
 				return fmt.Sprintf("meow_%s.%s", realPkg, capitalizeFirst(e.Member))
 			}
 			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
@@ -1924,11 +1948,12 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 	if !ok {
 		return g.genCallMember(fmt.Sprintf("(%s)", g.genExpr(member.Object)), member.Member, argStr)
 	}
+	if goPkg, ok := g.resolveGoImport(obj.Name); ok {
+		g.markPackageUsed(goPkg)
+		return g.genGoCall(goPkg, obj.Name, member.Member, argStr)
+	}
 	if realPkg, ok := g.resolveImportName(obj.Name); ok {
 		g.markPackageUsed(realPkg)
-		if g.goPackages[realPkg] {
-			return g.genGoCall(realPkg, obj.Name, member.Member, argStr)
-		}
 		return fmt.Sprintf("meow_%s.%s(%s)", realPkg, capitalizeFirst(member.Member), argStr)
 	}
 	return g.genCallMember(obj.Name, member.Member, argStr)
@@ -1940,7 +1965,7 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 // named as the program wrote it so that anything going wrong says which call
 // it was.
 func (g *Generator) genGoCall(pkg, wrote, member, argStr string) string {
-	call := fmt.Sprintf("meow.CallGo(%q, meow_%s.%s", wrote+"."+member, pkg, goName(member))
+	call := fmt.Sprintf("meow.CallGo(%q, go_%s.%s", wrote+"."+member, pkg, goName(member))
 	if argStr != "" {
 		call += ", " + argStr
 	}
