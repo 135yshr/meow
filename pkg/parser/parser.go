@@ -476,12 +476,24 @@ func (p *Parser) parseSelfExpr() ast.Expr {
 
 func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
 	dot := p.advance() // consume .
-	member := p.expect(token.IDENT)
+	member := p.expectMemberName()
 	expr := &ast.MemberExpr{Token: dot, Object: object, Member: member.Literal}
 	if p.cur.Type == token.LPAREN {
 		return p.finishCall(expr)
 	}
 	return expr
+}
+
+// expectMemberName reads the name after a dot.
+//
+// A keyword is a name here like any other. Nothing but a member can follow a
+// dot, so there is nothing for `x.string` to be ambiguous with — and Go's most
+// common method of all is String, which `.string` is how a Meow program spells.
+func (p *Parser) expectMemberName() token.Token {
+	if p.cur.Type != token.IDENT && p.cur.Type.IsKeyword() {
+		return p.advance()
+	}
+	return p.expect(token.IDENT)
 }
 
 func (p *Parser) parseExprStmtOrAssign() ast.Stmt {

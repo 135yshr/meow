@@ -1,6 +1,7 @@
 # Reaching a Go package by its import path, with no wrapper written for it.
 # Only the standard library is used here, so the build needs nothing fetched.
 nab go "strings"
+nab go "regexp"
 nab go "net/url" tag u
 nab go "fmt"
 nab go "encoding/json" tag j
@@ -28,6 +29,13 @@ nya(swap.replace("the cat and the dog"))
 # the plain Go value behind the Meow one.
 nya(fmt.sprintf("%s has %d", "nyan", 4))
 nya(to_string(j.marshal({"name": "nyan", "paws": 4})))
+
+# A member is named after a keyword when Go names it that way. Nothing but a
+# member can follow a dot, so `string` is a name there — and String is the most
+# common method Go has.
+nyan digits = regexp.must_compile("[0-9]+")
+nya(digits.string())
+nya(digits.find_string("abc 123"))
 
 # A failure from Go is a furball like any other.
 nya(is_furball(u.parse("://nope")))
