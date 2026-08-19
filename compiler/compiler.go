@@ -27,6 +27,11 @@ type Compiler struct {
 	logger       *slog.Logger
 	coverEnabled bool
 	coverProfile string
+	// goPins holds the versions the program pinned its Go imports to, by
+	// import path. It is read where the program is, and used where the build's
+	// go.mod is written. An import with no pin is left for the toolchain to
+	// resolve like any other.
+	goPins map[string]string
 }
 
 // New creates a new Compiler.
@@ -70,6 +75,8 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.recordGoPins(prog)
+
 	c.logger.Debug("generating Go code", "file", filename)
 	gen := codegen.New()
 	gen.SetTypeInfo(typeInfo)
@@ -83,6 +90,38 @@ func (c *Compiler) CompileToGo(source, filename string) (string, error) {
 		return raw, nil
 	}
 	return string(formatted), nil
+}
+
+// recordGoPins reads the versions the program pinned its Go imports to.
+func (c *Compiler) recordGoPins(prog *ast.Program) {
+	pins := make(map[string]string)
+	for _, stmt := range prog.Stmts {
+		if fs, ok := stmt.(*ast.FetchStmt); ok && fs.Go && fs.Version != "" {
+			pins[fs.Path] = fs.Version
+		}
+	}
+	c.goPins = pins
+}
+
+// fetchGoPins asks for the exact versions the program named, before the rest
+// is left to the toolchain.
+//
+// It is `go get` rather than a require line written by hand because a pin
+// names an import path, and only the toolchain knows which module provides
+// one — the module is often a prefix of the path, and sometimes the whole of
+// it.
+func (c *Compiler) fetchGoPins(dir string) error {
+	for path, version := range c.goPins {
+		spec := path + "@" + version
+		c.logger.Debug("fetching pinned package", "spec", spec)
+		cmd := exec.Command("go", "get", spec)
+		cmd.Dir = dir
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Hiss! Cannot fetch %s, nya~: %w", spec, err)
+		}
+	}
+	return nil
 }
 
 // Build compiles a .nyan file to an executable binary.
@@ -117,6 +156,10 @@ func (c *Compiler) Build(nyanPath, outputPath string) error {
 	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	if err := c.fetchGoPins(tmpDir); err != nil {
+		return err
 	}
 
 	// Run go mod tidy to generate go.sum
@@ -203,6 +246,8 @@ func (c *Compiler) CompileTestToGo(source, filename string) (string, error) {
 		return "", fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
 
+	c.recordGoPins(prog)
+
 	c.logger.Debug("generating test Go code", "file", filename)
 	gen := codegen.NewTest()
 	gen.SetTypeInfo(typeInfo)
@@ -269,6 +314,10 @@ func (c *Compiler) BuildTest(nyanPath, outputPath string) error {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
 	}
 
+	if err := c.fetchGoPins(tmpDir); err != nil {
+		return err
+	}
+
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tmpDir
 	tidyCmd.Stderr = os.Stderr
@@ -321,6 +370,8 @@ func (c *Compiler) CompileFuzzToGo(source, filename string) (helpers, fuzzTests 
 		}
 		return "", "", nil, fmt.Errorf("%s", strings.Join(msgs, "\n"))
 	}
+
+	c.recordGoPins(prog)
 
 	c.logger.Debug("generating fuzz Go code", "file", filename)
 	gen := codegen.New()
@@ -377,6 +428,10 @@ func (c *Compiler) RunFuzz(nyanPath, fuzzTime string) error {
 	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	if err := c.fetchGoPins(tmpDir); err != nil {
+		return err
 	}
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
@@ -503,6 +558,8 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	schema := mutation.BuildSchema(combinedProg, mutants)
 
 	// Generate mutated test binary
+	c.recordGoPins(combinedProg)
+
 	gen := codegen.NewTest()
 	gen.SetMutations(schema)
 	raw, err := gen.GenerateTest(combinedProg)
@@ -534,6 +591,10 @@ func (c *Compiler) RunMutationTest(sourcePath string, testPaths []string) error 
 	}
 	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644); err != nil {
 		return fmt.Errorf("Hiss! Cannot write go.mod, nya~: %w", err)
+	}
+
+	if err := c.fetchGoPins(tmpDir); err != nil {
+		return err
 	}
 
 	tidyCmd := exec.Command("go", "mod", "tidy")

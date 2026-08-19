@@ -34,6 +34,12 @@ type Generator struct {
 	inLearnMethod     bool              // true when generating a learn method body
 	aliasToPackage    map[string]string // alias → real package name
 	packageToAlias    map[string]string // real package name → alias
+	// goPackages names the imports written as `nab go "path"`. They are reached
+	// through the bridge rather than by a runtime package written for them, so
+	// a call on one is generated differently from a call on one of Meow's own.
+	goPackages map[string]bool
+	// goVersions holds the version a Go import was pinned to, by import path.
+	goVersions map[string]string
 	// nativeVars holds the identifiers currently emitted as native Go values
 	// (int64, string, ...) rather than as meow.Value. It is populated while
 	// generating a fully-typed function body, and is what lets the untyped
@@ -216,6 +222,36 @@ func capitalizeFirst(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// goName spells a name the way Go writes it: new_from_config becomes
+// NewFromConfig, which is how a Meow program says a Go name in its own words.
+//
+// A name already written in Go's own spelling is left alone, which is the way
+// out for the ones this cannot reach — ParseURL is not what parse_url spells,
+// so it is written as ParseURL.
+func goName(member string) string {
+	if member == "" {
+		return member
+	}
+	if r := rune(member[0]); r >= 'A' && r <= 'Z' {
+		return member
+	}
+	var b strings.Builder
+	up := true
+	for _, r := range member {
+		if r == '_' {
+			up = true
+			continue
+		}
+		if up {
+			b.WriteString(strings.ToUpper(string(r)))
+			up = false
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // New creates a new code generator.
@@ -1444,6 +1480,9 @@ func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 		return "", nil
 	}
 	if s, ok := stmt.(*ast.FetchStmt); ok {
+		if s.Go {
+			return "", g.fetchGoPackage(s)
+		}
 		path, ok := stdPackages[s.Path]
 		if !ok {
 			return "", fmt.Errorf("unknown package: %s", s.Path)
@@ -1465,6 +1504,48 @@ func (g *Generator) genStmtOrError(stmt ast.Stmt) (string, error) {
 		return "", nil
 	}
 	return g.genStmt(stmt), nil
+}
+
+// fetchGoPackage records an import written as `nab go "path"`.
+//
+// There is no list to look the path up in, which is the point: any Go package
+// can be named, and what it hands back is read or held by the bridge rather
+// than by anything written here for it.
+func (g *Generator) fetchGoPackage(s *ast.FetchStmt) error {
+	name := s.Name()
+	if name == "" {
+		return fmt.Errorf("cannot tell what to call package %q, so name it with tag", s.Path)
+	}
+	if g.imports == nil {
+		g.imports = make(map[string]string)
+	}
+	if g.goPackages == nil {
+		g.goPackages = make(map[string]bool)
+	}
+	g.imports[name] = s.Path
+	g.goPackages[name] = true
+	if s.Version != "" {
+		if g.goVersions == nil {
+			g.goVersions = make(map[string]string)
+		}
+		g.goVersions[s.Path] = s.Version
+	}
+	return nil
+}
+
+// GoRequirements gives the Go import paths the program pinned a version for,
+// so that the build can ask for those rather than for whatever is newest.
+// A package imported without a version is left out, and resolved by the Go
+// toolchain like any other.
+func (g *Generator) GoRequirements() map[string]string {
+	if len(g.goVersions) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(g.goVersions))
+	for path, version := range g.goVersions {
+		out[path] = version
+	}
+	return out
 }
 
 func (g *Generator) genIf(s *ast.IfStmt) string {
@@ -1632,6 +1713,11 @@ func (g *Generator) genExpr(expr ast.Expr) string {
 		if ok {
 			if realPkg, ok := g.resolveImportName(obj.Name); ok {
 				g.markPackageUsed(realPkg)
+				if g.goPackages[realPkg] {
+					// Something a Go package holds rather than does: read it if
+					// Meow has a shape for it, hold it if not.
+					return fmt.Sprintf("meow.FromGo(meow_%s.%s)", realPkg, goName(e.Member))
+				}
 				return fmt.Sprintf("meow_%s.%s", realPkg, capitalizeFirst(e.Member))
 			}
 			return fmt.Sprintf("%s.(*meow.Kitty).GetField(%q)", obj.Name, e.Member)
@@ -1856,23 +1942,39 @@ func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) st
 
 	obj, ok := member.Object.(*ast.Ident)
 	if !ok {
-		if argStr == "" {
-			return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q))",
-				g.genExpr(member.Object), member.Member)
-		}
-		return fmt.Sprintf("meow.Call((%s).(*meow.Kitty).GetField(%q), %s)",
-			g.genExpr(member.Object), member.Member, argStr)
+		return g.genCallMember(fmt.Sprintf("(%s)", g.genExpr(member.Object)), member.Member, argStr)
 	}
 	if realPkg, ok := g.resolveImportName(obj.Name); ok {
 		g.markPackageUsed(realPkg)
+		if g.goPackages[realPkg] {
+			return g.genGoCall(realPkg, obj.Name, member.Member, argStr)
+		}
 		return fmt.Sprintf("meow_%s.%s(%s)", realPkg, capitalizeFirst(member.Member), argStr)
 	}
-	if argStr == "" {
-		return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q))",
-			obj.Name, member.Member)
+	return g.genCallMember(obj.Name, member.Member, argStr)
+}
+
+// genGoCall emits a call on a Go package, made through the bridge.
+//
+// The Go name is spelled the way a Meow program writes names, and the call is
+// named as the program wrote it so that anything going wrong says which call
+// it was.
+func (g *Generator) genGoCall(pkg, wrote, member, argStr string) string {
+	call := fmt.Sprintf("meow.CallGo(%q, meow_%s.%s", wrote+"."+member, pkg, goName(member))
+	if argStr != "" {
+		call += ", " + argStr
 	}
-	return fmt.Sprintf("meow.Call(%s.(*meow.Kitty).GetField(%q), %s)",
-		obj.Name, member.Member, argStr)
+	return call + ")"
+}
+
+// genCallMember emits a call on a member of something that is not a package:
+// a method on a value held from Go, or a field holding a function on a Meow
+// object. Which it is, is known where the value is rather than here.
+func (g *Generator) genCallMember(objCode, member, argStr string) string {
+	if argStr == "" {
+		return fmt.Sprintf("meow.CallMember(%s, %q)", objCode, member)
+	}
+	return fmt.Sprintf("meow.CallMember(%s, %q, %s)", objCode, member, argStr)
 }
 
 // resolveTypeName tries to determine the type name for a given expression.

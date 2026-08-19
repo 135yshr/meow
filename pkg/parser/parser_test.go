@@ -649,6 +649,83 @@ func TestFetchStmtTagWithoutIdent(t *testing.T) {
 	}
 }
 
+// `nab go` names a Go package by its import path. What it is called by is the
+// package's own name, which is the last part of that path.
+func TestFetchGoPackage(t *testing.T) {
+	tests := []struct {
+		name              string
+		input             string
+		path, version, by string
+	}{
+		{"a path", `nab go "net/url"`, "net/url", "", "url"},
+		{
+			"one with a host in it",
+			`nab go "github.com/aws/aws-sdk-go-v2/service/sts"`,
+			"github.com/aws/aws-sdk-go-v2/service/sts", "", "sts",
+		},
+		{
+			"a pinned version",
+			`nab go "github.com/aws/aws-sdk-go-v2/aws/arn@v1.32.0"`,
+			"github.com/aws/aws-sdk-go-v2/aws/arn", "v1.32.0", "arn",
+		},
+		{"a tag of its own", `nab go "net/url" tag u`, "net/url", "", "u"},
+		{
+			"a pinned version and a tag",
+			`nab go "net/url@v1.2.3" tag u`,
+			"net/url", "v1.2.3", "u",
+		},
+		// The major version belongs to the module, not to the package.
+		{"a major version", `nab go "github.com/x/y/v2"`, "github.com/x/y/v2", "", "y"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := parse(t, tt.input).Stmts[0].(*ast.FetchStmt)
+			if !f.Go {
+				t.Error("this is a Go import and should say so")
+			}
+			if f.Path != tt.path {
+				t.Errorf("path is %q, want %q", f.Path, tt.path)
+			}
+			if f.Version != tt.version {
+				t.Errorf("version is %q, want %q", f.Version, tt.version)
+			}
+			if f.Name() != tt.by {
+				t.Errorf("called by %q, want %q", f.Name(), tt.by)
+			}
+		})
+	}
+}
+
+// Without `go` it is one of Meow's own packages, and the path is the name.
+func TestFetchWithoutGoIsMeowsOwn(t *testing.T) {
+	f := parse(t, `nab "file"`).Stmts[0].(*ast.FetchStmt)
+	if f.Go {
+		t.Error("a plain nab is not a Go import")
+	}
+	if f.Name() != "file" {
+		t.Errorf("called by %q, want file", f.Name())
+	}
+}
+
+// `go` says how to read the path that follows and means nothing anywhere else,
+// so like `tag` it stays an ordinary word everywhere else.
+func TestGoIsOnlyAKeywordAfterNab(t *testing.T) {
+	inputs := []string{
+		`nyan go = "away"`,
+		`meow leave(go string) string { bring go }`,
+		`nyan go = 1` + "\n" + `nya(go)`,
+	}
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			l := lexer.New(input, "test.nyan")
+			p := parser.New(l.Tokens())
+			if _, errs := p.Parse(); len(errs) > 0 {
+				t.Errorf("got %v, want no parse errors", errs)
+			}
+		})
+	}
+}
+
 // `tag` names a nab alias and means nothing anywhere else, so it stays an
 // ordinary word everywhere else. Reserved outright it took `tag` away from
 // every program — including the `nyan tag = Label("important")` the reference,

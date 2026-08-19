@@ -1398,3 +1398,35 @@ func hasError(errs []*checker.TypeError, want string) bool {
 	}
 	return false
 }
+
+// A Go import path can end in something that is not a name a program can
+// write. Rather than invent one, the program is asked to name it.
+func TestGoImportThatCannotBeNamed(t *testing.T) {
+	_, errs := check(t, `nab go "github.com/aws/aws-sdk-go-v2"`)
+
+	if len(errs) == 0 {
+		t.Fatal("got no errors, want one asking for a tag")
+	}
+	if !strings.Contains(errs[0].Error(), "tag") {
+		t.Errorf("says %q, want it to say what to do about it", errs[0])
+	}
+}
+
+// Named with a tag, the same path is fine.
+func TestGoImportNamedWithATag(t *testing.T) {
+	if _, errs := check(t, `nab go "github.com/aws/aws-sdk-go-v2" tag aws`); len(errs) > 0 {
+		t.Errorf("got %v, want no errors", errs)
+	}
+}
+
+// Two imports cannot share one name, however each came by it.
+func TestGoImportsThatCollide(t *testing.T) {
+	_, errs := check(t, "nab go \"net/url\"\nnab go \"example.com/url\"")
+
+	if len(errs) == 0 {
+		t.Fatal("got no errors, want one about the name being taken")
+	}
+	if !strings.Contains(errs[0].Error(), "url") {
+		t.Errorf("says %q, want it to name the name", errs[0])
+	}
+}

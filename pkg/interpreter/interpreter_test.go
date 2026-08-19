@@ -563,6 +563,32 @@ func TestFetchUnsupported(t *testing.T) {
 	}
 }
 
+// A Go package is as out of reach here as one of Meow's own, there being no Go
+// toolchain in the playground. Whichever was written, the message says so and
+// says it back the way the program wrote it.
+func TestFetchUnsupportedSaysWhatWasWritten(t *testing.T) {
+	tests := []struct {
+		source string
+		want   string
+	}{
+		{`nab "file"`, `nab "file"`},
+		{`nab "file" tag f`, `nab "file" tag f`},
+		{`nab go "net/url"`, `nab go "net/url"`},
+		{`nab go "net/url" tag u`, `nab go "net/url" tag u`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.source, func(t *testing.T) {
+			errMsg := runMeowError(t, tt.source)
+			if !strings.Contains(errMsg, tt.want) {
+				t.Errorf("says %q, want it to name %q", errMsg, tt.want)
+			}
+			if !strings.Contains(errMsg, "not supported") {
+				t.Errorf("says %q, want it to say it is not supported", errMsg)
+			}
+		})
+	}
+}
+
 func TestStepLimit(t *testing.T) {
 	l := lexer.New(`
 meow loop() {

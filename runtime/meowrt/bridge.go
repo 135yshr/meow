@@ -72,6 +72,59 @@ func CallGoMethod(ctx context.Context, recv Value, name string, args ...Value) V
 	return callReflected(ctx, name, m, args)
 }
 
+// CallMember calls a member of a value by name.
+//
+// What that means depends on what the value is: a method on something held
+// from Go, or a field holding a function on a Meow object. A program writes
+// the same thing either way, so the telling apart happens here rather than
+// where it is written.
+func CallMember(recv Value, name string, args ...Value) Value {
+	switch v := recv.(type) {
+	case *Opaque:
+		ctx, cancel := context.WithTimeout(context.Background(), callTimeoutForBridge)
+		defer cancel()
+		return CallGoMethod(ctx, v, goMethodName(name), args...)
+	case *Kitty:
+		return Call(v.GetField(name), args...)
+	case *Furball:
+		// A failure earlier in a chain is the answer to the whole chain.
+		return v
+	}
+	return NewFurball("Hiss! Cannot call %s on a %s, nya~", name, recv.Type())
+}
+
+// goMethodName spells a member the way Go writes a method name, so that a Meow
+// program can say get_caller_identity for GetCallerIdentity. A name already in
+// Go's spelling is left alone, which is how one this cannot reach is written.
+func goMethodName(name string) string {
+	if name == "" {
+		return name
+	}
+	if r := name[0]; r >= 'A' && r <= 'Z' {
+		return name
+	}
+	var b strings.Builder
+	up := true
+	for _, r := range name {
+		if r == '_' {
+			up = true
+			continue
+		}
+		if up {
+			b.WriteString(strings.ToUpper(string(r)))
+			up = false
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// FromGo reads a Go value as a Meow one, holding whatever Meow has no shape
+// for. It is what a Go package's own values — its constants, its variables —
+// come across as.
+func FromGo(v any) Value { return fromGo(reflect.ValueOf(v)) }
+
 func callReflected(ctx context.Context, what string, fn reflect.Value, args []Value) Value {
 	t := fn.Type()
 
