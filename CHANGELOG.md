@@ -1,3 +1,8 @@
+# [v0.21.3](https://github.com/135yshr/meow/compare/v0.21.2...v0.21.3) (2026-08-20)
+
+## 🐛 Bug Fixes
+- [`2aa1a85`](https://github.com/135yshr/meow/commit/2aa1a85)  fix: Judge purity by the declaration a name reaches (#138) (Issues: [`#138`](https://github.com/135yshr/meow/issues/138) [`#137`](https://github.com/135yshr/meow/issues/137) [`#137`](https://github.com/135yshr/meow/issues/137) [`#137`](https://github.com/135yshr/meow/issues/137))
+
 # [v0.21.2](https://github.com/135yshr/meow/compare/v0.21.1...v0.21.2) (2026-08-20)
 
 ## 🐛 Bug Fixes
