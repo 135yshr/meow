@@ -778,8 +778,10 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 		// value rather than calling it) still lets an impure function escape the
 		// pure body, so reject it. Call targets are handled by checkPurityCall
 		// and never reach here, so this fires only for genuine value references.
-		// Idents naming pure functions, constructors, or in-scope locals are fine.
-		if _, ok := c.info.FuncTypes[e.Name]; ok && !c.pureFuncs[e.Name] {
+		// Idents naming pure functions, constructors, or in-scope locals are
+		// fine — which is what the recorded resolution says, a name a local took
+		// over having nothing to do with the function it shadows.
+		if c.info.FuncRefs[e] && !c.pureFuncs[e.Name] {
 			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
 		}
 	case *ast.UnaryExpr:
@@ -861,8 +863,10 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 		default:
 			// A known user-defined function must itself be pure. Unknown idents
 			// (kitty/collar constructors, in-scope function values) are left
-			// alone — they carry no impure top-level function to leak.
-			if _, ok := c.info.FuncTypes[name]; ok && !c.pureFuncs[name] {
+			// alone — they carry no impure top-level function to leak, and a
+			// name a local took over reaches no top-level function at all,
+			// which is what the recorded resolution says.
+			if c.info.FuncRefs[fn] && !c.pureFuncs[name] {
 				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
 			}
 		}
