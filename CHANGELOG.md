@@ -1,3 +1,5 @@
+# [v0.21.4](https://github.com/135yshr/meow/compare/v0.21.3...v0.21.4) (2026-08-20)
+
 # [v0.21.3](https://github.com/135yshr/meow/compare/v0.21.2...v0.21.3) (2026-08-20)
 
 ## 🐛 Bug Fixes
