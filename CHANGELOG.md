@@ -1,3 +1,8 @@
+# [v0.21.1](https://github.com/135yshr/meow/compare/v0.21.0...v0.21.1) (2026-08-20)
+
+## 🐛 Bug Fixes
+- [`82e85cf`](https://github.com/135yshr/meow/commit/82e85cf)  fix: Let a top-level function be named rather than called (#136) (Issues: [`#136`](https://github.com/135yshr/meow/issues/136))
+
 # [v0.21.0](https://github.com/135yshr/meow/compare/v0.20.0...v0.21.0) (2026-08-19)
 
 ## ✨ New Features
