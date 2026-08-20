@@ -1385,12 +1385,17 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return kt
 		}
 
-		// Check user-defined functions
-		if ft, ok := c.info.FuncTypes[ident.Name]; ok {
+		// Check user-defined functions, when the name still reaches one here.
+		// Which declaration a call goes to is settled in the scope it was
+		// written in, the same as a name read rather than called, and is
+		// recorded so that codegen does not have to work it out again.
+		if ft, ok := c.info.FuncTypes[ident.Name]; ok && c.reachesTopLevelFunc(ident.Name, ft) {
+			c.info.FuncRefs[ident] = true
 			return c.checkFuncCall(e, ft, ident.Name)
 		}
 
-		// Check function-typed variables (partials/lambdas in scope).
+		// Check function-typed variables (partials/lambdas in scope), which is
+		// also where a name a local took over from a top-level function lands.
 		if ft, ok := types.Unwrap(c.lookup(ident.Name)).(types.FuncType); ok {
 			return c.checkFuncCall(e, ft, ident.Name)
 		}

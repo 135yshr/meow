@@ -1364,3 +1364,21 @@ nya(lick([1, 2], double))
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// Calling through a name a local took over goes to the local, in the
+// playground as in the compiler.
+func TestCallingThroughALocalThatShadowsATopLevelFunction(t *testing.T) {
+	got := runMeow(t, `
+meow double(n int) int { bring n * 2 }
+meow shadowed() string {
+  nyan double = paw(a, b) { bring a + "/" + b }
+  bring double("x", "y")
+}
+nya(shadowed())
+nya(double(21))
+`)
+	want := "x/y\n42\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

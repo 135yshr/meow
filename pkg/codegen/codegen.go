@@ -1926,7 +1926,7 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 					ident.Name, argStr)
 			}
 			if g.typeInfo != nil {
-				if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok && !g.isNestedFunc(ident.Name) {
+				if ft, ok := g.namedFunc(ident); ok {
 					if len(e.Args) < len(ft.Params) {
 						return g.genPartialCall(ident.Name, ft, e.Args)
 					}

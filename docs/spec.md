@@ -447,6 +447,20 @@ nya(3 |=| double)              # => 6
 nya(lick([1, 2, 3], double))   # => [2, 4, 6]
 ```
 
+A binding takes the name over for as long as it is in scope, whatever it holds
+and whether the name is read or called. Which declaration a name reaches is
+settled where it is written, so a local holding a function of its own shape is
+that function, and is checked as one:
+
+```meow
+meow double(n int) int { bring n * 2 }
+
+meow rename() string {
+  nyan double = paw(a, b) { bring a + "/" + b }
+  bring double("x", "y")       # => x/y, and takes two arguments
+}
+```
+
 #### Nested Functions
 
 A `meow` may be declared inside another. It is visible only within the block it
