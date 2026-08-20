@@ -71,7 +71,11 @@ func readLines(t *testing.T, path string) []string {
 	if err != nil {
 		t.Fatalf("cannot read %s: %v", path, err)
 	}
-	return strings.Split(strings.TrimRight(string(b), "\n"), "\n")
+	// A checkout on Windows may carry CRLF. Left alone, every line would keep
+	// a trailing \r, the front matter's "---" would not be recognized, and the
+	// test would report drift that is not there.
+	text := strings.ReplaceAll(string(b), "\r\n", "\n")
+	return strings.Split(strings.TrimRight(text, "\n"), "\n")
 }
 
 // afterFrontMatter drops Hugo's `---` block from the front of a copy.

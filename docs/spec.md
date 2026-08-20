@@ -254,11 +254,12 @@ Arithmetic operators (`+`, `-`, `*`, `/`, `%`) require operands of the same type
 Comparison operators (`<`, `>`, `<=`, `>=`) work on `int` and `float`.
 
 Equality operators (`==`, `!=`) require operands of the same type — comparing
-two different types, as in `1 == "one"`, is an error. The one exception is
-`catnap`: either side may be `catnap` whatever the other side is, because
-comparing against it asks "is this missing?", which any value may be asked —
-an unset environment variable and an absent map key both answer with it.
-`catnap` equals only `catnap`.
+two different types, as in `1 == "one"`, is an error. Two things are excepted.
+
+The first is `catnap`: either side may be `catnap` whatever the other side is,
+because comparing against it asks "is this missing?", which any value may be
+asked — an unset environment variable and an absent map key both answer with
+it. `catnap` equals only `catnap`.
 
 ```meow
 nyan token = env.hunt("API_TOKEN")
@@ -267,6 +268,23 @@ sniff (token == catnap) { hiss("API_TOKEN is not set") }
 nyan m = {"a": "A"}
 nya(m["missing"] == catnap)   # => yarn
 ```
+
+The second is `collar`: any two collars may be compared, even when they are
+not the same collar. A collar exists to keep apart values that share an
+underlying type, so asking whether a temperature is a humidity is a fair
+question with a settled answer — no. Two collars of the same name compare
+their underlying values; two of different names are never equal.
+
+```meow
+collar Temperature = int
+collar Humidity = int
+
+nya(Temperature(72) == Temperature(72))   # => yarn
+nya(Temperature(72) == Humidity(72))      # => hairball
+```
+
+Two different `kitty` types are not excepted: comparing them is an error, as
+`1 == "one"` is.
 
 Logical operators (`&&`, `||`) use short-circuit evaluation. `&&` returns the left operand if falsy, otherwise the right. `||` returns the left operand if truthy, otherwise the right.
 
@@ -318,7 +336,7 @@ MemberExpr = Expr "." MemberName .
 MemberName = identifier | keyword | type_keyword .
 ```
 
-Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
+Reaches a field on a `kitty` instance, a method defined by `groom`, or a member of an imported package. Reaching one is all this does; calling it is a `CallExpr` around it.
 
 A member that is read rather than called is a value of its own. A field is what
 it holds; a method — one groomed on, or one belonging to something from Go — is

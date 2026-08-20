@@ -521,7 +521,10 @@ nya(parsed["host"])
 ```
 
 The package is called by the last element of its path, or by `tag` when that
-is not a name a program can write. Go names are spelled the way Meow writes
+is not a name a program can write. A major-version element is not that name: it
+belongs to the module, so `github.com/Masterminds/semver/v3` is `semver`. Only
+`v2` and up are version elements — a module at v0 or v1 carries no suffix, which
+is why `k8s.io/api/core/v1` really is called `v1`. Go names are spelled the way Meow writes
 names — `strings.to_upper` is `strings.ToUpper` — and a name holding an
 initialism is written as Go writes it, `strings.ToValidUTF8`. Without `@` the
 version is the toolchain's choice. See [spec.md](spec.md#importing-a-go-package)
@@ -554,7 +557,19 @@ function like any other:
 ```meow
 nyan tell = nyantyu.show      # not called: the method, bound to nyantyu
 nya(tell())                   # => Nyantyu (age 3)
-nya(lick([nyantyu], tell))
+```
+
+What it was reached through is already settled, so a bound method's arguments
+are the ones the method itself declares — not the thing it is called on. A
+method taking one argument therefore pipes and maps on that argument:
+
+```meow
+groom Cat {
+  meow greets(who string) string { bring self.name + " greets " + who }
+}
+
+nya("Kuro" |=| nyantyu.greets)                  # => Nyantyu greets Kuro
+nya(lick(["Tama", "Mike"], nyantyu.greets))     # => [Nyantyu greets Tama, Nyantyu greets Mike]
 ```
 
 The same holds for a named function, which can be kept, piped into, or mapped

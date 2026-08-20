@@ -58,13 +58,15 @@ sniff (down > 0) {
 scram()          # the same as scram(0): finished, nothing wrong
 ```
 
-A status outside 0 to 255 is refused rather than wrapped. A shell sees only the
-low eight bits, so `scram(256)` would arrive as 0 — a program asking to fail
-would be read as having succeeded.
+A status outside 0 to 255 is refused rather than wrapped. Were it wrapped, a
+shell would see only the low eight bits, and `scram(256)` would arrive as 0 — a
+program asking to fail would be read as having succeeded.
 
-Nothing after `scram` runs, and `gag` cannot catch it: the program is over. As
-with `hiss`, a typed function that ends in `scram` still needs a `bring` after
-it, since the checker reads the function as having a path with no return.
+On a status a process can report, nothing after `scram` runs and `gag` cannot
+catch it: the program is over. A refused status is the other case — there the
+program carries on, and what `scram` gave back can be caught like anything else.
+As with `hiss`, a typed function that ends in `scram` still needs a `bring`
+after it, since the checker reads the function as having a path with no return.
 
 Inside a fully typed function a refused status is raised rather than returned —
 such a function has no way to hand a Furball back — so `gag` catches it there
@@ -1048,9 +1050,16 @@ Write a value as JSON text.
 nya(json.wind({"a": 1, "b": [1, 2, 3]}))   # => {"a":1,"b":[1,2,3]}
 ```
 
-A round trip preserves every value but not the order keys were written in: a
-`basket` has no order, so the keys come back sorted. A `litter` keeps its
-order, being a sequence.
+A round trip keeps what JSON has a shape for, but two things do not survive it.
+Keys lose the order they were written in — a `basket` has no order, so they come
+back sorted, while a `litter` keeps its order, being a sequence. And a whole
+`float` comes back an `int`: JSON has no way to write "the float one", so `1.0`
+is written `1` and read as a whole value, by the rule above.
+
+```meow
+nya(json.wind(1.0))                  # => 1
+nya(json.unravel(json.wind(1.0)))    # => 1, an int now
+```
 
 ---
 
