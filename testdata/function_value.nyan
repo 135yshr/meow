@@ -1,0 +1,68 @@
+# A function named rather than called is the function itself, so it can be kept,
+# piped into, or mapped over a list like any other value.
+
+meow double(n int) int {
+  bring n * 2
+}
+
+meow join(a string, b string) string {
+  bring a + "-" + b
+}
+
+meow shout(s string) {
+  nya("!" + s)
+}
+
+meow seven() int {
+  bring 7
+}
+
+# Kept, then called.
+nyan f = double
+nya(f(21))
+
+# Piped into, and mapped over a list.
+nya(3 |=| double)
+nya(lick([1, 2, 3], double))
+
+# Its arity is known, so it curries as a call with too few arguments does.
+nyan greet = join("hi")
+nya(greet("nyan"))
+
+# One with no answer of its own, and one that takes nothing.
+nyan say = shout
+nya(say("meow"))
+nyan give = seven
+nya(give())
+
+# And read for what it is.
+nya(double)
+
+# A name a local has taken over is the local's, whatever it holds — including a
+# function, which has the same type as the one it shadows and so can only be
+# told apart by where each was written.
+meow shadowed_by_a_function() litter {
+  nyan double = paw(x) { bring x + 100 }
+  bring lick([1, 2], double)
+}
+nya(shadowed_by_a_function())
+
+meow shadowed_by_text() string {
+  nyan double = "text"
+  bring double
+}
+nya(shadowed_by_text())
+
+meow shadowed_by_a_parameter(double int) int {
+  bring double + 1
+}
+nya(shadowed_by_a_parameter(5))
+
+meow shadowed_by_a_nested_meow() litter {
+  meow double(x int) int { bring x + 1000 }
+  bring lick([1, 2], double)
+}
+nya(shadowed_by_a_nested_meow())
+
+# And outside them all the name is still the top-level function.
+nya(lick([1, 2], double))

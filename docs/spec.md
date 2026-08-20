@@ -433,6 +433,20 @@ meow greet(name string) string {
 }
 ```
 
+A function named rather than called is the function itself, and can be kept,
+piped into, or mapped over a list like any other value. Its arity is known, so
+naming one is what a call with too few arguments already is, with none of them
+supplied:
+
+```meow
+meow double(n int) int { bring n * 2 }
+
+nyan twice = double
+nya(twice(21))                 # => 42
+nya(3 |=| double)              # => 6
+nya(lick([1, 2, 3], double))   # => [2, 4, 6]
+```
+
 #### Nested Functions
 
 A `meow` may be declared inside another. It is visible only within the block it

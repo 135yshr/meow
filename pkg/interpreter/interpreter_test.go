@@ -1328,3 +1328,39 @@ nya(lick([1, 2], c.older))
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// A function named rather than called is the function itself. The playground
+// evaluates the same programs the CLI compiles, so it answers this the same
+// way.
+func TestAFunctionNamedRatherThanCalledIsAValue(t *testing.T) {
+	got := runMeow(t, `
+meow double(n int) int { bring n * 2 }
+nyan f = double
+nya(f(21))
+nya(3 |=| double)
+nya(lick([1, 2, 3], double))
+nya(double)
+`)
+	want := "42\n6\n[2, 4, 6]\n<meow double>\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A name a local has taken over is the local's, even when what it holds is a
+// function and so has the same type as the one it shadows.
+func TestALocalFunctionValueShadowsATopLevelFunction(t *testing.T) {
+	got := runMeow(t, `
+meow double(n int) int { bring n * 2 }
+meow shadowed() litter {
+  nyan double = paw(x) { bring x + 100 }
+  bring lick([1, 2], double)
+}
+nya(shadowed())
+nya(lick([1, 2], double))
+`)
+	want := "[101, 102]\n[2, 4]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

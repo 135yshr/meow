@@ -1756,7 +1756,30 @@ func (g *Generator) genIdent(e *ast.Ident) string {
 	if t, ok := g.nativeVars[e.Name]; ok {
 		return g.boxNative(e.Name, t)
 	}
+	// A function named rather than called is the function itself. A top-level
+	// one is a plain Go function, which nothing taking a meow.Value can be
+	// handed, so it is wrapped into the value it has to be — the same wrapper a
+	// call with too few arguments already makes, with none of them supplied.
+	if ft, ok := g.namedFunc(e); ok {
+		return g.genPartialCall(e.Name, ft, nil)
+	}
 	return e.Name
+}
+
+// namedFunc reports whether an identifier names a top-level meow function
+// where it is written, and gives that function's type.
+//
+// A nested meow is already held in a meow.Value and needs no wrapping. A name a
+// local has taken over is the local's, which the checker settles by recording
+// the occurrences that reach the top-level declaration — the type cannot say,
+// since a local holding a function has the same type as the function it
+// shadows.
+func (g *Generator) namedFunc(e *ast.Ident) (types.FuncType, bool) {
+	if g.typeInfo == nil || g.isNestedFunc(e.Name) || !g.typeInfo.FuncRefs[e] {
+		return types.FuncType{}, false
+	}
+	ft, declared := g.typeInfo.FuncTypes[e.Name]
+	return ft, declared
 }
 
 func (g *Generator) genUnary(e *ast.UnaryExpr) string {

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/parser"
@@ -1462,5 +1463,38 @@ func TestGoImportsThatCollide(t *testing.T) {
 	}
 	if !strings.Contains(errs[0].Error(), "url") {
 		t.Errorf("says %q, want it to name the name", errs[0])
+	}
+}
+
+// Which declaration a name reaches is settled by the scope it was written in.
+// A local holding a function has the same type as the function it shadows, so
+// the type cannot say which is which and the resolution is recorded instead.
+func TestWhichDeclarationANameReaches(t *testing.T) {
+	info, errs := check(t, `
+meow double(n int) int { bring n * 2 }
+meow shadowed() litter {
+    nyan double = paw(x) { bring x + 100 }
+    bring lick([1, 2], double)
+}
+nya(lick([1, 2], double))
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+
+	var reaching, taken int
+	for node := range info.ExprTypes {
+		id, isIdent := node.(*ast.Ident)
+		if !isIdent || id.Name != "double" {
+			continue
+		}
+		if info.FuncRefs[id] {
+			reaching++
+			continue
+		}
+		taken++
+	}
+	if reaching != 1 || taken != 1 {
+		t.Errorf("%d occurrences reach the function and %d were taken over, want 1 of each", reaching, taken)
 	}
 }
