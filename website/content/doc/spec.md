@@ -42,22 +42,23 @@ Line comments start with `#` and extend to the end of the line. Block comments s
 
 ### Keywords
 
-The following 25 identifiers are reserved as keywords:
+The following 27 identifiers are reserved as keywords:
 
-```text
-nyan      meow      bring     sniff     scratch
-purr      paw       nya       lick      picky
-curl      peek      hiss      nab       flaunt
-catnap    yarn      hairball  kitty     breed
-collar    pose      groom     self      trill
+```ebnf
+keyword = "nyan"   | "meow"  | "bring"    | "sniff" | "scratch"
+        | "purr"   | "paw"   | "nya"      | "lick"  | "picky"
+        | "curl"   | "peek"  | "hiss"     | "nab"   | "flaunt"
+        | "catnap" | "yarn"  | "hairball" | "kitty" | "breed"
+        | "collar" | "pose"  | "groom"    | "self"  | "trill"
+        | "bolt"   | "slink" .
 ```
 
 ### Type Keywords
 
-The following 6 identifiers are reserved as type keywords:
+The following 7 identifiers are reserved as type keywords:
 
-```text
-int    float    string    bool    furball    litter
+```ebnf
+type_keyword = "int" | "float" | "string" | "bool" | "furball" | "litter" | "basket" .
 ```
 
 ### Identifiers
@@ -133,11 +134,16 @@ Meow uses a gradual type system. Values are dynamically typed at runtime (boxed 
 | Type | Description | Syntax |
 |------|-------------|--------|
 | `litter` | Ordered collection of values | `[1, 2, 3]` |
-| Map | String-keyed dictionary | `{"key": value}` |
+| `basket` | String-keyed dictionary — keys are string literals | `{"key": value}` |
 | `kitty` | User-defined struct | `kitty Name { field: type }` |
 | `breed` | Type alias (transparent) | `breed Nickname = string` |
 | `collar` | Newtype (nominal wrapper) | `collar UserId = int` |
 | `pose` | Interface (method signatures) | `pose Showable { meow show() string }` |
+
+A `litter` written out with one kind of thing in it is a litter of that kind,
+and one written with several is a litter of anything — `[1, 2, 3]` holds ints,
+`[1, "a"]` holds whatever it holds. Nothing is refused for being mixed; what
+changes is only how much is known about an element before the program runs.
 
 ### Type Alias (breed)
 
@@ -190,7 +196,7 @@ requirement without repeating the type — in `meow add(a, b int)`, `a` takes th
 type of the next parameter that has one.
 
 ```ebnf
-TypeExpr = "int" | "float" | "string" | "bool" | "furball" | "litter" | identifier .
+TypeExpr = type_keyword | identifier .
 ```
 
 Variable declaration with type:
@@ -249,7 +255,40 @@ BinaryExpr = Expr op Expr .
 
 Arithmetic operators (`+`, `-`, `*`, `/`, `%`) require operands of the same type. `+` also concatenates strings.
 
-Comparison operators (`<`, `>`, `<=`, `>=`) work on `int` and `float`. Equality operators (`==`, `!=`) work on all types.
+Comparison operators (`<`, `>`, `<=`, `>=`) work on `int` and `float`.
+
+Equality operators (`==`, `!=`) require operands of the same type — comparing
+two different types, as in `1 == "one"`, is an error. Two things are excepted.
+
+The first is `catnap`: either side may be `catnap` whatever the other side is,
+because comparing against it asks "is this missing?", which any value may be
+asked — an unset environment variable and an absent map key both answer with
+it. `catnap` equals only `catnap`.
+
+```meow
+nyan token = env.hunt("API_TOKEN")
+sniff (token == catnap) { hiss("API_TOKEN is not set") }
+
+nyan m = {"a": "A"}
+nya(m["missing"] == catnap)   # => yarn
+```
+
+The second is `collar`: any two collars may be compared, even when they are
+not the same collar. A collar exists to keep apart values that share an
+underlying type, so asking whether a temperature is a humidity is a fair
+question with a settled answer — no. Two collars of the same name compare
+their underlying values; two of different names are never equal.
+
+```meow
+collar Temperature = int
+collar Humidity = int
+
+nya(Temperature(72) == Temperature(72))   # => yarn
+nya(Temperature(72) == Humidity(72))      # => hairball
+```
+
+Two different `kitty` types are not excepted: comparing them is an error, as
+`1 == "one"` is.
 
 Logical operators (`&&`, `||`) use short-circuit evaluation. `&&` returns the left operand if falsy, otherwise the right. `||` returns the left operand if truthy, otherwise the right.
 
@@ -297,10 +336,39 @@ Accesses a list element by zero-based index.
 ### Member Expression
 
 ```ebnf
-MemberExpr = Expr "." identifier .
+MemberExpr = Expr "." MemberName .
+MemberName = identifier | keyword | type_keyword .
 ```
 
-Accesses a field on a `kitty` instance, calls a method defined by `groom`, or calls a function in an imported package.
+Reaches a field on a `kitty` instance, a method defined by `groom`, or a member of an imported package. Reaching one is all this does; calling it is a `CallExpr` around it.
+
+A member that is read rather than called is a value of its own. A field is what
+it holds; a method — one groomed on, or one belonging to something from Go — is
+that method bound to what it was reached through, which is a function like any
+other:
+
+```meow
+nab go "strings"
+
+nyan swap = strings.new_replacer("cat", "nyan")
+nyan speak = swap.replace              # a function, not yet called
+
+nya(speak("the cat"))                  # => the nyan
+nya("the cat" |=| swap.replace)        # => the nyan
+nya(lick(["cat", "dog"], swap.replace))
+```
+
+This is what a language of values has in place of a chain of calls. Rather than
+following one call with another, a member is taken as a function and the value
+is passed into it, which reads left to right and needs nothing to come after a
+closing bracket. A member that is not there fails where it is written rather
+than where the function it would have been is called.
+
+A member may be named after a keyword. Nothing but a member can follow a dot,
+so there is nothing for `x.string` to be ambiguous with, and a Go method named
+`String` is spelled `.string()` — see [Importing a Go package](#importing-a-go-package).
+Everywhere a keyword can stand, it is still a keyword: `nyan string = 1` remains
+an error.
 
 ### Pipe Expression
 
@@ -387,6 +455,52 @@ meow greet(name string) string {
 }
 ```
 
+A function named rather than called is the function itself, and can be kept,
+piped into, or mapped over a list like any other value. Its arity is known, so
+naming one is what a call with too few arguments already is, with none of them
+supplied:
+
+```meow
+meow double(n int) int { bring n * 2 }
+
+nyan twice = double
+nya(twice(21))                 # => 42
+nya(3 |=| double)              # => 6
+nya(lick([1, 2, 3], double))   # => [2, 4, 6]
+```
+
+A binding takes the name over for as long as it is in scope, whatever it holds
+and whether the name is read or called. Which declaration a name reaches is
+settled where it is written, so a local holding a function of its own shape is
+that function, and is checked as one:
+
+```meow
+meow double(n int) int { bring n * 2 }
+
+meow rename() string {
+  nyan double = paw(a, b) { bring a + "/" + b }
+  bring double("x", "y")       # => x/y, and takes two arguments
+}
+```
+
+#### Nested Functions
+
+A `meow` may be declared inside another. It is visible only within the block it
+was written in — a `sniff` or `purr` body has its own scope, as it does for
+ordinary bindings — it may read the enclosing scope, and it shadows a top-level
+function of the same name.
+
+A nested function may call itself, and may call a sibling written after it, since
+those calls happen once both declarations have run. Calling one *before* its
+declaration has run is a failure, and reports that the function is undefined.
+
+```meow
+meow outer(x int) int {
+  meow inner(y int) int { bring x + y }
+  bring inner(10)
+}
+```
+
 #### Pure Functions (trill)
 
 Prefixing a declaration with `trill` opts the function into a compile-time purity check. Inside a `trill` function the body may only call other `trill` functions and side-effect-free builtins (arithmetic/comparison operators, `len`, `to_int`, `to_float`, `to_string`, `to_bytes`, `to_runes`, `is_furball`, `head`, `tail`, `append`, `lick`, `picky`, `curl`, `whiff`,
@@ -398,7 +512,23 @@ trill meow add(a int, b int) int {
 }
 ```
 
-**Known limitation (step 1):** passing a non-pure function as a bare value (without calling it) is not yet detected.
+Referencing a non-`trill` function as a bare value — binding it to a variable, passing it as an argument, or returning it — is also a compile error, so impurity cannot escape a pure body without being called.
+
+Both rules are about the declaration a name reaches, not the name itself. A
+binding takes a name over for as long as it is in scope, so a pure body may hold
+one of its own where an impure function happens to share the name:
+
+```meow
+meow helper(x int) int {
+  nya("side effect")
+  bring x + 1
+}
+
+trill meow adds(n int) int {
+  nyan helper = paw(x) { bring x + 1 }
+  bring helper(n)             # the local, and so allowed
+}
+```
 
 ### Return Statement
 
@@ -429,31 +559,213 @@ sniff (x > 0) {
 ### Loop Statement
 
 ```ebnf
-RangeStmt = "purr" identifier "(" RangeExpr ")" Block .
+RangeStmt = "purr" identifier [ "," identifier ] "(" RangeExpr ")" Block .
 RangeExpr = Expr [ ".." Expr ] .
+WhileStmt = "purr" "(" Expr ")" Block .
+BoltStmt  = "bolt" .
+SlinkStmt = "slink" .
 ```
 
-Two forms:
+Four forms:
 
 - **Count form**: `purr i (n)` — iterates `i` from `0` to `n-1`.
 - **Range form**: `purr i (a..b)` — iterates `i` from `a` to `b` (inclusive).
+- **Element form**: `purr x (litter)` — iterates over a litter's elements.
+  `purr i, x (litter)` also binds the index. Over a `basket`, `purr k (basket)`
+  binds each key and `purr k, v (basket)` binds key and value.
+- **Conditional form**: `purr (cond)` — repeats while `cond` holds, tested
+  before each turn. It has no loop variable, which is what tells it apart from
+  the forms above. As with `sniff`, `cond` must be a `bool`.
 
 ```meow
 purr i (5) { nya(i) }         # 0, 1, 2, 3, 4
 purr i (1..5) { nya(i) }     # 1, 2, 3, 4, 5
+purr w (["a", "b"]) { nya(w) }        # a, b
+purr i, w (["a", "b"]) { nya(i) }     # 0, 1
+purr k ({"a": 1, "b": 2}) { nya(k) }         # a, b
+purr k, v ({"a": 1}) { nya(k + to_string(v)) }   # a1
 ```
+
+`bolt` leaves the loop it is written in; `slink` ends that turn and starts the
+next. Both belong to the nearest enclosing `purr`, and neither may be written
+outside one — including inside a `paw` or a `meow` declared in a loop body, since
+those run when they are called rather than as part of the turn.
+
+```meow
+purr x ([1, 2, 3, 4]) {
+  sniff (x == 4) { bolt }     # stop here
+  sniff (x == 2) { slink }    # skip this one
+  nya(x)                       # 1, 3
+}
+```
+
+Because bindings are immutable, a conditional `purr` cannot count its own way to
+a stopping point: its condition is about something the loop does not change — a
+reply that has not arrived, a file that is not there yet — and it usually ends
+with `bolt` when the body has what it came for. A condition that is already
+false means the body never runs, and a failure while working the condition out
+ends the program rather than reading as false.
+
+A `basket` is walked in sorted key order. Go, which the compiler targets,
+randomizes map iteration, so walking one in its own order would give a program
+output that differed from run to run.
+
+The count and element forms are written the same way, so which one a `purr`
+means depends on what its subject turns out to be: a litter is walked element by
+element, and anything else is read as a count. When the subject's type is known
+ahead of time — a literal, a `litter`-annotated binding — the choice is settled
+while compiling; otherwise it is settled when the loop runs. Either way the
+answer is the same, so a `purr` over a call's result or a map lookup behaves
+like a `purr` over a litter written out in full.
 
 ### Nab Statement
 
 ```ebnf
-NabStmt = "nab" string_lit newline .
+NabStmt = "nab" [ "go" ] string_lit [ "tag" identifier ] newline .
 ```
 
-Imports a standard library package. Available packages: `"file"`, `"http"`, `"testing"`.
+Imports a standard library package. Available packages: `"clock"`, `"env"`,
+`"file"`, `"http"`, `"json"`, `"random"`, `"testing"`.
 
 ```meow
 nab "http"
 ```
+
+#### Importing a Go package
+
+With `go`, the string is a Go import path rather than one of Meow's own
+packages, and any Go package can be named. Nothing has to be written for it
+first: the call is made through the bridge, which reads what Meow has a shape
+for and holds what it has not.
+
+```meow
+nab go "strings"
+nab go "net/url" tag u
+
+nya(strings.to_upper("nyan"))          # => NYAN
+
+nyan parsed = u.parse("https://example.com/a/b")
+nya(parsed["host"])                    # => example.com
+```
+
+The package is called by the last element of its path — `url` for `"net/url"` —
+except that a major-version element belongs to the module rather than the
+package, so `"github.com/x/y/v2"` is `y`. Go has such a suffix only from `v2`
+up, so `"k8s.io/api/core/v1"` really is called `v1`.
+
+When that leaves a name a program cannot write — `"github.com/aws/aws-sdk-go-v2"`
+is not a name, and a package called `nyan` could never be said, since `nyan`
+begins a binding wherever it appears — `tag` names it instead:
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/config" tag cfg
+```
+
+Go names are spelled the way Meow writes names: `strings.to_upper` is
+`strings.ToUpper`, and `sts.new_from_config` is `sts.NewFromConfig`. A keyword
+is a name after a dot like any other — nothing but a member can follow one — so
+Go's `String()` is written `.string()`. A name holding an initialism cannot be
+spelled this way — `to_valid_utf8` reaches for
+`ToValidUtf8`, which is not what Go calls it — so such a name is written as Go
+writes it, `strings.ToValidUTF8`. Getting it wrong is a build error naming the
+spelling that exists, not a surprise at runtime.
+
+What comes back is read if Meow has a shape for it and held if not. A record
+becomes a basket, under the names a Meow program writes; a `time.Time` becomes
+its text; a trailing `error` becomes a furball. A client, a connection, a
+handle — anything with methods and nothing to read — is held whole, and the
+next call is made on it:
+
+```meow
+nab go "regexp"
+
+nyan re = regexp.must_compile("[0-9]+")
+nya(re.find_string("abc 123 def"))     # => 123
+```
+
+What is read also remembers what it was read out of, so reading a value is not
+what stops it being one. It is still called on, and still handed to the next
+call as itself:
+
+```meow
+nab go "net/url" tag u
+nab go "time"
+
+nyan p = u.parse("https://example.com/a/b?x=1")
+nya(p["host"])                         # => example.com
+nya(p.hostname())                      # => example.com
+
+nyan d = time.ParseDuration("90m")
+nya(d)                                 # => 5400000000000
+nya(d.minutes())                       # => 90
+```
+
+Some records are a basket by their shape and a handle by their use —
+`aws.Config` has fields worth reading and interface fields that no basket could
+be built back into — and this is what lets them be both. Being handed on as
+itself rather than as what it read as is also what keeps what the reading does
+not say: a `time.Time` goes to the next call down to the nanosecond, not down to
+the second its text gives.
+
+Only what was read remembers. A basket a program wrote itself remembers nothing
+and is built into the record as before, and a value that is all there — a plain
+string, a plain number — remembers nothing either, since there is nothing more
+of it to reach.
+
+What was read is a reading, taken when it was taken. A Meow value cannot be
+changed once made, and the Go value behind it can be — by a call that is handed
+it, or by a method called on it — so after such a call the two say different
+things: the Go value has moved on and the basket still holds what was read. The
+basket is not wrong when that happens; it is what was there to read at the time,
+which is the only thing an unchanging value can be.
+
+A method with nothing of its own to say gives back a fresh reading of what it
+was called on, so the doing has somewhere to show. Go writes a great many such
+methods — `Set`, `Add`, `Reset` — and what they do is to the thing they are
+called on:
+
+```meow
+nab go "net/url" tag u
+
+nyan q = u.ParseQuery("x=1&y=2")
+nya(q.set("z", "9"))                   # => {x: [1], y: [2], z: [9]}
+nya(q)                                 # => {x: [1], y: [2]}
+```
+
+The change arrives as a new value beside the old one, which is how a language
+whose values do not change says that something happened. A handle is not read,
+so there is nothing to read again: the same handle comes back, and one call can
+follow another.
+
+A method with nothing to say is one with no answer, which is not the same as one
+whose answer is nothing: a search that found nothing still answers `catnap`, and
+a method that failed answers with the furball. A trailing `error` is the failure
+rather than an answer, so a method returning only an `error` has nothing to say
+when it does not fail.
+
+The version is the toolchain's choice unless the program makes it, which it
+does with `@`:
+
+```meow
+nab go "github.com/aws/aws-sdk-go-v2/aws/arn@v1.32.0"
+```
+
+A function taking an empty interface — `fmt.Sprintf`, `json.Marshal` — gets the
+plain Go value behind the Meow one, a litter arriving as a slice and a basket as
+a map. An interface with methods is another matter: only something held from Go
+can satisfy one.
+
+```meow
+nab go "fmt"
+nab go "encoding/json" tag j
+
+nya(fmt.sprintf("%s has %d", "nyan", 4))
+nya(to_string(j.marshal({"name": "nyan"})))   # => {"name":"nyan"}
+```
+
+Generics, channels, and functions taking functions are not reached this way. A
+Go package is also out of reach in the playground, which has no Go toolchain —
+as every `nab` already is.
 
 ### Kitty Statement
 
@@ -531,6 +843,14 @@ nyan c = Cat("Nyantyu", 3)
 nya(c.show())       # => Nyantyu (age 3)
 ```
 
+A groomed method read rather than called is that method bound to the instance,
+and has the method's own type — see [Member Expression](#member-expression):
+
+```meow
+nyan tell = c.show
+nya(tell())         # => Nyantyu (age 3)
+```
+
 The `self` keyword refers to the instance the method is called on. For `kitty` types, `self.field` accesses fields. For `collar` types, `self.value` accesses the wrapped value.
 
 ### Self Expression
@@ -556,6 +876,7 @@ Any expression can appear as a statement. The result is discarded.
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `nya` | `nya(args...)` | Print values (space-separated) with trailing newline |
+| `scram` | `scram([status])` | End the program with `status` (0–255, default 0); `Furball` outside that range |
 
 ### Error Handling
 
@@ -604,6 +925,14 @@ Errors in Meow use a panic/recover model:
    - `expr ~> paw(err) { ... }` — evaluates `expr`; if it panics, calls the handler with the `Furball`.
 
 4. **Checking errors**: `is_furball(v)` returns `yarn` if `v` is a `Furball`, `hairball` otherwise.
+
+5. **Reporting errors**: A failure nothing catches ends the program, and is written to standard error prefixed with the position of the statement that was running, in the same `file:line:column` form the compiler's own errors use:
+
+   ```text
+   probe.nyan:12:3: Hiss! Cannot read "3 " as an Int, nya~
+   ```
+
+   The prefix is on the report only. A `Furball` caught with `gag` or `~>` carries the message alone, so a program that prints or matches one sees what it always did.
 
 ## Program Structure
 

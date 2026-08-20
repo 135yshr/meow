@@ -36,6 +36,45 @@ hiss("bad value:", x)
 
 This function never returns.
 
+### `scram([status])`
+
+End the program with the given status.
+
+- **status** (int, optional): 0 to 255. Omitted means 0.
+- **Never returns** when given a status a process can report.
+- **Returns a Furball**: If `status` is not an int, or is outside 0 to 255. There
+  is nothing to end on such a status, so the program carries on and the Furball
+  can be caught like any other.
+
+A status is how a program tells the shell, cron job or CI step that started it
+what it found. Without one, a check that saw an endpoint go down could only say
+so in words that nothing downstream reads.
+
+```meow
+sniff (down > 0) {
+  nya(to_string(down) + " endpoint(s) down")
+  scram(1)
+}
+scram()          # the same as scram(0): finished, nothing wrong
+```
+
+A status outside 0 to 255 is refused rather than wrapped. Were it wrapped, a
+shell would see only the low eight bits, and `scram(256)` would arrive as 0 — a
+program asking to fail would be read as having succeeded.
+
+On a status a process can report, nothing after `scram` runs and `gag` cannot
+catch it: the program is over. A refused status is the other case — there the
+program carries on, and what `scram` gave back can be caught like anything else.
+As with `hiss`, a typed function that ends in `scram` still needs a `bring`
+after it, since the checker reads the function as having a path with no return.
+
+Inside a fully typed function a refused status is raised rather than returned —
+such a function has no way to hand a Furball back — so `gag` catches it there
+the way it catches a `hiss`.
+
+In the playground there is no process to end, so the run simply stops where
+`scram` was called and keeps whatever it printed on the way.
+
 ### `gag(fn)`
 
 Call a zero-argument function and catch any panic. If the function succeeds, its return value is returned. If it panics, the error is wrapped in a `Furball` and returned.
@@ -60,14 +99,16 @@ nya(is_furball(42))       # => hairball
 
 ### `len(v)`
 
-Return the length of a string (byte count) or list (element count).
+Return the length of a string (byte count), litter (element count) or basket
+(entry count).
 
 ```meow
-nya(len("hello"))       # => 5
-nya(len([1, 2, 3]))     # => 3
+nya(len("hello"))            # => 5
+nya(len([1, 2, 3]))          # => 3
+nya(len({"a": 1, "b": 2}))   # => 2
 ```
 
-Panics if `v` is not a string or list.
+Anything else is a Furball.
 
 ### `head(list)`
 
@@ -134,11 +175,28 @@ Convert a value to an integer.
 - `int` → returns as-is
 - `float` → truncates to int
 - `bool` → `yarn` is `1`, `hairball` is `0`
-- Other types → panics
+- `string` → reads a whole number out of it, ignoring surrounding space
+- Other types → returns a Furball
 
 ```meow
 nya(to_int(3.7))      # => 3
 nya(to_int(yarn))     # => 1
+nya(to_int("42"))     # => 42
+```
+
+Everything a program takes from outside itself — the environment, a file, an
+HTTP body — arrives as text, so reading a string is how a number gets in:
+
+```meow
+nab "env"
+nyan budget = to_int(env.hunt("BUDGET_MS", "15000"))
+```
+
+Text that does not spell a number is a Furball rather than a wrong answer, so
+it can be recovered from like any other failure:
+
+```meow
+nya(to_int("forty two") ~> 0)   # => 0
 ```
 
 ### `to_float(v)`
@@ -147,11 +205,15 @@ Convert a value to a float.
 
 - `float` → returns as-is
 - `int` → widens to float
-- Other types → panics
+- `string` → reads a decimal number out of it, ignoring surrounding space
+- Other types → returns a Furball
 
 ```meow
-nya(to_float(42))   # => 42
+nya(to_float(42))       # => 42
+nya(to_float("3.5"))    # => 3.5
 ```
+
+As with `to_int`, unreadable text is a Furball.
 
 ### `to_string(v)`
 
@@ -172,11 +234,16 @@ nya(to_string(to_bytes("hello")))   # => hello
 
 ### `to_bytes(s)`
 
-Convert a string to a list of byte (integer) values.
+Convert a string to a list of its UTF-8 bytes.
 
 - **s** (string): The string to convert.
-- **Returns**: A list of integers representing the UTF-8 byte values.
+- **Returns**: A list of byte values, which print like integers.
 - **Panics**: If the argument is not a string.
+
+The elements are byte values, a type nothing else produces — a list you write
+out yourself, such as `[65]`, holds ints instead. That is what lets `to_string`
+tell a byte list apart from any other list and reassemble it, so `[65]` prints
+as `[65]` while `to_bytes("A")` round-trips back to `"A"`.
 
 ```meow
 nya(to_bytes("ABC"))    # => [65, 66, 67]
@@ -199,6 +266,89 @@ To go back the other way, join the list with `tangle(runes, "")`.
 nya(to_runes("ABC"))              # => [A, B, C]
 nya(to_runes("にゃん"))            # => [に, ゃ, ん]
 nya(tangle(to_runes("にゃん"), ""))  # => にゃん
+```
+
+### `upper(s)` / `lower(s)`
+
+Return the string with every letter in upper or lower case.
+
+```meow
+nya(upper("cat"))   # => CAT
+nya(lower("CAT"))   # => cat
+```
+
+### `trim(s)`
+
+Return the string without leading or trailing whitespace.
+
+A line read from a file, or an environment variable, carries surrounding space,
+and comparing against it without trimming answers no for a reason nothing in
+the source shows.
+
+```meow
+nya("[" + trim("  cat  ") + "]")   # => [cat]
+```
+
+### `replace(s, old, new)`
+
+Return the string with **every** occurrence of `old` replaced by `new`.
+
+An empty `old` is a Furball: it would insert the replacement between every
+character, which is never the intent.
+
+```meow
+nya(replace("a-b-c", "-", "+"))   # => a+b+c
+```
+
+### `pad(s, width)`
+
+Return the string widened to `width` characters with spaces.
+
+A positive width pads on the right, lining a column up on its left edge; a
+negative one pads on the left, which is what a column of numbers wants. A
+string already that wide is returned whole rather than cut — losing text to make
+a table line up is the worse trade. Width is counted in characters, as `nibble`
+and `track` are.
+
+```meow
+nya("[" + pad("ab", 5) + "]")       # => [ab   ]
+nya("[" + pad("ab", 0 - 5) + "]")   # => [   ab]
+```
+
+### `sort(list)`
+
+Return a litter with its elements in ascending order. The litter passed in is
+left alone.
+
+A litter holding more than one kind of value is a Furball rather than an
+arbitrary order: there is no answer to "is `1` before `"a"`", and inventing one
+would put a program's output at the mercy of which happened to come first.
+
+```meow
+nya(sort([3, 1, 2]))              # => [1, 2, 3]
+nya(sort(["pear", "apple"]))      # => [apple, pear]
+```
+
+### `reverse(list)`
+
+Return a litter with its elements in the opposite order. The litter passed in is
+left alone.
+
+```meow
+nya(reverse([1, 2, 3]))   # => [3, 2, 1]
+```
+
+### `round(x, places)`
+
+Return the number rounded to the given number of decimal places, 0 to 15.
+
+Rounding is half away from zero, the arithmetic convention, rather than Go's
+half-to-even — a reader expects `2.5` to print as `3`. An `int` is already
+rounded and comes back as one, so it does not start printing as `42.0`.
+
+```meow
+nya(round(3.14159, 2))   # => 3.14
+nya(round(2.5, 0))       # => 3
 ```
 
 ### `whiff(s, sub)`
@@ -509,6 +659,32 @@ empty string.
 nab "env"
 nya(env.sniffed("HOME"))   # => yarn
 ```
+
+### `env.haul()`
+
+Read the arguments the program was started with.
+
+- **Returns**: A litter of strings, in the order they were given.
+- **Returns a Furball**: If called with any arguments.
+
+The program's own name is left out — a program wants what it was asked to do,
+not the path it happens to be installed at. A program started with no arguments
+gets an empty litter, so `len` answers without a special case for "none".
+
+```meow
+nab "env"
+
+nyan given = env.haul()
+sniff (len(given) == 0) {
+  nya("usage: check <targets file>")
+  scram(2)
+}
+nyan targets = head(given)
+```
+
+Everything typed after the `.nyan` file belongs to the program, so
+`meow run check.nyan -v` hands `-v` to the program rather than reading it as
+meow's own flag. Running the built binary the same way gives the same answer.
 
 ### `env.prowl()`
 
@@ -822,6 +998,68 @@ which is why the program above asks for it a page at a time.
 **A timeout.** Each bridged call is bounded by 30 seconds, as `nab "aws"` was.
 
 ---
+
+---
+
+## json Package
+
+Import with `nab "json"`. Reads JSON text into Meow values and writes it back.
+
+A program that talks to an HTTP API can otherwise only match replies as text,
+and deciding "did the record arrive" by searching a body for a word answers yes
+when the word appears somewhere else in the payload.
+
+### `json.unravel(text)`
+
+Read JSON text.
+
+- **text** (string): The document to read.
+- **Returns**: An object as a `basket`, an array as a `litter`, `null` as
+  `catnap`, and strings, numbers and booleans as themselves.
+- Text that is not JSON is a **Furball**, so it can be recovered from with `~>`.
+
+```meow
+nab "json"
+
+nyan doc = json.unravel("{\"hits\": [{\"marker\": \"m1\"}], \"count\": 1}")
+nya(doc["count"])            # => 1
+nya(len(doc["hits"]))        # => 1
+purr hit (doc["hits"]) {
+  nya(hit["marker"])         # => m1
+}
+
+nya(json.unravel("<html>") ~> "not json")   # => not json
+```
+
+JSON has one number type and Meow has two, so a whole value comes back as an
+`int` and anything else as a `float` — an id or a count does not arrive
+reading `42.0`. Whole values are read exactly, including ones past 2^53 that a
+float could not hold; past `int64` there is nothing exact left to offer, so
+those read as floats rather than being refused.
+
+### `json.wind(value)`
+
+Write a value as JSON text.
+
+- **value**: A `basket`, `litter`, string, number, boolean or `catnap`.
+- **Returns**: The JSON text as a string.
+- A value JSON has no shape for — a Furball, a `kitty`, a function — is a
+  **Furball**, rather than text that would read back as something else.
+
+```meow
+nya(json.wind({"a": 1, "b": [1, 2, 3]}))   # => {"a":1,"b":[1,2,3]}
+```
+
+A round trip keeps what JSON has a shape for, but two things do not survive it.
+Keys lose the order they were written in — a `basket` has no order, so they come
+back sorted, while a `litter` keeps its order, being a sequence. And a whole
+`float` comes back an `int`: JSON has no way to write "the float one", so `1.0`
+is written `1` and read as a whole value, by the rule above.
+
+```meow
+nya(json.wind(1.0))                  # => 1
+nya(json.unravel(json.wind(1.0)))    # => 1, an int now
+```
 
 ---
 

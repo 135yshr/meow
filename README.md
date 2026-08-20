@@ -72,7 +72,7 @@ Hello, Nyantyu!
 - **Transpiles to Go** — Generates clean, readable Go code
 - **Native binaries** — Compiled output runs at full Go speed
 - **Gradual typing** — Annotate function signatures; everything else is inferred and boxed as `meow.Value`
-- **First-class functions** — Lambdas with `paw(x) { x * 2 }`
+- **First-class functions** — Lambdas with `paw(x) { x * 2 }`, and a named function or method taken as a value: `lick([1, 2], double)`
 - **Structs & newtypes** — `kitty` (struct), `collar` (newtype), `breed` (alias)
 - **Interfaces & methods** — `pose` (interface), `groom` (method impl)
 - **Standard library** — `nab "file"`, `nab "http"`, `nab "env"`, `nab "clock"`, `nab "random"`
