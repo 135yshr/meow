@@ -15,7 +15,9 @@ A complete reference of all keywords, operators, and syntax in the Meow Programm
 | `bring` | Return a value | `bring x + 1` |
 | `sniff` | Conditional branch (if) | `sniff (x > 0) { ... }` |
 | `scratch` | Else branch | `} scratch { ... }` |
-| `purr` | Loop (count, range, or list) | `purr i (10) { ... }` |
+| `purr` | Loop (count, range, list, or condition) | `purr i (10) { ... }`, `purr (ready) { ... }` |
+| `bolt` | Leave the loop | `sniff (found) { bolt }` |
+| `slink` | On to the next turn | `sniff (empty) { slink }` |
 | `paw` | Lambda (anonymous function) | `paw(x int) { x * 2 }` |
 | `nya` | Print values | `nya("Hello!")` |
 | `lick` | Transform each element in a list (map) | `lick(nums, paw(x) { x * 2 })` |
@@ -58,7 +60,6 @@ Grouped parameters satisfy the requirement without repeating the type: in
 
 Lambdas are the exception — `paw` parameters may be left unannotated, and their
 result type is inferred.
-
 
 | Type | Meaning | Example |
 |------|---------|---------|
@@ -160,7 +161,7 @@ From lowest to highest:
 |------|---------|-------------|
 | Integer | `42` | Decimal integer |
 | Float | `3.14` | Floating-point number |
-| String | `"Hello, world!"` | Double-quoted, `\\` for escape |
+| String | `"Hello, world!"` | Double-quoted. Escapes: `\"` `\\` `\n` `\t` `\r` |
 | List | `[1, 2, 3]` | Ordered collection |
 | Map | `{"key": "value"}` | String-keyed dictionary |
 
@@ -252,8 +253,12 @@ trill meow add(a int, b int) int {
 }
 ```
 
-**Known limitation (step 1):** passing a non-pure function as a bare value
-(without calling it) is not detected yet.
+A non-`trill` function referenced as a bare value — bound to a variable, passed
+as an argument, or returned — is rejected too, so an impure function can't slip
+out of a pure body without being called.
+
+Both rules are about the declaration a name reaches. A pure body may hold a pure
+local of its own where an impure function happens to share the name.
 
 ### Struct (Kitty) Definition
 
@@ -506,6 +511,26 @@ nya(content)
 
 Available packages: `clock`, `env`, `file`, `http`, `json`, `random`, `testing`. See [stdlib.md](stdlib.md) for details.
 
+With `go`, the string is a Go import path rather than one of Meow's own
+packages, and any Go package can be reached without a wrapper written for it:
+
+```meow
+nab go "strings"
+nab go "net/url" tag u                              # name it yourself
+nab go "github.com/Masterminds/semver/v3@v3.3.1"    # pin a version
+
+nya(strings.to_upper("nyan"))
+nyan parsed = u.parse("https://example.com/a/b")
+nya(parsed["host"])
+```
+
+The package is called by the last element of its path, or by `tag` when that
+is not a name a program can write. Go names are spelled the way Meow writes
+names — `strings.to_upper` is `strings.ToUpper` — and a name holding an
+initialism is written as Go writes it, `strings.ToValidUTF8`. Without `@` the
+version is the toolchain's choice. See [spec.md](spec.md#importing-a-go-package)
+for what comes back and how it is read.
+
 ### Member Access
 
 The `.` operator accesses fields on `kitty` instances, calls methods defined by `groom`, and calls functions on imported packages:
@@ -522,6 +547,34 @@ nya(nyantyu.show())  # => Nyantyu (age 3)
 nab "http"
 http.pounce("https://example.com") |=| nya
 ```
+
+A member may be named after a keyword, since nothing but a member can follow a
+dot — a Go method named `String` is written `.string()`.
+
+A member read rather than called is a value of its own. A field is what it
+holds; a method is that method bound to what it was reached through, which is a
+function like any other:
+
+```meow
+nyan tell = nyantyu.show      # not called: the method, bound to nyantyu
+nya(tell())                   # => Nyantyu (age 3)
+nya(lick([nyantyu], tell))
+```
+
+The same holds for a named function, which can be kept, piped into, or mapped
+over a list:
+
+```meow
+meow double(n int) int { bring n * 2 }
+
+nyan twice = double
+nya(twice(21))                # => 42
+nya(3 |=| double)             # => 6
+nya(lick([1, 2, 3], double))  # => [2, 4, 6]
+```
+
+A binding takes a name over for as long as it is in scope, whether the name is
+read or called, so a local of the same name is the one that is reached.
 
 ### Interface (Pose)
 

@@ -492,6 +492,22 @@ trill meow add(a int, b int) int {
 
 Referencing a non-`trill` function as a bare value — binding it to a variable, passing it as an argument, or returning it — is also a compile error, so impurity cannot escape a pure body without being called.
 
+Both rules are about the declaration a name reaches, not the name itself. A
+binding takes a name over for as long as it is in scope, so a pure body may hold
+one of its own where an impure function happens to share the name:
+
+```meow
+meow helper(x int) int {
+  nya("side effect")
+  bring x + 1
+}
+
+trill meow adds(n int) int {
+  nyan helper = paw(x) { bring x + 1 }
+  bring helper(n)             # the local, and so allowed
+}
+```
+
 ### Return Statement
 
 ```ebnf
