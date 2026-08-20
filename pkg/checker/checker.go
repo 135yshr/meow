@@ -1141,6 +1141,18 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		c.inferExpr(e.Subject)
 		var armType types.Type
 		for _, arm := range e.Arms {
+			// A pattern is an expression, and one naming something is a
+			// reference like any other. Walking it here is what records which
+			// declaration that name reaches, which the purity check reads —
+			// it walks patterns already, so leaving them uninferred left it
+			// asking about something nothing had answered.
+			switch p := arm.Pattern.(type) {
+			case *ast.LiteralPattern:
+				c.inferExpr(p.Value)
+			case *ast.RangePattern:
+				c.inferExpr(p.Low)
+				c.inferExpr(p.High)
+			}
 			t := c.inferExpr(arm.Body)
 			if armType == nil {
 				armType = t
