@@ -66,3 +66,20 @@ nya(shadowed_by_a_nested_meow())
 
 # And outside them all the name is still the top-level function.
 nya(lick([1, 2], double))
+
+# Calling through a name a local took over goes to the local, and is checked
+# against what the local is rather than against the function it shadows.
+meow called_through_a_local() string {
+  nyan double = paw(a, b) { bring a + "/" + b }
+  bring double("x", "y")
+}
+nya(called_through_a_local())
+
+meow called_through_a_nested_meow() int {
+  meow double(n int) int { bring n + 1000 }
+  bring double(1)
+}
+nya(called_through_a_nested_meow())
+
+# And outside them all the call still goes to the top-level function.
+nya(double(21))

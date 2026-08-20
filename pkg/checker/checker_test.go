@@ -1498,3 +1498,32 @@ nya(lick([1, 2], double))
 		t.Errorf("%d occurrences reach the function and %d were taken over, want 1 of each", reaching, taken)
 	}
 }
+
+// A call through a name a local took over is checked against what the local
+// is. Checking it against the function it shadows would refuse a call that is
+// perfectly good — here, one that takes two arguments where the top-level
+// function takes one.
+func TestACallThroughALocalIsCheckedAgainstTheLocal(t *testing.T) {
+	_, errs := check(t, `
+meow greet(who string) string { bring "hi " + who }
+meow shadowed() string {
+    nyan greet = paw(a, b) { bring a + "/" + b }
+    bring greet("x", "y")
+}
+nya(shadowed())
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+// And a call that still reaches the top-level function is checked against it.
+func TestACallThatReachesTheFunctionIsStillChecked(t *testing.T) {
+	_, errs := check(t, `
+meow greet(who string) string { bring "hi " + who }
+nya(greet("x", "y"))
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected an error for too many arguments, got none")
+	}
+}
