@@ -1244,10 +1244,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 			ident.Name, strings.Join(args, ", "))
 	}
 
-	// Typed user-defined functions (only for fully native signatures). A nested
-	// `meow` is held as a value and shadows a top-level one of the same name, so
-	// it is asked about first — FuncTypes only ever names the top-level ones.
-	if ft, ok := g.typeInfo.FuncTypes[ident.Name]; ok && !g.isNestedFunc(ident.Name) {
+	// Typed user-defined functions (only for fully native signatures). The name
+	// has to still reach the top-level declaration here: a nested `meow` or a
+	// binding holding a function shadows one of the same name, and FuncTypes
+	// knows only the top-level ones.
+	//
+	// A shadowed name has not been seen to reach this far — holding a function
+	// value pushes the whole body onto the boxed path, which resolves it — but
+	// asking here keeps the answer the same wherever a call is written.
+	if ft, ok := g.namedFunc(ident); ok {
 		if len(e.Args) < len(ft.Params) {
 			return g.genPartialCall(ident.Name, ft, e.Args)
 		}

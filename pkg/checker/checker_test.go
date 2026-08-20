@@ -1527,3 +1527,68 @@ nya(greet("x", "y"))
 		t.Fatal("expected an error for too many arguments, got none")
 	}
 }
+
+// A name a local took over reaches no top-level function, so what the function
+// it shadows does is not the local's business. A pure body may call a pure
+// local of its own even where an impure function shares the name.
+func TestAPureBodyMayCallAPureLocalThatShadowsAnImpureFunction(t *testing.T) {
+	_, errs := check(t, `
+meow helper(x int) int {
+    nya("side effect")
+    bring x + 1
+}
+trill meow adds(n int) int {
+    nyan helper = paw(x) { bring x + 1 }
+    bring helper(n)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+// What the guard is for is untouched: an impure function reached by its own
+// name is still refused, wherever the walk can see it.
+//
+// A match pattern is the case worth naming. Patterns were not inferred, so no
+// resolution was recorded for a name written in one, and asking about a
+// recorded resolution would have let it through — the walk goes there, so the
+// inference has to as well.
+func TestAPureBodyStillRefusesAnImpureFunction(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		says string
+	}{
+		{"called", "bring impure(n)", "must not call non-pure function impure"},
+		{"referenced as a value", "bring lick([n], impure)[0]", "must not reference non-pure function impure"},
+		{"named in a match pattern", "bring peek(n) {\n    impure => 1\n    _ => 0\n}", "must not reference non-pure function impure"},
+		{"called in a range pattern", "bring peek(n) {\n    1..impure(2) => 1\n    _ => 0\n}", "must not call non-pure function impure"},
+		{"inside a nested meow", "meow inner(k int) int { bring impure(k) }\n    bring inner(n)", "must not call non-pure function impure"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, errs := check(t, `
+meow impure(x int) int {
+    nya("side effect")
+    bring x + 1
+}
+trill meow bad(n int) int {
+    `+tt.body+`
+}
+`)
+			if len(errs) == 0 {
+				t.Fatal("expected an error, got none")
+			}
+			found := false
+			for _, e := range errs {
+				if contains(e.Message, tt.says) {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("expected %q, got: %v", tt.says, errs)
+			}
+		})
+	}
+}
