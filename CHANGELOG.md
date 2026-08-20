@@ -1,3 +1,8 @@
+# [v0.21.2](https://github.com/135yshr/meow/compare/v0.21.1...v0.21.2) (2026-08-20)
+
+## 🐛 Bug Fixes
+- [`db6e3d0`](https://github.com/135yshr/meow/commit/db6e3d0)  fix: Send a call to the declaration the name reaches (#137) (Issues: [`#137`](https://github.com/135yshr/meow/issues/137) [`#136`](https://github.com/135yshr/meow/issues/136) [`#136`](https://github.com/135yshr/meow/issues/136))
+
 # [v0.21.1](https://github.com/135yshr/meow/compare/v0.21.0...v0.21.1) (2026-08-20)
 
 ## 🐛 Bug Fixes
