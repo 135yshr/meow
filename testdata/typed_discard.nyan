@@ -42,3 +42,48 @@ meow uses_it(n int) int {
   bring n
 }
 nya(to_string(uses_it(7)))
+
+# A statement that is not a call discards its value just the same. A pipe, an
+# index and a piece of arithmetic each answer with a Furball here, and each one
+# used to be dropped while the playground raised it.
+meow piped(n int) int {
+  ["not a number"] |=| head |=| to_int
+  nya("this line must not be reached")
+  bring n
+}
+nya(to_string(piped(5)) ~> "the pipe was noticed")
+
+meow indexed(n int) int {
+  [1, 2][9]
+  nya("this line must not be reached")
+  bring n
+}
+nya(to_string(indexed(5)) ~> "the index was noticed")
+
+meow divided(n int) int {
+  n / 0
+  nya("this line must not be reached")
+  bring n
+}
+nya(to_string(divided(5)) ~> "the division was noticed")
+
+# A statement inside a loop is a statement like any other, so the check goes
+# where the statement is rather than only at the top of the body.
+meow in_a_loop(n int) int {
+  purr i (0..2) {
+    doubled(["oops"])
+    nya("this line must not be reached")
+  }
+  bring n
+}
+nya(to_string(in_a_loop(5)) ~> "the loop was stopped")
+
+# A failure already caught is not raised again: gag hands back a Furball marked
+# as handled, and a statement holding one carries on.
+meow already_caught(n int) int {
+  nyan caught = gag(paw() { bring doubled(["oops"]) })
+  caught
+  nya("this line is reached")
+  bring n
+}
+nya(to_string(already_caught(9)))

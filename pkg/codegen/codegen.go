@@ -816,7 +816,17 @@ func (g *Generator) genTypedExprStmt(s *ast.ExprStmt) string {
 		}
 		return code
 	}
-	return g.genExpr(s.Expr)
+	// A statement that is not a call answers with a value just the same, and
+	// that value is discarded just the same: a `|=|` pipe, an index, a piece of
+	// arithmetic. The untyped path checks every statement's value, not only a
+	// call's, so leaving these bare let a Furball vanish here while the
+	// playground raised it.
+	//
+	// Generating them boxed is what the untyped path does, so Propagate always
+	// has a meow.Value to look at; it hands back anything that is not an
+	// unhandled Furball, which also makes a statement out of an expression Go
+	// would otherwise refuse as unused.
+	return fmt.Sprintf("meow.Propagate(%s)", g.genExpr(s.Expr))
 }
 
 func (g *Generator) genTypedIf(s *ast.IfStmt) string {

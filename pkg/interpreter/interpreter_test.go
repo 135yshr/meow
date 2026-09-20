@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 
@@ -1380,5 +1381,354 @@ nya(double(21))
 	want := "x/y\n42\n"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A statement inside a typed function discards its value, and a Furball that
+// value holds is raised where the statement is written — for a statement that
+// is not a call as much as for one that is. The compiler had dropped these,
+// so this pins down the answer the playground has always given and the one the
+// generated code now gives too.
+func TestATypedStatementRaisesTheFurballItDiscards(t *testing.T) {
+	tests := []struct {
+		name string
+		stmt string
+	}{
+		{name: "call", stmt: `boom(["oops"])`},
+		{name: "pipe", stmt: `["oops"] |=| boom`},
+		{name: "index", stmt: `[1, 2][9]`},
+		{name: "arithmetic", stmt: `n / 0`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := runMeow(t, `
+meow boom(xs litter) string { bring xs[0] + 1 }
+meow caller(n int) int {
+  `+tt.stmt+`
+  nya("kept going")
+  bring n
+}
+nya(to_string(caller(5)) ~> "recovered")
+`)
+			if got != "recovered\n" {
+				t.Errorf("got %q, want %q", got, "recovered\n")
+			}
+		})
+	}
+}
+
+// A failure already caught is not raised a second time: gag marks it handled,
+// so a statement holding it carries on.
+func TestATypedStatementKeepsGoingOnACaughtFailure(t *testing.T) {
+	got := runMeow(t, `
+meow boom(xs litter) string { bring xs[0] + 1 }
+meow caller(n int) int {
+  nyan caught = gag(paw() { bring boom(["oops"]) })
+  caught
+  nya("kept going")
+  bring n
+}
+nya(to_string(caller(5)))
+`)
+	want := "kept going\n5\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// runMeowBoth runs a program and hands back both what it printed and how it
+// ended. The assertions need each: an assertion that holds must print nothing
+// and leave the program running, and one that fails must stop it where it is
+// rather than print and carry on.
+func runMeowBoth(t *testing.T, source string) (string, error) {
+	t.Helper()
+	l := lexer.New(source, "test.nyan")
+	p := parser.New(l.Tokens())
+	prog, parseErrs := p.Parse()
+	if len(parseErrs) > 0 {
+		t.Fatalf("parse errors: %v", parseErrs)
+	}
+
+	c := checker.New()
+	ti, checkErrs := c.Check(prog)
+	if len(checkErrs) > 0 {
+		t.Fatalf("checker errors: %v", checkErrs)
+	}
+
+	var buf bytes.Buffer
+	interp := New(&buf)
+	interp.SetTypeInfo(ti)
+	// The run has to finish before the buffer is read: a return statement
+	// evaluates its operands left to right, so returning buf.String() beside
+	// the call would hand back the buffer as it was before the program ran.
+	err := interp.RunSafe(prog)
+	return buf.String(), err
+}
+
+// --- Assertions: judge, expect, refuse, seed ---
+
+// An assertion that holds is worth no output at all, exactly as it is worth
+// none under `meow test`, where only the enclosing test's PASS line is printed.
+func TestAnAssertionThatHoldsIsSilent(t *testing.T) {
+	got := runMeow(t, `
+judge(yarn)
+judge(1 + 1 == 2, "math works")
+expect(1 + 1, 2)
+expect("a" + "b", "ab", "strings join")
+refuse(hairball)
+refuse(1 == 2, "one is not two")
+nya("all good")
+`)
+	if got != "all good\n" {
+		t.Errorf("got %q, want %q", got, "all good\n")
+	}
+}
+
+// A failed assertion answers with a Furball carrying the same message the
+// compiled path's runtime/testing builds, so the playground reports the wording
+// `meow test` reports and the program stops there rather than running on.
+func TestAnAssertionThatFailsStopsTheProgram(t *testing.T) {
+	tests := []struct {
+		name string
+		call string
+		want string
+	}{
+		{"judge", `judge(hairball)`, "assertion failed: expected truthy value"},
+		{"judge with a message", `judge(hairball, "nope")`, "nope"},
+		{"expect", `expect(1, 2)`, "expected 2, got 1"},
+		{"expect with a message", `expect(1, 2, "counting")`, "counting: expected 2, got 1"},
+		{"refuse", `refuse(yarn)`, "assertion failed: expected falsy value"},
+		{"refuse with a message", `refuse(yarn, "should not hold")`, "should not hold"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := runMeowBoth(t, tt.call+"\nnya(\"unreached\")\n")
+			if err == nil {
+				t.Fatalf("expected the run to stop, got output %q", out)
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("got %q, want it to contain %q", err.Error(), tt.want)
+			}
+			if out != "" {
+				t.Errorf("printed %q, want nothing", out)
+			}
+		})
+	}
+}
+
+// A failed assertion is an ordinary Furball, so everything that already handles
+// one handles this: gag catches it, and is_furball knows it for one.
+func TestAFailedAssertionIsAFurball(t *testing.T) {
+	got := runMeow(t, `
+nyan caught = gag(paw() { bring judge(hairball, "nope") })
+nya(is_furball(caught))
+nya(judge(yarn) ~> "unreachable")
+`)
+	want := "true\ncatnap\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// An assertion handed too few arguments says so rather than reaching for one
+// that is not there — the same Furball runtime/testing answers with.
+func TestAnAssertionNeedsItsArguments(t *testing.T) {
+	tests := []struct {
+		call string
+		want string
+	}{
+		{`judge()`, "Hiss! judge expects at least 1 argument, nya~"},
+		{`expect(1)`, "Hiss! expect expects at least 2 arguments, nya~"},
+		{`refuse()`, "Hiss! refuse expects at least 1 argument, nya~"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.call, func(t *testing.T) {
+			got := runMeowError(t, tt.call)
+			if !strings.Contains(got, tt.want) {
+				t.Errorf("got %q, want it to contain %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// seed states a fuzz corpus entry. Only `meow test -fuzz` has anything to do
+// with one, and the compiled path outside that context answers catnap and
+// carries on, so this does too rather than dying as an undefined name.
+func TestSeedIsCatnapOutsideAFuzzRun(t *testing.T) {
+	got := runMeow(t, `
+seed(1, 2)
+seed("abc")
+nya(seed(3))
+nya("after seed")
+`)
+	want := "catnap\nafter seed\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// --- A name piped into rather than called ---
+
+// A builtin named bare as a pipe target is the builtin, the way it is in a call
+// position. The compiled path has always read it that way; the interpreter used
+// to look the name up as a variable and die on `|=| nya`, which is the form the
+// tutorial teaches throughout.
+func TestABareBuiltinIsAPipeTarget(t *testing.T) {
+	got := runMeow(t, `
+nyan nums = [1, 2, 3]
+nums |=| lick(paw(x) { bring x * 2 }) |=| nya
+"zz" |=| upper |=| nya
+[3, 1, 2] |=| sort |=| nya
+42 |=| to_string |=| nya
+[1, 2, 3] |=| len |=| nya
+`)
+	want := "[2, 4, 6]\nZZ\n[1, 2, 3]\n42\n3\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// The same for a function of the program's own, which already worked, and for
+// a kitty or collar constructor, which did not.
+func TestABareNameOfTheProgramsOwnIsAPipeTarget(t *testing.T) {
+	got := runMeow(t, `
+kitty Point {
+  x: int
+}
+collar Age = int
+meow double(n int) int { bring n * 2 }
+
+nyan p = 5 |=| Point
+nyan a = 7 |=| Age
+nya(3 |=| double)
+nya(p.x)
+nya(a.value)
+`)
+	want := "6\n5\n7\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A builtin is answered before a binding of the same name, in a pipe as in a
+// call. That is the order the compiled path resolves in — codegen reaches its
+// own table first — and the point here is that the two agree, not which of
+// them is the happier rule.
+func TestABuiltinPipeTargetOutranksABindingOfTheSameName(t *testing.T) {
+	got := runMeow(t, `
+nyan upper = paw(s) { bring s + "!" }
+nya(upper("hi"))
+nya("hi" |=| upper)
+`)
+	if got != "HI\nHI\n" {
+		t.Errorf("got %q, want %q", got, "HI\nHI\n")
+	}
+}
+
+// A constructor is answered before a binding of the same name, in a pipe as in
+// a call, because that is what codegen does. Unifying call resolution is what
+// made this worth pinning: reaching the environment first would quietly turn a
+// constructor into whatever the program had bound, and only in the playground.
+func TestAConstructorOutranksABindingOfTheSameName(t *testing.T) {
+	got := runMeow(t, `
+kitty Point {
+  x: int
+}
+collar Age = int
+nyan Point = paw(n) { bring "not the constructor" }
+nyan Age = paw(n) { bring "not the constructor" }
+nyan p = Point(2)
+nyan a = Age(7)
+nyan q = 3 |=| Point
+nya(p.x)
+nya(a.value)
+nya(q.x)
+`)
+	want := "2\n7\n3\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A name that holds something other than a function says what it found, and
+// says it the same way whether it was called or piped into — the wording the
+// compiled path uses. A call used to name the name and a pipe used to say only
+// "pipe target is not callable"; neither was what a compiled program printed.
+func TestANameThatIsNotAFunctionSaysWhatItIs(t *testing.T) {
+	tests := []struct {
+		name string
+		call string
+	}{
+		{"called", `nya(f(1))`},
+		{"piped into", `nya(1 |=| f)`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := runMeowError(t, "nyan f = 5\n"+tt.call+"\n")
+			want := "Hiss! Int is not callable, nya~"
+			if !strings.Contains(got, want) {
+				t.Errorf("got %q, want it to contain %q", got, want)
+			}
+		})
+	}
+}
+
+// --- Drift guard ---
+
+// The checker decides which names a program may use without a nab; this
+// package decides what those names do. Nothing in the compiler links the two,
+// so a builtin added to one and forgotten in the other type-checks and then
+// dies at run time — which is exactly how judge, expect, refuse and seed came
+// to be accepted by the checker, compiled by codegen, and undefined here.
+//
+// Both sides are tables rather than switches so that this comparison is a
+// reading of the real thing and not of a third list kept by hand.
+func TestTheBuiltinTableAndTheCheckerAgree(t *testing.T) {
+	accepted := make(map[string]bool)
+	for _, name := range checker.BuiltinNames() {
+		accepted[name] = true
+	}
+
+	for name := range accepted {
+		if _, ok := builtins[name]; !ok {
+			t.Errorf("the checker accepts %q but the interpreter has no builtin for it: "+
+				"a program using it type-checks and then dies in the playground", name)
+		}
+	}
+	for name := range builtins {
+		if !accepted[name] {
+			t.Errorf("the interpreter implements %q but the checker does not accept it: "+
+				"a program using it is rejected before it ever runs", name)
+		}
+	}
+}
+
+// Every name the two tables agree on can actually be reached: a call of it
+// resolves to the builtin rather than falling through to "undefined function".
+// The tables could agree on a name that dispatch never consults.
+func TestEveryAcceptedBuiltinIsReachableByName(t *testing.T) {
+	interp := New(io.Discard)
+	for _, name := range checker.BuiltinNames() {
+		if name == "scram" {
+			// scram leaves by panicking with the status it was given, so there
+			// is nothing to come back and report; that it is in the table is
+			// what the test above checks.
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					// A wrong number of arguments is a fine answer here — it
+					// means the name reached its builtin. "undefined function"
+					// means it did not.
+					if msg, ok := r.(string); ok && strings.Contains(msg, "undefined function") {
+						t.Errorf("%s is not reachable: %s", name, msg)
+					}
+				}
+			}()
+			if _, ok := interp.dispatchBuiltin(name, nil); !ok {
+				t.Errorf("%s is in the builtin table but dispatch does not answer to it", name)
+			}
+		})
 	}
 }

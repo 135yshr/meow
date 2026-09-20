@@ -2,6 +2,8 @@ package checker
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/135yshr/meow/pkg/ast"
 	"github.com/135yshr/meow/pkg/token"
@@ -207,6 +209,19 @@ var builtinNames = map[string]bool{
 	"sort": true, "reverse": true, "round": true,
 	"scram": true,
 	"judge": true, "expect": true, "refuse": true, "seed": true,
+}
+
+// BuiltinNames reports, in order, every function a program may call without a
+// nab.
+//
+// The checker only decides that a name is allowed; something else has to give
+// it a meaning — `pkg/codegen` for a compiled program, `pkg/interpreter` for
+// one the playground runs. A name accepted here and implemented by neither
+// type-checks and then dies at run time, which is what happened to judge,
+// expect, refuse and seed. Exported so a backend's test can hold its own table
+// against this one instead of a copy of it.
+func BuiltinNames() []string {
+	return slices.Sorted(maps.Keys(builtinNames))
 }
 
 func (c *Checker) addError(pos token.Position, format string, args ...any) {

@@ -863,7 +863,21 @@ Refers to the current instance within a `groom` block. Only valid inside method 
 ExprStmt = Expr newline .
 ```
 
-Any expression can appear as a statement. The result is discarded.
+Any expression can appear as a statement. Its value is discarded; an unhandled
+`Furball` that value holds is not. The failure is raised where the statement is
+written, so `gag` or `~>` catches it at the enclosing boundary. A `Furball`
+already handled — the one `gag` hands back — is an ordinary value, and a
+statement holding it carries on.
+
+```meow
+meow at_nine(xs litter) int {
+    xs[9]                  # answers with a Furball, which is raised here
+    nya("not reached")
+    bring 0
+}
+
+nya(to_string(at_nine([1, 2])) ~> "caught")   # => caught
+```
 
 ## Built-in Functions
 
