@@ -294,8 +294,16 @@ pages in place gives a search engine nothing new to fetch. One post per release
 keeps `sitemap.xml` gaining URLs, and each post carries a `date`, which
 `website/layouts/partials/jsonld.html` emits as `datePublished`.
 
-Write the post in the same PR as the release, or in a follow-up PR straight
-after the tag is pushed — before the next release, not in a batch later.
+Write the post in a follow-up PR straight after the tag is pushed — before the
+next release, not in a batch later. The version has to exist before the post
+can name it.
+
+That follow-up would otherwise cut a release of its own. `📝` is a patch prefix
+in `.releaserc.json`, so a post-only push would tag `vX.Y.Z+1`, which would
+want a post, which would tag again. `auto-release.yml` therefore ignores pushes
+that touch nothing but `website/content/blog/**`. Keep a post-only PR post-only:
+put a change to anything else in its own PR, or the release runs and you are
+back to owing a post.
 
 **File name** — the tag with its dots replaced by hyphens, so `v0.21.0`
 becomes `website/content/blog/v0-21-0.md`. The URL is then

@@ -3,6 +3,12 @@ name: Auto Release
 on:
   push:
     branches: [main]
+    # A release's own blog post is written after the tag, under a 📝 prefix,
+    # which the patch rules in .releaserc.json would otherwise read as another
+    # release — and that release would want a post of its own, without end. A
+    # push carrying nothing but posts changes nothing to release.
+    paths-ignore:
+      - "website/content/blog/**"
 
 concurrency:
   group: auto-release-main
