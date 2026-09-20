@@ -871,14 +871,10 @@ func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env 
 		return val
 	}
 
-	if env.Has(name) {
-		fnVal := env.Get(name)
-		if fn, ok := fnVal.(*meowrt.Func); ok {
-			return meowrt.Call(fn, args...)
-		}
-		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
-	}
-
+	// A constructor is consulted before the environment, for the same reason:
+	// codegen answers a kitty or collar name with its constructor whatever the
+	// program has bound to that name.
+	//
 	// Kitty constructor
 	if ks, ok := interp.kittyDefs[name]; ok {
 		fieldNames := make([]string, len(ks.Fields))
@@ -891,6 +887,14 @@ func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env 
 	// Collar constructor
 	if _, ok := interp.collarDefs[name]; ok {
 		return meowrt.NewKitty(name, []string{"value"}, args...)
+	}
+
+	if env.Has(name) {
+		fnVal := env.Get(name)
+		if fn, ok := fnVal.(*meowrt.Func); ok {
+			return meowrt.Call(fn, args...)
+		}
+		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 	}
 
 	panic(fmt.Sprintf("Hiss! undefined function %s, nya~", name))

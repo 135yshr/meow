@@ -1458,7 +1458,11 @@ func runMeowBoth(t *testing.T, source string) (string, error) {
 	var buf bytes.Buffer
 	interp := New(&buf)
 	interp.SetTypeInfo(ti)
-	return buf.String(), interp.RunSafe(prog)
+	// The run has to finish before the buffer is read: a return statement
+	// evaluates its operands left to right, so returning buf.String() beside
+	// the call would hand back the buffer as it was before the program ran.
+	err := interp.RunSafe(prog)
+	return buf.String(), err
 }
 
 // --- Assertions: judge, expect, refuse, seed ---
@@ -1618,6 +1622,31 @@ nya("hi" |=| upper)
 `)
 	if got != "HI\nHI\n" {
 		t.Errorf("got %q, want %q", got, "HI\nHI\n")
+	}
+}
+
+// A constructor is answered before a binding of the same name, in a pipe as in
+// a call, because that is what codegen does. Unifying call resolution is what
+// made this worth pinning: reaching the environment first would quietly turn a
+// constructor into whatever the program had bound, and only in the playground.
+func TestAConstructorOutranksABindingOfTheSameName(t *testing.T) {
+	got := runMeow(t, `
+kitty Point {
+  x: int
+}
+collar Age = int
+nyan Point = paw(n) { bring "not the constructor" }
+nyan Age = paw(n) { bring "not the constructor" }
+nyan p = Point(2)
+nyan a = Age(7)
+nyan q = 3 |=| Point
+nya(p.x)
+nya(a.value)
+nya(q.x)
+`)
+	want := "2\n7\n3\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
