@@ -261,6 +261,11 @@ Chain multiple operations:
 # => [4, 16, 36, 64, 100]
 ```
 
+A line that begins with `|=|` carries on the expression above it, so a chain
+too long for one line can be written down the page. The break has to come right
+before the `|=|`: a blank line or a comment line between two stages ends the
+statement, and the `|=|` after it has nothing on its left.
+
 ## 7. Pattern Matching
 
 Use `peek` to match a value against patterns:

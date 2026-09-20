@@ -191,6 +191,15 @@ func Format(tokens func(func(token.Token) bool), cfg Config) string {
 		if lineStart {
 			blankCount = 0
 			writeIndent()
+			if tok.Type == token.PIPE {
+				// A line that opens with |=| carries on the line above it rather
+				// than starting a statement of its own, and is written one step
+				// in to say so. Given back at the margin, a chain read as a
+				// column of separate statements.
+				for range cfg.IndentWidth {
+					buf.WriteByte(' ')
+				}
+			}
 			lineStart = false
 		} else {
 			if afterUnaryMinus {

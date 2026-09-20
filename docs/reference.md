@@ -467,6 +467,21 @@ The pipe operator passes the left value as the first argument of the right expre
 # => [2, 4, 6]
 ```
 
+A chain can be written down the page: a line that begins with `|=|` continues
+the expression on the line above rather than starting a statement of its own.
+
+```meow
+[1, 2, 3, 4, 5, 6]
+  |=| picky(paw(x) { x % 2 == 0 })
+  |=| lick(paw(x) { x * x })
+  |=| nya
+# => [4, 16, 36]
+```
+
+The break has to come immediately before the `|=|`. A blank line or a comment
+between two stages ends the statement, and the `|=|` after it has nothing on
+its left.
+
 ### Pattern Matching
 
 ```meow
