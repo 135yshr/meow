@@ -97,6 +97,27 @@ func TestAFuzzParameterMayBeCalledT(t *testing.T) {
 	}
 }
 
+// Naming the handle __t only moves the collision if nothing checks for it: a
+// parameter is converted with := in the closure's own scope, so a target
+// taking one called __t would redeclare the handle rather than shadow it.
+func TestAFuzzParameterMayBeCalledLikeTheHandle(t *testing.T) {
+	_, tests := generateFuzz(t, `meow fuzz_shadow(__t int) {
+  seed(1)
+  judge(__t == __t)
+}
+`)
+
+	if !strings.Contains(tests, "func(__t_ *testing.T, __t_raw int64)") {
+		t.Errorf("expected the testing.T to step aside for the parameter, got:\n%s", tests)
+	}
+	if !strings.Contains(tests, "__t_.Fatalf(") {
+		t.Errorf("expected the failure to be raised on the renamed handle, got:\n%s", tests)
+	}
+	if strings.Contains(tests, "__t := ") && !strings.Contains(tests, "__t := meow.") {
+		t.Errorf("expected the parameter's own conversion to keep the name, got:\n%s", tests)
+	}
+}
+
 // Go's testing package answers a fuzz target it cannot feed with a panic and
 // a stack, which says nothing about the .nyan file that caused it.
 func TestAFuzzTargetWithoutParametersIsRefused(t *testing.T) {

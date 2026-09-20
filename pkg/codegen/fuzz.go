@@ -144,9 +144,12 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 			fuzzParamTypes[i] = typ
 		}
 
-		// The testing.T is named __t rather than t so that a fuzz parameter
-		// called `t` shadows nothing the generated failure report needs.
-		fmt.Fprintf(&fb, "\tf.Fuzz(func(__t *testing.T, %s) {\n", strings.Join(fuzzParams, ", "))
+		// The testing.T is not named t, so that a fuzz parameter called `t`
+		// shadows nothing the generated failure report needs, and the name is
+		// checked against this target's parameters, because they are converted
+		// with := in the closure's own scope.
+		tName := fuzzHandleName(ff.params)
+		fmt.Fprintf(&fb, "\tf.Fuzz(func(%s *testing.T, %s) {\n", tName, strings.Join(fuzzParams, ", "))
 
 		// Convert raw params to meow values
 		argNames := make([]string, len(ff.params))
@@ -161,7 +164,7 @@ func (g *Generator) GenerateFuzz(prog *ast.Program) (helpers string, fuzzTests s
 		// fails the case and names both the assertion and the input that
 		// provoked it, rather than being unwound in silence.
 		fmt.Fprintf(&fb, "\t\tif __f, __ok := meow.AsFurball(%s(%s)); __ok {\n", ff.name, strings.Join(argNames, ", "))
-		fmt.Fprintf(&fb, "\t\t\t__t.Fatalf(%q, %s)\n",
+		fmt.Fprintf(&fb, "\t\t\t%s.Fatalf(%q, %s)\n", tName,
 			fmt.Sprintf("Hiss! %s(%s) failed, nya~: %%s", ff.name, fuzzInputFormat(ff.params)),
 			strings.Join(append(fuzzRawArgs(ff.params), "__f.Message"), ", "))
 		fb.WriteString("\t\t}\n")
@@ -221,6 +224,24 @@ func (g *Generator) genFuzzBodyFunc(fn *ast.FuncStmt) string {
 // fuzzInputFormat renders the parameter list of a failure report, as
 // `a=%#v, b=%#v`. %#v so that the string the fuzzer found reads back as a Go
 // literal, quoted and with its escapes visible.
+// fuzzHandleName picks a name for the closure's *testing.T that none of this
+// target's parameters can take. Each parameter arrives as <name>_raw and is
+// converted to <name> with := in the closure's own scope, so a target written
+// with a parameter called __t would redeclare the handle rather than shadow
+// it, and the generated file would not compile.
+func fuzzHandleName(params []ast.Param) string {
+	taken := make(map[string]bool, len(params)*2)
+	for _, p := range params {
+		taken[p.Name] = true
+		taken[p.Name+"_raw"] = true
+	}
+	name := "__t"
+	for taken[name] {
+		name += "_"
+	}
+	return name
+}
+
 func fuzzInputFormat(params []ast.Param) string {
 	parts := make([]string, len(params))
 	for i, p := range params {
