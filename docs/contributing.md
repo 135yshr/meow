@@ -279,6 +279,86 @@ Example:
 - [ ] Documentation updated for new features
 - [ ] Commit messages use gitmoji prefix
 
+## Release Process
+
+Releases are cut automatically. `.github/workflows/auto-release.yml` runs
+semantic-release on every push to `main`: it reads the gitmoji prefixes since
+the last tag, decides the version, writes `CHANGELOG.md`, tags `vX.Y.Z`, and
+GoReleaser publishes the binaries. Nothing is done by hand there.
+
+### Write a blog post for every release
+
+**Every `vX.Y.Z` tag gets one post under `website/content/blog/`.** The site is
+crawled on how often it changes, and a documentation site that only ever edits
+pages in place gives a search engine nothing new to fetch. One post per release
+keeps `sitemap.xml` gaining URLs, and each post carries a `date`, which
+`website/layouts/partials/jsonld.html` emits as `datePublished`.
+
+Write the post in the same PR as the release, or in a follow-up PR straight
+after the tag is pushed — before the next release, not in a batch later.
+
+**File name** — the tag with its dots replaced by hyphens, so `v0.21.0`
+becomes `website/content/blog/v0-21-0.md`. The URL is then
+`https://meow.oreha.dev/blog/v0-21-0/`.
+
+**Front matter** — three keys, matching the rest of the site:
+
+```yaml
+---
+title: "Meow Programming Language v0.21.0: A Member Read as Well as Called"
+description: "Meow Programming Language v0.21.0 makes a member read without () a value of its own, so a .nyan method can be piped into, mapped over a list, or bound to a name."
+date: 2026-08-19T22:47:43Z
+---
+```
+
+- `title` — `Meow Programming Language vX.Y.Z: <what changed>`. The second half
+  is the change in the words a user would use, not the commit subject.
+- `description` — one sentence, under about 160 characters, naming the version
+  and what it does. This is the meta description and the card text on
+  `/blog/`.
+- `date` — the **real release timestamp**, in RFC 3339. Take it from
+  `gh release view vX.Y.Z --json publishedAt` or
+  `git log -1 --format=%aI vX.Y.Z`. Do not round to the day: releases often
+  land several to a day, and the time is what orders them on the index. Do not
+  set `weight`; posts sort newest-first by date, after the pinned
+  `release-notes.md`.
+
+**Body** — in this order:
+
+1. One line saying when it was released and what it is about.
+2. The problem, with the code that showed it and the error it gave.
+3. What it does now, with a **runnable `.nyan` example**. Run it before you
+   publish it — `go run ./cmd/meow run example.nyan` — and paste the real
+   output as comments. Examples in `examples/` and `testdata/` are already
+   covered by tests and make good starting points.
+4. Anything removed, loosened, or now caught somewhere else.
+5. **Upgrading** — what a program has to change, or "nothing to change" when
+   that is true, followed by `brew upgrade meow` and
+   `go install github.com/135yshr/meow/cmd/meow@vX.Y.Z`.
+
+Link to the neighbouring releases with `{{< relref "blog/v0-21-1.md" >}}` when
+one release builds on another, and to `doc/spec.md` or `doc/reference.md` for
+the rule itself.
+
+**Where to source it**
+
+| Want | Look at |
+|---|---|
+| What is in the release | `git log --oneline vX.Y.(Z-1)..vX.Y.Z` |
+| The summary already written | `CHANGELOG.md` |
+| The problem, the before/after, the error text | the merged PR body — `gh pr view <n>` |
+| A verified example | the PR's golden fixture in `testdata/`, or `examples/` |
+| The release timestamp | `gh release list`, `gh release view vX.Y.Z` |
+
+A patch release with something to say gets its own post; a release that only
+bumps a dependency can be folded into the next one rather than padded out. The
+point is a real page a reader gains something from, not a page per tag for its
+own sake.
+
+Between releases, aim for roughly one non-release post a month — a language
+feature in depth, `pose`/`groom`, how the two backends stay in step — so the
+site keeps moving when the compiler does not.
+
 ## Dependencies
 
 Meow has **zero runtime dependencies** — standard library only. Development tools like `stringer` are allowed as build-time dependencies. Please do not introduce third-party runtime packages.

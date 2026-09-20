@@ -6,6 +6,8 @@ weight: 1
 
 A summary of features and changes in each Meow Programming Language release, organized from newest to oldest.
 
+From v0.20.0 onwards each release also gets its own post, with runnable `.nyan` examples and upgrade notes. See the [blog index]({{< relref "blog/_index.md" >}}) for the full list.
+
 ---
 
 ## Kitty (Struct) Types — PR #26
