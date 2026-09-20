@@ -1,3 +1,12 @@
+# [v0.22.0](https://github.com/135yshr/meow/compare/v0.21.4...v0.22.0) (2026-09-20)
+
+## ✨ New Features
+- [`f9b10eb`](https://github.com/135yshr/meow/commit/f9b10eb)  feat: Let a pipe chain carry on to the next line (#145) (Issues: [`#145`](https://github.com/135yshr/meow/issues/145) [`#142`](https://github.com/135yshr/meow/issues/142) [`#141`](https://github.com/135yshr/meow/issues/141) [`#144`](https://github.com/135yshr/meow/issues/144) [`#144`](https://github.com/135yshr/meow/issues/144))
+
+## 🐛 Bug Fixes
+- [`8a3aadd`](https://github.com/135yshr/meow/commit/8a3aadd)  fix: Make both backends agree about Furballs and builtin names (#144) (Issues: [`#144`](https://github.com/135yshr/meow/issues/144) [`#114`](https://github.com/135yshr/meow/issues/114) [`#122`](https://github.com/135yshr/meow/issues/122) [`#140`](https://github.com/135yshr/meow/issues/140) [`#141`](https://github.com/135yshr/meow/issues/141) [`#140`](https://github.com/135yshr/meow/issues/140) [`#136`](https://github.com/135yshr/meow/issues/136))
+- [`7cad07b`](https://github.com/135yshr/meow/commit/7cad07b)  fix: Give a fuzz target somewhere to put its failure (#146) (Issues: [`#146`](https://github.com/135yshr/meow/issues/146) [`#143`](https://github.com/135yshr/meow/issues/143) [`#114`](https://github.com/135yshr/meow/issues/114) [`#114`](https://github.com/135yshr/meow/issues/114) [`FuzzHalf_round_trip/seed#2`](https://github.com/FuzzHalf_round_trip/seed/issues/2))
+
 # [v0.21.4](https://github.com/135yshr/meow/compare/v0.21.3...v0.21.4) (2026-08-20)
 
 # [v0.21.3](https://github.com/135yshr/meow/compare/v0.21.2...v0.21.3) (2026-08-20)
