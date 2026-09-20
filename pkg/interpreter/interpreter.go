@@ -8,6 +8,7 @@ import (
 	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/token"
 	"github.com/135yshr/meow/runtime/meowrt"
+	meowtest "github.com/135yshr/meow/runtime/testing"
 )
 
 // propagateFurball panics with the Furball's message if v is an unhandled
@@ -537,102 +538,121 @@ func requireArgs(name string, args []meowrt.Value, count int) {
 	}
 }
 
-func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (meowrt.Value, bool) {
-	switch name {
-	case "nya":
-		return interp.builtinNya(args), true
-	case "hiss":
-		return meowrt.Hiss(args...), true
-	case "scram":
+// builtinFn is what a builtin name does. The interpreter is handed along so
+// that the few builtins with something to say — nya writes to the run's
+// captured output — can reach it; the rest ignore it.
+type builtinFn func(interp *Interpreter, args []meowrt.Value) meowrt.Value
+
+// unary, binary and ternary wrap a runtime function of a fixed arity, checking
+// the count before it is handed its arguments.
+func unary(name string, fn func(meowrt.Value) meowrt.Value) builtinFn {
+	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
+		requireArgs(name, args, 1)
+		return fn(args[0])
+	}
+}
+
+func binary(name string, fn func(a, b meowrt.Value) meowrt.Value) builtinFn {
+	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
+		requireArgs(name, args, 2)
+		return fn(args[0], args[1])
+	}
+}
+
+func ternary(name string, fn func(a, b, c meowrt.Value) meowrt.Value) builtinFn {
+	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
+		requireArgs(name, args, 3)
+		return fn(args[0], args[1], args[2])
+	}
+}
+
+// variadic wraps a runtime function that takes any number of arguments and
+// decides for itself whether it was given enough.
+func variadic(fn func(args ...meowrt.Value) meowrt.Value) builtinFn {
+	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
+		return fn(args...)
+	}
+}
+
+// builtins is every function a program can use without a nab, keyed by the
+// name it is written under.
+//
+// A table rather than a switch, so that the set of names is something that can
+// be read back: `pkg/checker` decides which names a program may write, this
+// decides what they do, and nothing in the compiler links the two. A name in
+// one and not the other type-checks and then dies at run time, which is how
+// judge, expect, refuse and seed came to be accepted, compiled, and undefined
+// here. The test holding these two tables to each other can only be honest
+// because both are enumerable.
+var builtins = map[string]builtinFn{
+	"nya": func(interp *Interpreter, args []meowrt.Value) meowrt.Value {
+		return interp.builtinNya(args)
+	},
+	"hiss": variadic(meowrt.Hiss),
+	"scram": func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		code, fb := meowrt.ScramCode(args...)
 		if fb != nil {
-			return fb, true
+			return fb
 		}
 		panic(meowrt.ScramSignal{Code: code})
-	case "len":
-		requireArgs("len", args, 1)
-		return meowrt.Len(args[0]), true
-	case "to_int":
-		requireArgs("to_int", args, 1)
-		return meowrt.ToInt(args[0]), true
-	case "to_float":
-		requireArgs("to_float", args, 1)
-		return meowrt.ToFloat(args[0]), true
-	case "to_string":
-		requireArgs("to_string", args, 1)
-		return meowrt.ToString(args[0]), true
-	case "to_bytes":
-		requireArgs("to_bytes", args, 1)
-		return meowrt.ToBytes(args[0]), true
-	case "to_runes":
-		requireArgs("to_runes", args, 1)
-		return meowrt.ToRunes(args[0]), true
-	case "whiff":
-		requireArgs("whiff", args, 2)
-		return meowrt.Whiff(args[0], args[1]), true
-	case "upper":
-		requireArgs("upper", args, 1)
-		return meowrt.Upper(args[0]), true
-	case "lower":
-		requireArgs("lower", args, 1)
-		return meowrt.Lower(args[0]), true
-	case "trim":
-		requireArgs("trim", args, 1)
-		return meowrt.Trim(args[0]), true
-	case "replace":
-		requireArgs("replace", args, 3)
-		return meowrt.Replace(args[0], args[1], args[2]), true
-	case "pad":
-		requireArgs("pad", args, 2)
-		return meowrt.Pad(args[0], args[1]), true
-	case "sort":
-		requireArgs("sort", args, 1)
-		return meowrt.Sort(args[0]), true
-	case "reverse":
-		requireArgs("reverse", args, 1)
-		return meowrt.Reverse(args[0]), true
-	case "round":
-		requireArgs("round", args, 2)
-		return meowrt.Round(args[0], args[1]), true
-	case "track":
-		requireArgs("track", args, 2)
-		return meowrt.Track(args[0], args[1]), true
-	case "shred":
-		requireArgs("shred", args, 2)
-		return meowrt.Shred(args[0], args[1]), true
-	case "tangle":
-		requireArgs("tangle", args, 2)
-		return meowrt.Tangle(args[0], args[1]), true
-	case "nibble":
-		requireArgs("nibble", args, 3)
-		return meowrt.Nibble(args[0], args[1], args[2]), true
-	case "gag":
-		requireArgs("gag", args, 1)
-		return meowrt.Gag(args[0]), true
-	case "is_furball":
-		requireArgs("is_furball", args, 1)
-		return meowrt.IsFurball(args[0]), true
-	case "head":
-		requireArgs("head", args, 1)
-		return meowrt.Head(args[0]), true
-	case "tail":
-		requireArgs("tail", args, 1)
-		return meowrt.Tail(args[0]), true
-	case "append":
-		requireArgs("append", args, 2)
-		return meowrt.Append(args[0], args[1]), true
-	case "lick":
-		requireArgs("lick", args, 2)
-		return meowrt.Lick(args[0], args[1]), true
-	case "picky":
-		requireArgs("picky", args, 2)
-		return meowrt.Picky(args[0], args[1]), true
-	case "curl":
-		requireArgs("curl", args, 3)
-		return meowrt.Curl(args[0], args[1], args[2]), true
-	default:
+	},
+	"len":        unary("len", meowrt.Len),
+	"to_int":     unary("to_int", meowrt.ToInt),
+	"to_float":   unary("to_float", meowrt.ToFloat),
+	"to_string":  unary("to_string", meowrt.ToString),
+	"to_bytes":   unary("to_bytes", meowrt.ToBytes),
+	"to_runes":   unary("to_runes", meowrt.ToRunes),
+	"whiff":      binary("whiff", meowrt.Whiff),
+	"upper":      unary("upper", meowrt.Upper),
+	"lower":      unary("lower", meowrt.Lower),
+	"trim":       unary("trim", meowrt.Trim),
+	"replace":    ternary("replace", meowrt.Replace),
+	"pad":        binary("pad", meowrt.Pad),
+	"sort":       unary("sort", meowrt.Sort),
+	"reverse":    unary("reverse", meowrt.Reverse),
+	"round":      binary("round", meowrt.Round),
+	"track":      binary("track", meowrt.Track),
+	"shred":      binary("shred", meowrt.Shred),
+	"tangle":     binary("tangle", meowrt.Tangle),
+	"nibble":     ternary("nibble", meowrt.Nibble),
+	"gag":        unary("gag", meowrt.Gag),
+	"is_furball": unary("is_furball", meowrt.IsFurball),
+	"head":       unary("head", meowrt.Head),
+	"tail":       unary("tail", meowrt.Tail),
+	"append":     binary("append", meowrt.Append),
+	"lick":       binary("lick", meowrt.Lick),
+	"picky":      binary("picky", meowrt.Picky),
+	"curl":       ternary("curl", meowrt.Curl),
+
+	// The assertions are the very functions the compiled path calls, rather
+	// than a second reading of what they ought to mean: an assertion that
+	// fails answers with a Furball carrying the message `meow test` would
+	// print after FAIL. The playground has no test harness to report into, so
+	// that Furball is left to propagate like any other — the run stops on the
+	// failing line and says why, which is what a reader of the playground can
+	// act on, and it is the same wording and the same stopping point a
+	// compiled program gives. An assertion that holds stays silent, as it does
+	// under `meow test`, where only the enclosing test's PASS line is printed.
+	"judge":  variadic(meowtest.Judge),
+	"expect": variadic(meowtest.Expect),
+	"refuse": variadic(meowtest.Refuse),
+
+	// seed states one entry of a fuzz corpus. Only `meow test -fuzz` has
+	// anything to do with one — it reads the calls out of the test's body
+	// before the body is generated — and everywhere else codegen compiles a
+	// seed call to catnap. The playground cannot fuzz, so everywhere else is
+	// all there is here.
+	"seed": func(_ *Interpreter, _ []meowrt.Value) meowrt.Value {
+		return meowrt.NewNil()
+	},
+}
+
+func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (meowrt.Value, bool) {
+	fn, ok := builtins[name]
+	if !ok {
 		return nil, false
 	}
+	return fn(interp, args), true
 }
 
 // --- Call Expression ---
@@ -649,37 +669,12 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 		args[i] = interp.evalExpr(a, env)
 	}
 
-	// Identifier-based calls
+	// A bare name here is resolved in one place, the same place a bare name
+	// piped into is resolved. Two copies of that question is what let the
+	// backends drift: the pipe's copy read the name as a variable and so could
+	// not see a builtin at all.
 	if ident, ok := e.Fn.(*ast.Ident); ok {
-		// Builtins
-		if val, ok := interp.dispatchBuiltin(ident.Name, args); ok {
-			return val
-		}
-
-		// Kitty constructor
-		if ks, ok := interp.kittyDefs[ident.Name]; ok {
-			fieldNames := make([]string, len(ks.Fields))
-			for i, f := range ks.Fields {
-				fieldNames[i] = f.Name
-			}
-			return meowrt.NewKitty(ident.Name, fieldNames, args...)
-		}
-
-		// Collar constructor
-		if _, ok := interp.collarDefs[ident.Name]; ok {
-			return meowrt.NewKitty(ident.Name, []string{"value"}, args...)
-		}
-
-		// User-defined function (looked up from environment)
-		if env.Has(ident.Name) {
-			fnVal := env.Get(ident.Name)
-			if fn, ok := fnVal.(*meowrt.Func); ok {
-				return meowrt.Call(fn, args...)
-			}
-			panic(fmt.Sprintf("Hiss! %s is not callable, nya~", ident.Name))
-		}
-
-		panic(fmt.Sprintf("Hiss! undefined function %s, nya~", ident.Name))
+		return interp.evalCallByName(ident.Name, args, env)
 	}
 
 	// First-class function call (e.g. variable holding a Func)
@@ -847,15 +842,31 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 		panic(fmt.Sprintf("Hiss! pipe target is not callable, nya~"))
 	}
 
-	// x |=| f → f(x)
+	// x |=| f → f(x).
+	//
+	// A bare name here is resolved the way a name in a call position is, not as
+	// a variable read: a builtin is a builtin whether it is called or piped
+	// into, and so is a kitty or collar constructor. Reading it as a variable
+	// is what made `nums |=| nya` — the form the tutorial teaches throughout —
+	// die with "undefined variable nya", because a builtin lives in the call
+	// dispatch and never in the environment.
+	if ident, ok := e.Right.(*ast.Ident); ok {
+		return interp.evalCallByName(ident.Name, []meowrt.Value{left}, env)
+	}
+
 	fnVal := interp.evalExpr(e.Right, env)
 	if fn, ok := fnVal.(*meowrt.Func); ok {
 		return meowrt.Call(fn, left)
 	}
-	panic(fmt.Sprintf("Hiss! pipe target is not callable, nya~"))
+	panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 }
 
 func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env *Environment) meowrt.Value {
+	// A builtin is consulted before the environment, which is the order the
+	// compiled path resolves a call in: codegen answers a builtin name from
+	// its own table before it looks at what the program bound. Keeping the
+	// order means a program that shadows a builtin's name reads the same
+	// either side of the playground.
 	if val, ok := interp.dispatchBuiltin(name, args); ok {
 		return val
 	}
@@ -865,6 +876,7 @@ func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env 
 		if fn, ok := fnVal.(*meowrt.Func); ok {
 			return meowrt.Call(fn, args...)
 		}
+		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 	}
 
 	// Kitty constructor

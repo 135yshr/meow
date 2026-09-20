@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/codegen"
 	"github.com/135yshr/meow/pkg/lexer"
 	"github.com/135yshr/meow/pkg/parser"
@@ -364,5 +365,154 @@ nya(res)`)
 	}
 	if !strings.Contains(code, `meow_http.Pounce(meow.NewString("https://example.com"))`) {
 		t.Error("expected meow_http.Pounce call via alias 'h'")
+	}
+}
+
+// generateTyped generates code the way the compiler does, with the checker's
+// type information in place, so that a fully typed function takes the typed
+// path rather than the boxed one.
+func generateTyped(t *testing.T, input string) string {
+	t.Helper()
+	l := lexer.New(input, "test.nyan")
+	p := parser.New(l.Tokens())
+	prog, errs := p.Parse()
+	if len(errs) > 0 {
+		for _, e := range errs {
+			t.Errorf("parse error: %s", e)
+		}
+		t.FailNow()
+	}
+	c := checker.New()
+	ti, checkErrs := c.Check(prog)
+	if len(checkErrs) > 0 {
+		for _, e := range checkErrs {
+			t.Errorf("checker error: %s", e)
+		}
+		t.FailNow()
+	}
+	g := codegen.New()
+	g.SetTypeInfo(ti)
+	code, err := g.Generate(prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return code
+}
+
+// A statement inside a fully typed function discards its value, so a Furball
+// it answers with has to be raised where it is written — the typed function
+// returns a native Go type and cannot pass one on. This holds for a statement
+// that is not a call too: a pipe, an index, a piece of arithmetic.
+func TestTypedStatementValueIsChecked(t *testing.T) {
+	tests := []struct {
+		name string
+		stmt string
+		want string
+	}{
+		{
+			name: "pipe",
+			stmt: `["oops"] |=| boom`,
+			want: "meow.Propagate(",
+		},
+		{
+			name: "index",
+			stmt: `[1, 2][9]`,
+			want: "meow.Propagate(",
+		},
+		{
+			name: "arithmetic",
+			stmt: `n / 0`,
+			want: "meow.Propagate(meow.Div(",
+		},
+		{
+			name: "call answering with a boxed value",
+			stmt: `made_a_list(n)`,
+			want: "meow.Propagate(made_a_list(",
+		},
+		{
+			name: "identifier alone",
+			stmt: `n`,
+			want: "meow.Propagate(",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			code := generateTyped(t, `meow boom(xs litter) string {
+  bring xs[0] + 1
+}
+
+meow made_a_list(n int) litter {
+  bring [n]
+}
+
+meow caller(n int) int {
+  `+tt.stmt+`
+  bring n
+}
+
+nya(caller(5))`)
+			if !strings.Contains(code, tt.want) {
+				t.Errorf("expected %q in generated code, got:\n%s", tt.want, code)
+			}
+		})
+	}
+}
+
+// A statement in a loop body is a statement like any other: the check goes
+// where the statement is, not only at the top level of the function.
+func TestTypedStatementInLoopBodyIsChecked(t *testing.T) {
+	code := generateTyped(t, `meow boom(xs litter) string {
+  bring xs[0] + 1
+}
+
+meow caller(n int) int {
+  purr i (0..2) {
+    ["oops"] |=| boom
+  }
+  bring n
+}
+
+nya(caller(5))`)
+	if !strings.Contains(code, "meow.Propagate(") {
+		t.Errorf("expected the loop body statement to be checked, got:\n%s", code)
+	}
+}
+
+// Where the checker knows the result is a native Go type there is nothing to
+// check: the unboxing raises a Furball on its way out, so wrapping it again
+// would say the same thing twice.
+func TestTypedNativeCallStatementIsNotWrapped(t *testing.T) {
+	code := generateTyped(t, `meow doubled(xs litter) string {
+  bring xs[0] + 1
+}
+
+meow caller(n int) int {
+  doubled(["oops"])
+  bring n
+}
+
+nya(caller(5))`)
+	if !strings.Contains(code, "meow.AsString(doubled(") {
+		t.Errorf("expected the native result to be unboxed, got:\n%s", code)
+	}
+	if strings.Contains(code, "meow.Propagate(meow.AsString(") {
+		t.Error("an unboxed native result should not be wrapped again")
+	}
+}
+
+// hiss raises rather than answering, so in a typed function it is emitted as a
+// Go panic — a statement with no value to pass through anything.
+func TestTypedHissStatementStaysAPanic(t *testing.T) {
+	code := generateTyped(t, `meow caller(n int) int {
+  hiss("bad")
+  bring n
+}
+
+nya(caller(5))`)
+	if !strings.Contains(code, "panic(meow.Hiss(") {
+		t.Errorf("expected hiss to panic, got:\n%s", code)
+	}
+	if strings.Contains(code, "meow.Propagate(panic(") {
+		t.Error("hiss must not be wrapped: a panic is not an expression")
 	}
 }
