@@ -1132,7 +1132,7 @@ interp.SetStepLimit(10_000_000)
 
 ## Playground で試す
 
-ここまでのサンプルは全部ブラウザで動きます。たとえば `peek`（パターンマッチ）で書いた FizzBuzz。
+ここまでのサンプルは、`nab` を含むもの以外はそのままブラウザで動きます。インタプリタはブラウザに Go ツールチェーンが無いことを理由に `nab` / `nab go` の両方を拒否するので、`nab "file"` や `nab go "strings"` の例だけは手元の `meow run` で試してください。たとえば `peek`（パターンマッチ）で書いた FizzBuzz は、そのまま貼って動きます。
 
 ```nyan
 meow fizzbuzz(n int) string {

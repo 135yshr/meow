@@ -28,6 +28,10 @@ the CSS and templates and are marked as such.
 
 Not yet. Four blockers, all small and all in files nobody else is likely to be touching.
 
+**Status since this was written:** B1, B2 and B3 are fixed in #148, and B4 in #144 (filed as #140).
+Re-check them against `main` before posting rather than trusting this line — the audit below is the
+reasoning, not the current state.
+
 | # | Blocker | File |
 |---|---|---|
 | **B1** | Playground nav links are unstyled — default browser blue on a dark navy header, ~1.7:1 contrast, effectively invisible, and they run together with no spacing | `playground/style.css` (rule absent) |
@@ -330,7 +334,7 @@ func calc(n int64) int64 {
 }
 ```
 
-— but one `list[int]` parameter, or a struct return, and the *whole* function falls back to the
+— but one `litter` parameter, or a struct return, and the *whole* signature falls back to the
 boxed path. Top-level code is always boxed: `nyan a int = 3` becomes `var a meow.Value` even with
 the annotation, and `a + b` becomes `meow.Add(a, b)`. Lambdas are always boxed. And every statement
 emits a `meow.Here("file:line:col")` call so runtime errors can point at Meow source.
@@ -423,9 +427,10 @@ code* matters more than getting them reading.
 > **1. The type checker decides how much of your program stays Go.**
 >
 > Meow is gradually typed, but the boundary isn't where I first assumed it would be. Function
-> signatures are mandatory — parameters *and* return type. In exchange, if every one of those types
-> is a scalar (`int`, `byte`, `float`, `string`, `bool`), the entire body compiles to ordinary
-> unboxed Go, with locals inferred from the parameters:
+> signatures are annotated: parameters always, and the return type whenever the body has a `bring`.
+> In exchange, if every one of those types is a scalar (`int`, `float`, `string`, `bool`), the
+> function gets a native Go signature, and scalar expressions in its body compile to ordinary
+> unboxed Go with locals inferred from the parameters:
 >
 >     meow calc(n int) int {
 >       nyan x int = n * 2
@@ -443,10 +448,11 @@ code* matters more than getting them reading.
 >
 > `+` is a Go `+`. No interface, no dynamic dispatch, no allocation.
 >
-> It's all-or-nothing per function, though, and that surprised me when I built it: one `list[int]`
-> parameter, or a struct return, and the *whole* body falls back to the boxed path. Lists, maps,
-> structs, lambdas and all top-level code are always `meow.Value`, an interface, where `a + b`
-> becomes `meow.Add(a, b)` and dispatches at runtime. So a Meow program is a dynamically typed shell
+> The gate is all-or-nothing per *signature*, though, and that surprised me when I built it: one
+> `litter` parameter, or a struct return, and the whole function drops to the boxed path. Inside a
+> function that passes the gate, it is still per-expression — reach for a list and that expression
+> boxes. Lists, maps, structs, lambdas and all top-level code are always `meow.Value`, an
+> interface, where `a + b` becomes `meow.Add(a, b)` and dispatches at runtime. So a Meow program is a dynamically typed shell
 > wrapped around statically typed islands, and how much of it is fast is a direct function of how
 > many annotations you wrote.
 >
@@ -546,16 +552,16 @@ only one post, use the first.
 > Most gradually typed languages let you annotate anything, anywhere, and box whatever isn't
 > annotated. I ended up somewhere narrower, mostly by accident, and then kept it on purpose.
 >
-> Function signatures in Meow are *mandatory* — both parameters and return type. If all of those
-> types are scalars (`int`, `byte`, `float`, `string`, `bool`), codegen emits a plain Go function
+> Function signatures in Meow are annotated — parameters always, and the return type whenever the
+> body has a `bring`. If all of those types are scalars (`int`, `float`, `string`, `bool`), codegen emits a plain Go function
 > over native Go types, and the checker's per-expression type info then decides which locals stay
 > native inside the body. Locals get inferred; you don't annotate them. Everything outside such a
 > function — top-level code, lambdas, anything touching a list, map or struct — is boxed into a
 > `meow.Value` interface where operators dispatch at runtime.
 >
-> The consequence I didn't anticipate is that it's **all-or-nothing per function**. A single
-> `list[int]` parameter, and the entire body drops to the boxed path — not just the expressions
-> involving that list. It makes the performance model very easy to explain ("a fully-scalar
+> The consequence I didn't anticipate is that the gate is **all-or-nothing per signature**. A
+> single `litter` parameter, and the entire function drops to the boxed path — not just the
+> expressions involving that list. It makes the performance model very easy to explain ("a fully-scalar
 > signature buys you a fast body") and very coarse. The alternative — per-expression native/boxed
 > decisions with unboxing at the boundaries — is obviously more precise, and I have a partial
 > version of that machinery inside typed bodies already. I'm genuinely unsure whether extending it
