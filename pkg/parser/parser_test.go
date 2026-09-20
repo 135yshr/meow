@@ -1,6 +1,8 @@
 package parser_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/135yshr/meow/pkg/ast"
@@ -937,5 +939,152 @@ func TestAKeywordIsStillAKeywordOffADot(t *testing.T) {
 	p := parser.New(l.Tokens())
 	if _, errs := p.Parse(); len(errs) == 0 {
 		t.Error("got no errors, want string refused as a binding name")
+	}
+}
+
+// A line that opens with |=| carries on the expression above it, so a chain
+// too long for one line can be written down the page — the shape the tutorial
+// teaches. Nothing else changes: the AST is the one the single-line form
+// produces.
+func TestPipeChainContinuesOnTheNextLine(t *testing.T) {
+	prog := parse(t, `[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  |=| picky(paw(x) { x % 2 == 0 })
+  |=| lick(paw(x) { x * x })
+  |=| nya`)
+	if len(prog.Stmts) != 1 {
+		t.Fatalf("got %d statements, want the chain read as one", len(prog.Stmts))
+	}
+	stmt, ok := prog.Stmts[0].(*ast.ExprStmt)
+	if !ok {
+		t.Fatalf("got %T, want an expression statement", prog.Stmts[0])
+	}
+	// Pipes are left-associative, so the outermost pipe is the last stage.
+	outer, ok := stmt.Expr.(*ast.PipeExpr)
+	if !ok {
+		t.Fatalf("got %T, want a pipe", stmt.Expr)
+	}
+	if ident, isIdent := outer.Right.(*ast.Ident); !isIdent || ident.Name != "nya" {
+		t.Errorf("last stage is %T, want the nya identifier", outer.Right)
+	}
+	middle, ok := outer.Left.(*ast.PipeExpr)
+	if !ok {
+		t.Fatalf("got %T, want a pipe under the last stage", outer.Left)
+	}
+	inner, ok := middle.Left.(*ast.PipeExpr)
+	if !ok {
+		t.Fatalf("got %T, want a pipe under the middle stage", middle.Left)
+	}
+	if _, ok := inner.Left.(*ast.ListLit); !ok {
+		t.Errorf("the chain starts at %T, want the list literal", inner.Left)
+	}
+}
+
+// pipeShape renders a pipe chain as text, so that two spellings of the same
+// chain can be compared without comparing token positions.
+func pipeShape(e ast.Expr) string {
+	switch v := e.(type) {
+	case *ast.PipeExpr:
+		return "(" + pipeShape(v.Left) + " |=| " + pipeShape(v.Right) + ")"
+	case *ast.CallExpr:
+		return pipeShape(v.Fn) + "()"
+	case *ast.Ident:
+		return v.Name
+	default:
+		return fmt.Sprintf("%T", e)
+	}
+}
+
+// The wrapped form means what the single-line form means.
+func TestPipeChainAcrossLinesMatchesOneLine(t *testing.T) {
+	oneLine := parse(t, `xs |=| picky(odd) |=| lick(double)`)
+	wrapped := parse(t, `xs
+  |=| picky(odd)
+  |=| lick(double)`)
+	got := pipeShape(wrapped.Stmts[0].(*ast.ExprStmt).Expr)
+	want := pipeShape(oneLine.Stmts[0].(*ast.ExprStmt).Expr)
+	if got != want {
+		t.Errorf("wrapped chain reads as %s, want %s", got, want)
+	}
+}
+
+// The continuation is available wherever an expression is, not only as a
+// statement of its own.
+func TestPipeContinuationInOtherPositions(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"bound to a name", "nyan r = xs\n  |=| lick(double)"},
+		{"inside a function body", "meow f(xs) {\n  bring xs\n    |=| lick(double)\n}"},
+		{"after an operand of a tighter operator", "nyan r = 1 + 2\n  |=| double"},
+		{"several stages on one continued line", "xs\n  |=| picky(odd) |=| lick(double)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.input, "test.nyan")
+			p := parser.New(l.Tokens())
+			if _, errs := p.Parse(); len(errs) > 0 {
+				t.Errorf("got %v, want no parse errors", errs)
+			}
+		})
+	}
+}
+
+// The rule reaches exactly one line back. A |=| with no expression above it on
+// the line immediately before is still the error it always was.
+func TestAStrayPipeIsStillAnError(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"at the start of a program", `|=| nya`},
+		{"after a blank line", "xs\n\n  |=| nya"},
+		{"on its own after a finished statement", "nya(1)\n\n|=| nya"},
+		{"nothing to its right", "xs\n  |=|"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := lexer.New(tt.input, "test.nyan")
+			p := parser.New(l.Tokens())
+			if _, errs := p.Parse(); len(errs) == 0 {
+				t.Error("got no errors, want the stray pipe refused")
+			}
+		})
+	}
+}
+
+// Only a leading |=| carries a statement over. A newline still ends every
+// other statement, so two lines stay two statements.
+func TestANewlineStillEndsAStatement(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"two calls", "nya(1)\nnya(2)"},
+		{"a chain then a list", "xs |=| nya\n[1, 2][0]"},
+		{"a leading operator that is not a pipe", "nyan a = 1\nnyan b = 2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prog := parse(t, tt.input)
+			if len(prog.Stmts) != 2 {
+				t.Errorf("got %d statements, want 2", len(prog.Stmts))
+			}
+		})
+	}
+}
+
+// The rule reaches one token past the line break, so a comment between the
+// stages ends the statement. What is said about it names the rule, because
+// "unexpected token PIPE" tells a reader nothing about what to do.
+func TestAStrayPipeSaysWhatTheRuleIs(t *testing.T) {
+	l := lexer.New("[1, 2, 3]\n  # squares\n  |=| nya", "test.nyan")
+	p := parser.New(l.Tokens())
+	_, errs := p.Parse()
+	if len(errs) == 0 {
+		t.Fatal("got no errors, want the detached pipe refused")
+	}
+	if !strings.Contains(errs[0].Message, "|=| has nothing on its left") {
+		t.Errorf("first error is %q, want it to name the continuation rule", errs[0].Message)
 	}
 }

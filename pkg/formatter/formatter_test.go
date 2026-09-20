@@ -414,3 +414,46 @@ func TestFormatOpensOutABodyThatWasNotOnOneLine(t *testing.T) {
 		})
 	}
 }
+
+// A line that opens with |=| carries on the line above it, so it is written
+// one step in. Given back at the margin the chain read as a column of
+// statements, which is the very thing the indent is there to deny.
+func TestFormatIndentsAContinuedPipeLine(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			"a chain at the top level",
+			"[1, 2, 3]\n|=| lick(double)\n|=| nya\n",
+			"[1, 2, 3]\n  |=| lick(double)\n  |=| nya\n",
+		},
+		{
+			"a chain inside a body",
+			"meow f(xs) {\nbring xs\n|=| lick(double)\n}\n",
+			"meow f(xs) {\n  bring xs\n    |=| lick(double)\n}\n",
+		},
+		{
+			"already indented, left alone",
+			"[1, 2, 3]\n  |=| nya\n",
+			"[1, 2, 3]\n  |=| nya\n",
+		},
+		{
+			"a pipe that stays on its line keeps its spacing",
+			"xs |=| lick(double) |=| nya\n",
+			"xs |=| lick(double) |=| nya\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := format(t, tt.input)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+			if again := format(t, got); again != got {
+				t.Errorf("formatting twice gave %q, want %q", again, got)
+			}
+		})
+	}
+}

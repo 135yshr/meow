@@ -21,7 +21,7 @@ Factor      = name | literal | "(" Expression ")" | "[" Expression "]" | "{" Exp
 
 ## Source Code Representation
 
-Source code is UTF-8 encoded text in `.nyan` files. Newlines serve as statement terminators (semicolons are not used). The compiler processes a single `.nyan` file at a time.
+Source code is UTF-8 encoded text in `.nyan` files. Newlines serve as statement terminators (semicolons are not used); the one exception is a line beginning with `|=|`, which continues the expression on the line above — see [Pipe Expression](#pipe-expression). The compiler processes a single `.nyan` file at a time.
 
 ## Lexical Elements
 
@@ -378,6 +378,21 @@ Passes the left expression as the first argument to the right expression. If the
 x |=| f(y)    # equivalent to f(x, y)
 x |=| f       # equivalent to f(x)
 ```
+
+A newline is not a terminator when the token after it is `|=|`. A line
+beginning with `|=|` continues the expression on the line above, so a chain may
+be written over several lines:
+
+```meow
+xs
+  |=| picky(even)
+  |=| lick(square)
+  |=| nya
+```
+
+The continuation reaches exactly one token past the newline, so anything
+between the two stages — a blank line, a comment — ends the statement. A `|=|`
+that opens a statement is an error.
 
 ### Catch Expression
 

@@ -1,0 +1,18 @@
+# A pipe chain written down the page, exactly as docs/tutorial.md teaches it.
+# A line that opens with |=| carries on the expression above it.
+
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  |=| picky(paw(x) { x % 2 == 0 })
+  |=| lick(paw(x) { x * x })
+  |=| nya
+# => [4, 16, 36, 64, 100]
+
+# The chain can be bound to a name the same way.
+nyan total = [1, 2, 3, 4]
+  |=| lick(paw(x) { x * 10 })
+  |=| curl(0, paw(acc, x) { acc + x })
+nya(total)
+
+# A stage may sit anywhere on the continued line.
+[3, 1, 2]
+  |=| lick(paw(x) { x + 1 }) |=| nya

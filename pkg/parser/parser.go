@@ -568,6 +568,7 @@ func (p *Parser) infixPrec(typ token.TokenType) int {
 func (p *Parser) parseExpr(minPrec int) ast.Expr {
 	left := p.parsePostfix(p.parsePrefix())
 	for {
+		p.continueAcrossPipeLine(minPrec)
 		prec := p.infixPrec(p.cur.Type)
 		if prec <= minPrec {
 			break
@@ -575,6 +576,34 @@ func (p *Parser) parseExpr(minPrec int) ast.Expr {
 		left = p.parseInfix(left, prec)
 	}
 	return left
+}
+
+// continueAcrossPipeLine lets a chain be written down the page:
+//
+//	[1, 2, 3]
+//	  |=| picky(even)
+//	  |=| nya
+//
+// A statement can never begin with |=|, so a newline whose next token is one
+// is a continuation of the expression above rather than the end of it, and the
+// newline is dropped. Nothing that parses today changes meaning.
+//
+// The rule is deliberately as small as it can be. It reaches exactly one token
+// past the newline — the lookahead the parser already has — so a blank line, a
+// comment line or a comment at the end of the line above still ends the
+// statement, and a |=| after one is the error it always was. It applies only
+// where the pipe would be consumed anyway (precPipe > minPrec), so a newline is
+// never eaten by a nested call that is about to hand the pipe back to its
+// caller. And it is the pipe alone: no other operator is documented to lead a
+// line, and a leading `-` in particular would be ambiguous with a statement
+// that opens with a negation.
+func (p *Parser) continueAcrossPipeLine(minPrec int) {
+	if precPipe <= minPrec {
+		return
+	}
+	if p.cur.Type == token.NEWLINE && p.peek.Type == token.PIPE {
+		p.advance() // drop the newline; the pipe carries the line on
+	}
 }
 
 func (p *Parser) parsePrefix() ast.Expr {
@@ -618,6 +647,16 @@ func (p *Parser) parsePrefix() ast.Expr {
 		return p.parseMapLit()
 	case token.PEEK:
 		return p.parseMatch()
+	case token.PIPE:
+		// A pipe where a value belongs is a chain that lost its left side. It is
+		// nearly always a continuation the parser could not join up: the rule
+		// reaches one token past the line break, so a blank line or a comment
+		// between the two stages ends the statement and leaves the |=| standing
+		// at the head of one. Saying so beats "unexpected token".
+		tok := p.advance()
+		p.errs = append(p.errs, newError(tok.Pos,
+			"|=| has nothing on its left; a chain continues across lines only when |=| opens the line directly below the expression it continues"))
+		return &ast.NilLit{Token: tok}
 	default:
 		p.errs = append(p.errs, newError(p.cur.Pos, "unexpected token %v (%q)", p.cur.Type, p.cur.Literal))
 		p.advance()
