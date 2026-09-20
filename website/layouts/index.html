@@ -57,8 +57,14 @@
     <p>
       Meow Programming Language is a cat-themed functional programming language that transpiles to Go.
       It uses playful keywords such as <code>nyan</code>, <code>meow</code>, <code>purr</code>,
-      and <code>hiss</code>, while still compiling to native binaries through Go &mdash;
-      so your <code>.nyan</code> programs run at the same speed as hand-written Go code.
+      and <code>hiss</code>, while still compiling to native binaries through Go.
+      How fast the result runs depends on how much you annotate: a function whose parameters and
+      return type are all scalars (<code>int</code>, <code>byte</code>, <code>float</code>,
+      <code>string</code>, <code>bool</code>) compiles to ordinary Go over native Go types &mdash;
+      <code>int</code> is an <code>int64</code>, <code>+</code> is a Go <code>+</code>, with no
+      boxing and no runtime dispatch. Everything else &mdash; top-level code, lambdas, and anything
+      touching a list or a struct &mdash; stays dynamically typed behind a <code>meow.Value</code>
+      interface. Run <code>meow transpile</code> and read exactly what you got.
     </p>
   </div>
 </section>
@@ -74,8 +80,8 @@
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#9889;</div>
-        <h3>Native Performance</h3>
-        <p>Transpiles to Go and compiles to native binaries. Your cat code runs at full speed.</p>
+        <h3>Compiles to Native Binaries</h3>
+        <p>Transpiles to Go and compiles to a native binary. Fully annotated functions come out as ordinary Go with no boxing &mdash; run <code>meow transpile</code> and check.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#128736;</div>

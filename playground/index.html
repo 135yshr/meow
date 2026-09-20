@@ -80,7 +80,7 @@
                 <option value="">-- Select Example --</option>
             </select>
             <button id="run-btn" disabled>Run (Ctrl+Enter)</button>
-            <span id="status">Loading WASM...</span>
+            <span id="status" class="is-busy" role="status" aria-live="polite">Downloading compiler&hellip;</span>
         </div>
 
         <div class="editor-panel">
@@ -90,6 +90,11 @@
             </div>
             <div class="panel">
                 <div class="panel-header">Output</div>
+                <div id="loading">
+                    <div class="loading-track" aria-hidden="true"></div>
+                    <p class="loading-title">Downloading the Meow compiler&hellip; (~1.5&nbsp;MB of WebAssembly)</p>
+                    <p class="loading-note">The whole compiler runs in your browser, so it has to be fetched once. On a slow connection this can take up to 30 seconds. <span class="loading-elapsed" id="loading-elapsed"></span></p>
+                </div>
                 <pre id="output"></pre>
             </div>
         </div>

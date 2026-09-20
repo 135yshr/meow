@@ -25,9 +25,47 @@ header h1 {
 }
 
 header .subtitle {
-    color: #888;
+    color: #9fb0cc;
     font-size: 0.85rem;
     margin-top: 0.25rem;
+}
+
+/* Site navigation.
+   Colours are chosen for WCAG AA (4.5:1) against the #16213e header:
+   #c9d4f0 on #16213e = 10.7:1, hover #ff8fa0 on #1d2d55 = 6.2:1.
+   The brand red #e94560 is only 4.15:1 there, so the lighter tint is used. */
+.playground-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.15rem 0.25rem;
+    margin-top: 0.6rem;
+    /* Pull the first link's padding back so its text lines up with the h1. */
+    margin-left: -0.7rem;
+}
+
+.playground-nav a {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    color: #c9d4f0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.playground-nav a:hover {
+    color: #ff8fa0;
+    background: #1d2d55;
+    text-decoration: underline;
+}
+
+.playground-nav a:focus-visible {
+    color: #ff8fa0;
+    background: #1d2d55;
+    outline: 2px solid #ff8fa0;
+    outline-offset: 2px;
 }
 
 main {
@@ -75,9 +113,23 @@ main {
     cursor: not-allowed;
 }
 
+/* Status colours, all AA against the #1a1a2e page background:
+   #9fb0cc 7.8:1, #6ee7a0 11.1:1, #ffb74d 9.9:1, #ff8fa0 7.9:1. */
 #status {
-    color: #888;
+    color: #9fb0cc;
     font-size: 0.85rem;
+}
+
+#status.is-ready {
+    color: #6ee7a0;
+}
+
+#status.is-busy {
+    color: #ffb74d;
+}
+
+#status.is-error {
+    color: #ff8fa0;
 }
 
 .editor-panel {
@@ -146,13 +198,94 @@ main {
     color: #e94560;
 }
 
+/* WASM download indicator.
+   Indeterminate on purpose: the wasm is served gzipped, so a byte counter
+   would compare decompressed bytes against a compressed content-length. */
+#loading {
+    background: #0f0f23;
+    padding: 1rem;
+    border-bottom: 1px solid #333;
+    color: #c9d4f0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+#loading[hidden] {
+    display: none;
+}
+
+#loading .loading-title {
+    font-weight: bold;
+    color: #ffb74d;
+}
+
+#loading .loading-note {
+    color: #9fb0cc;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+#loading .loading-elapsed {
+    white-space: nowrap;
+}
+
+.loading-track {
+    position: relative;
+    height: 6px;
+    margin-bottom: 0.75rem;
+    border-radius: 3px;
+    background: #1d2d55;
+    overflow: hidden;
+}
+
+.loading-track::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #e94560, #ffb74d);
+    animation: loading-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(250%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-track::after {
+        animation: loading-pulse 2s ease-in-out infinite;
+        width: 100%;
+        transform: none;
+    }
+
+    @keyframes loading-pulse {
+        0%,
+        100% {
+            opacity: 0.35;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+}
+
 footer {
     background: #16213e;
     padding: 0.75rem 2rem;
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
-    color: #666;
+    color: #9fb0cc;
     border-top: 1px solid #333;
 }
 
@@ -166,8 +299,22 @@ footer a:hover {
 }
 
 @media (max-width: 768px) {
-    .editor-panel {
-        flex-direction: column;
+    header {
+        padding: 0.75rem 1rem;
+    }
+
+    header h1 {
+        font-size: 1.15rem;
+    }
+
+    .playground-nav {
+        margin-top: 0.4rem;
+        margin-left: -0.5rem;
+    }
+
+    .playground-nav a {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.85rem;
     }
 
     main {
@@ -176,5 +323,48 @@ footer a:hover {
 
     .toolbar {
         flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Let the select take its own row instead of forcing a 200px column. */
+    .toolbar select {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    /* The 400px floor is what pushed the Output panel below the fold on a
+       375x667 viewport once the panels stack. Drop it and give each panel a
+       viewport-relative minimum instead. */
+    .editor-panel {
+        flex-direction: column;
+        min-height: 0;
+        gap: 0.5rem;
+    }
+
+    .editor-panel > .panel {
+        flex: 1 1 auto;
+    }
+
+    .editor-panel > .panel:first-child {
+        min-height: 30vh;
+    }
+
+    .editor-panel > .panel:nth-child(2) {
+        min-height: 20vh;
+    }
+
+    /* 16px keeps iOS Safari from zooming in when the textarea is focused. */
+    #editor,
+    #output {
+        font-size: 16px;
+        padding: 0.75rem;
+    }
+
+    #loading {
+        padding: 0.75rem;
+    }
+
+    footer {
+        padding: 0.75rem 1rem;
     }
 }

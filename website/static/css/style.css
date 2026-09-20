@@ -560,7 +560,8 @@ pre code {
   color: #50fa7b;
   background: none;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .code-run-output.error pre {
