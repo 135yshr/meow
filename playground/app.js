@@ -5,29 +5,100 @@ const output = document.getElementById("output");
 const runBtn = document.getElementById("run-btn");
 const status = document.getElementById("status");
 const examplesSelect = document.getElementById("examples");
+const loading = document.getElementById("loading");
+const loadingElapsed = document.getElementById("loading-elapsed");
+
+const NARROW_VIEWPORT = "(max-width: 768px)";
 
 let wasmReady = false;
 
+function setStatus(text, state) {
+    status.textContent = text;
+    status.className = state ? "is-" + state : "";
+}
+
+// On a narrow screen the panels are stacked, so the Output panel can sit
+// below the fold. Bring it into view once there is something to read.
+function revealOutput() {
+    if (!window.matchMedia || !window.matchMedia(NARROW_VIEWPORT).matches) return;
+    const panel = output.parentElement;
+    if (!panel || typeof panel.scrollIntoView !== "function") return;
+    try {
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (e) {
+        panel.scrollIntoView();
+    }
+}
+
+// The wasm is served gzipped, so response.body yields decompressed bytes while
+// content-length reports the compressed size: a byte counter built from those
+// two numbers would be wrong. Reading the stream would also give up streaming
+// compilation. So the indicator is honest and indeterminate, and only the
+// elapsed seconds are counted.
+function startElapsedTicker() {
+    const started = Date.now();
+    return window.setInterval(() => {
+        if (!loadingElapsed) return;
+        const seconds = Math.round((Date.now() - started) / 1000);
+        if (seconds < 3) return;
+        loadingElapsed.textContent = "Still downloading — " + seconds + "s so far.";
+    }, 1000);
+}
+
+async function instantiateWasm(go) {
+    const response = await fetch("meow.wasm");
+    if (!response.ok) {
+        throw new Error("HTTP " + response.status + " while fetching meow.wasm");
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (typeof WebAssembly.instantiateStreaming === "function" &&
+        contentType.indexOf("application/wasm") !== -1) {
+        try {
+            return await WebAssembly.instantiateStreaming(response, go.importObject);
+        } catch (err) {
+            // The body is spent; fall through to a fresh, non-streaming fetch.
+            console.warn("Streaming instantiation failed, retrying without it:", err);
+        }
+    } else {
+        const bytes = await response.arrayBuffer();
+        return WebAssembly.instantiate(bytes, go.importObject);
+    }
+    const retry = await fetch("meow.wasm");
+    if (!retry.ok) {
+        throw new Error("HTTP " + retry.status + " while fetching meow.wasm");
+    }
+    return WebAssembly.instantiate(await retry.arrayBuffer(), go.importObject);
+}
+
 async function loadWasm() {
     const go = new Go();
+    const ticker = startElapsedTicker();
     try {
-        const result = await WebAssembly.instantiateStreaming(
-            fetch("meow.wasm"),
-            go.importObject
-        );
+        const result = await instantiateWasm(go);
         go.run(result.instance);
         wasmReady = true;
         runBtn.disabled = false;
-        status.textContent = "Ready";
-        status.style.color = "#4caf50";
+        setStatus("Ready", "ready");
     } catch (err) {
-        status.textContent = "Failed to load WASM: " + err.message;
-        status.style.color = "#e94560";
+        setStatus("Compiler failed to load", "error");
+        output.textContent =
+            "Failed to load the Meow compiler (" + err.message + ").\n\n" +
+            "The playground needs to download a ~1.5 MB WebAssembly build. " +
+            "Check your connection and reload the page.";
+        output.className = "error";
+    } finally {
+        window.clearInterval(ticker);
+        if (loading) loading.hidden = true;
     }
 }
 
 function run() {
-    if (!wasmReady) return;
+    if (!wasmReady) {
+        if (loading && !loading.hidden) {
+            setStatus("Still downloading the compiler...", "busy");
+        }
+        return;
+    }
     if (typeof runMeow !== "function") {
         output.textContent = "WASM not properly initialized";
         output.className = "error";
@@ -41,8 +112,7 @@ function run() {
         return;
     }
 
-    status.textContent = "Running...";
-    status.style.color = "#ff9800";
+    setStatus("Running...", "busy");
 
     setTimeout(() => {
         try {
@@ -63,8 +133,8 @@ function run() {
             output.className = "error";
         }
 
-        status.textContent = "Ready";
-        status.style.color = "#4caf50";
+        setStatus("Ready", "ready");
+        revealOutput();
     }, 10);
 }
 

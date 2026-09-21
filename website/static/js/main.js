@@ -37,8 +37,11 @@ function getBaseURL() {
   if (base) return base.getAttribute('href');
   var link = document.querySelector('link[rel="canonical"]');
   if (link) {
-    var url = new URL(link.getAttribute('href'));
-    return url.pathname;
+    try {
+      return new URL(link.getAttribute('href')).pathname;
+    } catch (e) {
+      return '/meow/';
+    }
   }
   return '/meow/';
 }
@@ -78,8 +81,11 @@ function getCodeFromPanel(el) {
 
 function runExample(btn) {
   var panel = btn.closest('.example-panel');
+  if (!panel) return;
   var outputDiv = panel.querySelector('.code-run-output');
+  if (!outputDiv) return;
   var outputPre = outputDiv.querySelector('pre');
+  if (!outputPre) return;
 
   outputDiv.style.display = 'block';
   outputDiv.className = 'code-run-output loading';
