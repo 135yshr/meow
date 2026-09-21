@@ -154,11 +154,17 @@ func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
 // here.
 //
 // A builtin is declared in no scope at all — `known` answers for it separately
-// — so anything bound under that name, at any depth, has taken it over. Note
-// that this is about a name written as a value: a *called* name reaches the
-// builtin whatever is bound, which is #154's business and not settled here.
+// — so anything bound under that name, at any depth, has taken it over. A
+// top-level binding counts even before the statement that scopes it has been
+// reached: it is hoisted to package scope, so a function written above it can
+// still read it once it runs — topLevelNames is the pre-pass that already
+// knows this, for the same reason reachesTopLevelFunc does not need it.
+//
+// Note that this is about a name written as a value: a *called* name reaches
+// the builtin whatever is bound, which is #154's business and not settled
+// here.
 func (c *Checker) reachesBuiltin(name string) bool {
-	return builtinNames[name] && !c.bound(name)
+	return builtinNames[name] && !c.bound(name) && !c.topLevelNames[name]
 }
 
 func (c *Checker) lookup(name string) types.Type {
@@ -814,6 +820,13 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 		// fine — which is what the recorded resolution says, a name a local took
 		// over having nothing to do with the function it shadows.
 		if c.info.FuncRefs[e] && !c.pureFuncs[e.Name] {
+			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
+		}
+		// The same escape exists for a builtin: lick(xs, nya) hands nya out as
+		// a value rather than calling it directly, and whatever receives that
+		// value can call it well outside this body. BuiltinRefs is the same
+		// kind of recorded resolution FuncRefs is, so it gets the same check.
+		if c.info.BuiltinRefs[e] && impureBuiltins[e.Name] {
 			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
 		}
 	case *ast.UnaryExpr:

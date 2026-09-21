@@ -1626,3 +1626,61 @@ nya(lick(["a", "b"], upper))
 		t.Errorf("%d occurrences reach the builtin and %d were taken over, want 1 of each", reaching, taken)
 	}
 }
+
+// A bare reference to an impure builtin is the same escape a bare reference to
+// an impure function is: passed to lick rather than called directly, nya still
+// gets invoked wherever the resulting value is used, which can be well outside
+// the pure body that handed it out.
+func TestAPureBodyRefusesAnImpureBuiltinReferencedAsAValue(t *testing.T) {
+	_, errs := check(t, `
+trill meow bad(xs litter) litter {
+    bring lick(xs, nya)
+}
+`)
+	if len(errs) == 0 {
+		t.Fatal("expected an error, got none")
+	}
+	if !strings.Contains(errs[0].Message, "must not reference non-pure function nya") &&
+		!strings.Contains(errs[0].Message, "must not reference impure builtin nya") {
+		t.Errorf("got %q, want it to name nya as impure", errs[0].Message)
+	}
+}
+
+// A pure builtin named as a value is fine — pureBuiltins already says which
+// ones carry no side effect, and naming one is no different from calling it.
+func TestAPureBodyMayReferenceAPureBuiltinAsAValue(t *testing.T) {
+	_, errs := check(t, `
+trill meow ok(xs litter) litter {
+    bring lick(xs, upper)
+}
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}
+
+// A top-level binding is hoisted to package scope, so a function written
+// above it can still read it once it runs — the same rule #136 documented for
+// a top-level function is true for any top-level name, builtin-shaped or not.
+// bound() alone cannot see this, because it only reflects the scope stack at
+// the point checking has reached, not what the pre-pass already knows.
+func TestATopLevelBindingWrittenBelowStillShadowsABuiltin(t *testing.T) {
+	info, errs := check(t, `
+meow f() litter {
+    bring lick(["a"], upper)
+}
+nyan upper = paw(s) { bring s + "!" }
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	for node := range info.ExprTypes {
+		id, isIdent := node.(*ast.Ident)
+		if !isIdent || id.Name != "upper" {
+			continue
+		}
+		if info.BuiltinRefs[id] {
+			t.Errorf("expected the later top-level binding to shadow the builtin, but it was recorded as reaching upper")
+		}
+	}
+}
