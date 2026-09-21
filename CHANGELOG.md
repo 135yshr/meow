@@ -1,3 +1,8 @@
+# [v0.23.0](https://github.com/135yshr/meow/compare/v0.22.3...v0.23.0) (2026-09-21)
+
+## ✨ New Features
+- [`83b2826`](https://github.com/135yshr/meow/commit/83b2826)  feat: Let a builtin be named as a value, not only called (#156) (Issues: [`#156`](https://github.com/135yshr/meow/issues/156) [`#152`](https://github.com/135yshr/meow/issues/152) [`#136`](https://github.com/135yshr/meow/issues/136) [`#154`](https://github.com/135yshr/meow/issues/154) [`#155`](https://github.com/135yshr/meow/issues/155) [`#151`](https://github.com/135yshr/meow/issues/151) [`#155`](https://github.com/135yshr/meow/issues/155))
+
 # [v0.22.3](https://github.com/135yshr/meow/compare/v0.22.2...v0.22.3) (2026-09-21)
 
 # [v0.22.2](https://github.com/135yshr/meow/compare/v0.22.1...v0.22.2) (2026-09-21)
