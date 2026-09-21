@@ -510,3 +510,21 @@ func AsBool(v Value) bool {
 	}
 	return b
 }
+
+// BuiltinFunc wraps a runtime builtin as the value a program gets when it
+// names one rather than calling it.
+//
+// A builtin is a plain Go function of a fixed arity, which nothing holding a
+// meow.Value can be handed. Generated code supplies that shape here along with
+// the count the builtin takes, so the count is checked before the arguments
+// are unpacked — a direct call has the Go compiler for that, and a value
+// called through this does not. An arity below zero means the builtin takes
+// what it is given.
+func BuiltinFunc(name string, arity int, fn func(args ...Value) Value) *Func {
+	return NewFunc(name, func(args ...Value) Value {
+		if arity >= 0 && len(args) != arity {
+			return NewFurball("Hiss! %s requires %d argument(s), got %d, nya~", name, arity, len(args))
+		}
+		return fn(args...)
+	})
+}
