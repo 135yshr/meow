@@ -516,3 +516,64 @@ nya(caller(5))`)
 		t.Error("hiss must not be wrapped: a panic is not an expression")
 	}
 }
+
+// A builtin named rather than called is the builtin itself. A runtime builtin
+// is a plain Go function of a fixed arity, which nothing taking a meow.Value
+// can be handed, so it is wrapped into the value it has to be.
+func TestABuiltinNamedRatherThanCalledIsWrapped(t *testing.T) {
+	code := generateTyped(t, `nyan f = upper
+nya(f("hi"))
+`)
+	if !strings.Contains(code, `meow.BuiltinFunc("upper", 1,`) {
+		t.Errorf("expected upper to be wrapped as a value, got:\n%s", code)
+	}
+}
+
+// Calling one is unchanged: the wrapper is for the value position only, and a
+// call still goes straight to the runtime function.
+func TestACalledBuiltinIsNotWrapped(t *testing.T) {
+	code := generateTyped(t, `nya(upper("hi"))`)
+	if !strings.Contains(code, `meow.Upper(`) {
+		t.Errorf("expected a direct call, got:\n%s", code)
+	}
+	if strings.Contains(code, `meow.BuiltinFunc(`) {
+		t.Errorf("expected no wrapper for a call, got:\n%s", code)
+	}
+}
+
+// A name a binding took over is the binding's, as it already was.
+func TestABindingKeepsItsNameFromABuiltinInCodegen(t *testing.T) {
+	code := generateTyped(t, `meow shadowed() litter {
+  nyan upper = paw(s) { bring s + "!" }
+  bring lick(["a"], upper)
+}
+nya(shadowed())
+`)
+	if strings.Contains(code, `meow.BuiltinFunc("upper"`) {
+		t.Errorf("expected the binding to keep the name, got:\n%s", code)
+	}
+}
+
+// The two backends drifting over which names exist is what #140 and #141 were,
+// and the guard added with them covers the checker and the interpreter. Naming
+// a builtin as a value needs codegen to know its arity too, so a name added to
+// the checker without one here would compile to nothing callable.
+func TestEveryAcceptedBuiltinCanBeNamedAsAValue(t *testing.T) {
+	for _, name := range checker.BuiltinNames() {
+		if !codegen.HasBuiltinValue(name) {
+			t.Errorf("the checker accepts %q but codegen cannot name it as a value", name)
+		}
+	}
+	// And the other way: an entry left behind after the checker stops
+	// accepting a name would be arity bookkeeping for a builtin nothing can
+	// reach, and would go on claiming a runtime function that may be gone.
+	accepted := make(map[string]bool)
+	for _, name := range checker.BuiltinNames() {
+		accepted[name] = true
+	}
+	for _, name := range codegen.BuiltinValueNames() {
+		if !accepted[name] {
+			t.Errorf("codegen can name %q as a value but the checker does not accept it", name)
+		}
+	}
+}

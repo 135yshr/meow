@@ -28,6 +28,11 @@ type TypeInfo struct {
 	// written in, and cannot be worked out again from its type: a local holding
 	// a function has the same type as the function it shadows.
 	FuncRefs map[*ast.Ident]bool
+	// BuiltinRefs holds the identifier occurrences that name a builtin rather
+	// than something a binding took the name over with. Told apart the same way
+	// FuncRefs is, and for the same reason: a local holding a function of one
+	// argument has the type `upper` has.
+	BuiltinRefs map[*ast.Ident]bool
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -43,6 +48,7 @@ func NewTypeInfo() *TypeInfo {
 		LearnImpls:  make(map[string]map[string]types.FuncType),
 		ImportNames: make(map[string]string),
 		FuncRefs:    make(map[*ast.Ident]bool),
+		BuiltinRefs: make(map[*ast.Ident]bool),
 	}
 }
 
@@ -142,6 +148,23 @@ func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
 	}
 	found, isFunc := t.(types.FuncType)
 	return isFunc && found.Equals(ft)
+}
+
+// reachesBuiltin reports whether a name still reaches the builtin of that name
+// here.
+//
+// A builtin is declared in no scope at all — `known` answers for it separately
+// — so anything bound under that name, at any depth, has taken it over. A
+// top-level binding counts even before the statement that scopes it has been
+// reached: it is hoisted to package scope, so a function written above it can
+// still read it once it runs — topLevelNames is the pre-pass that already
+// knows this, for the same reason reachesTopLevelFunc does not need it.
+//
+// Note that this is about a name written as a value: a *called* name reaches
+// the builtin whatever is bound, which is #154's business and not settled
+// here.
+func (c *Checker) reachesBuiltin(name string) bool {
+	return builtinNames[name] && !c.bound(name) && !c.topLevelNames[name]
 }
 
 func (c *Checker) lookup(name string) types.Type {
@@ -799,6 +822,13 @@ func (c *Checker) checkPurityExpr(fnName string, expr ast.Expr) {
 		if c.info.FuncRefs[e] && !c.pureFuncs[e.Name] {
 			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
 		}
+		// The same escape exists for a builtin: lick(xs, nya) hands nya out as
+		// a value rather than calling it directly, and whatever receives that
+		// value can call it well outside this body. BuiltinRefs is the same
+		// kind of recorded resolution FuncRefs is, so it gets the same check.
+		if c.info.BuiltinRefs[e] && impureBuiltins[e.Name] {
+			c.addError(e.Token.Pos, "pure function %s must not reference non-pure function %s", fnName, e.Name)
+		}
 	case *ast.UnaryExpr:
 		c.checkPurityExpr(fnName, e.Right)
 	case *ast.BinaryExpr:
@@ -1100,6 +1130,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		if ft, isFunc := c.info.FuncTypes[e.Name]; isFunc && c.reachesTopLevelFunc(e.Name, ft) {
 			c.info.FuncRefs[e] = true
+		}
+		if c.reachesBuiltin(e.Name) {
+			c.info.BuiltinRefs[e] = true
 		}
 		return c.lookup(e.Name)
 	case *ast.UnaryExpr:

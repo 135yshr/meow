@@ -1778,6 +1778,15 @@ func (g *Generator) genIdent(e *ast.Ident) string {
 	if ft, ok := g.namedFunc(e); ok {
 		return g.genPartialCall(e.Name, ft, nil)
 	}
+	// So is a builtin named rather than called, and for the same reason: the
+	// runtime function behind it is plain Go. Which occurrences still reach the
+	// builtin is the checker's answer, a binding of that name having taken it
+	// over otherwise.
+	if g.typeInfo != nil && g.typeInfo.BuiltinRefs[e] {
+		if code, ok := g.genBuiltinValue(e.Name); ok {
+			return code
+		}
+	}
 	return e.Name
 }
 

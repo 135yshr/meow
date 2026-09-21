@@ -1,0 +1,31 @@
+# A builtin named rather than called is the builtin itself, so it can be kept,
+# piped into, or mapped over a list like any other function value.
+
+# Kept, then called.
+nyan f = upper
+nya(f("hi"))
+
+# Piped into, and mapped over a list.
+nya("meow" |=| upper)
+nya(lick(["a", "b"], upper))
+nya(picky([1, 2, 3, 4], is_furball))
+
+# One that takes more than one argument.
+nyan j = pad
+nya(j("7", 3))
+
+# Shown, like any value.
+nya(upper)
+
+# A binding takes the name over in value position, so what it holds is what
+# gets mapped — the builtin is untouched where nothing shadows it.
+meow shadowed() litter {
+  nyan upper = paw(s) { bring s + "!" }
+  bring lick(["a", "b"], upper)
+}
+nya(shadowed())
+nya(lick(["a", "b"], upper))
+
+# Handed the wrong number of arguments, it says so where it was called.
+nyan g = lower
+nya(g() ~> "wrong count")

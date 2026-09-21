@@ -1,0 +1,37 @@
+# Every builtin named as a value, so that each one's recorded arity is checked
+# against the Go signature it stands for: a wrong count here is a build
+# failure, not a quiet error for whoever first names that builtin.
+#
+# judge, expect and refuse are left out. They need the testing package, which
+# is only imported under `meow test` (#151).
+nya(nya)
+nya(hiss)
+nya(scram)
+nya(seed)
+nya(gag)
+nya(is_furball)
+nya(len)
+nya(head)
+nya(tail)
+nya(append)
+nya(lick)
+nya(picky)
+nya(curl)
+nya(to_int)
+nya(to_float)
+nya(to_string)
+nya(to_bytes)
+nya(to_runes)
+nya(whiff)
+nya(track)
+nya(shred)
+nya(tangle)
+nya(nibble)
+nya(upper)
+nya(lower)
+nya(trim)
+nya(replace)
+nya(pad)
+nya(sort)
+nya(reverse)
+nya(round)
