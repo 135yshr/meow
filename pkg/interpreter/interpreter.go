@@ -440,6 +440,13 @@ func (interp *Interpreter) evalExpr(expr ast.Expr, env *Environment) meowrt.Valu
 	case *ast.NilLit:
 		return meowrt.NewNil()
 	case *ast.Ident:
+		// A binding takes the name in value position, so it is asked first;
+		// only a name nothing has bound reaches the builtin.
+		if !env.Has(e.Name) {
+			if fn, ok := interp.builtinValue(e.Name); ok {
+				return fn
+			}
+		}
 		return env.Get(e.Name)
 	case *ast.SelfExpr:
 		return env.Get("self")
@@ -531,6 +538,23 @@ func (interp *Interpreter) evalBinary(e *ast.BinaryExpr, env *Environment) meowr
 }
 
 // --- Builtin Helpers ---
+
+// builtinValue answers with a builtin named rather than called, as the value
+// it has to be for anything holding a function to take it.
+//
+// It forwards to the same dispatch table a call goes through, so the builtin
+// held as a value is the builtin — the arity check and the wording of its
+// failure are the ones a direct call gets, and there is no second reading of
+// what the name means to drift out of step.
+func (interp *Interpreter) builtinValue(name string) (*meowrt.Func, bool) {
+	fn, ok := builtins[name]
+	if !ok {
+		return nil, false
+	}
+	return meowrt.NewFunc(name, func(args ...meowrt.Value) meowrt.Value {
+		return fn(interp, args)
+	}), true
+}
 
 func requireArgs(name string, args []meowrt.Value, count int) {
 	if len(args) != count {

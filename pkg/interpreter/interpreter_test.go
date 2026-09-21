@@ -1732,3 +1732,50 @@ func TestEveryAcceptedBuiltinIsReachableByName(t *testing.T) {
 		})
 	}
 }
+
+// A builtin named rather than called is the builtin itself, so it can be kept,
+// piped into, or mapped over a list like any other function value.
+func TestABuiltinNamedRatherThanCalledIsAValue(t *testing.T) {
+	got := runMeow(t, `
+nyan f = upper
+nya(f("hi"))
+nya(lick(["a", "b"], upper))
+nya("meow" |=| upper)
+nya(upper)
+`)
+	want := "HI\n[A, B]\nMEOW\n<meow upper>\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A name a binding took over is the binding's, even though what it holds is a
+// function of the same shape as the builtin it shadows. Note this is the value
+// position only: a *called* name still reaches the builtin, which is #154.
+func TestABindingShadowsABuiltinInValuePosition(t *testing.T) {
+	got := runMeow(t, `
+meow shadowed() litter {
+  nyan upper = paw(s) { bring s + "!" }
+  bring lick(["a", "b"], upper)
+}
+nya(shadowed())
+nya(lick(["a", "b"], upper))
+`)
+	want := "[a!, b!]\n[A, B]\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Called with the wrong number of arguments, a builtin held as a value says so
+// the way the builtin says it, rather than falling over as a Go index panic.
+func TestABuiltinValueCalledWithTheWrongCountSaysSo(t *testing.T) {
+	got := runMeowError(t, `
+nyan f = upper
+nya(f())
+`)
+	want := "Hiss! upper requires 1 argument(s), got 0, nya~"
+	if !strings.Contains(got, want) {
+		t.Errorf("got %q, want it to contain %q", got, want)
+	}
+}
