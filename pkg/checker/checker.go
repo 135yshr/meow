@@ -28,6 +28,11 @@ type TypeInfo struct {
 	// written in, and cannot be worked out again from its type: a local holding
 	// a function has the same type as the function it shadows.
 	FuncRefs map[*ast.Ident]bool
+	// BuiltinRefs holds the identifier occurrences that name a builtin rather
+	// than something a binding took the name over with. Told apart the same way
+	// FuncRefs is, and for the same reason: a local holding a function of one
+	// argument has the type `upper` has.
+	BuiltinRefs map[*ast.Ident]bool
 }
 
 // NewTypeInfo creates an empty TypeInfo.
@@ -43,6 +48,7 @@ func NewTypeInfo() *TypeInfo {
 		LearnImpls:  make(map[string]map[string]types.FuncType),
 		ImportNames: make(map[string]string),
 		FuncRefs:    make(map[*ast.Ident]bool),
+		BuiltinRefs: make(map[*ast.Ident]bool),
 	}
 }
 
@@ -142,6 +148,17 @@ func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
 	}
 	found, isFunc := t.(types.FuncType)
 	return isFunc && found.Equals(ft)
+}
+
+// reachesBuiltin reports whether a name still reaches the builtin of that name
+// here.
+//
+// A builtin is declared in no scope at all — `known` answers for it separately
+// — so anything bound under that name, at any depth, has taken it over. Note
+// that this is about a name written as a value: a *called* name reaches the
+// builtin whatever is bound, which is #154's business and not settled here.
+func (c *Checker) reachesBuiltin(name string) bool {
+	return builtinNames[name] && !c.bound(name)
 }
 
 func (c *Checker) lookup(name string) types.Type {
@@ -1100,6 +1117,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		if ft, isFunc := c.info.FuncTypes[e.Name]; isFunc && c.reachesTopLevelFunc(e.Name, ft) {
 			c.info.FuncRefs[e] = true
+		}
+		if c.reachesBuiltin(e.Name) {
+			c.info.BuiltinRefs[e] = true
 		}
 		return c.lookup(e.Name)
 	case *ast.UnaryExpr:

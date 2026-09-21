@@ -1592,3 +1592,37 @@ trill meow bad(n int) int {
 		})
 	}
 }
+
+// A builtin named rather than called has to be told apart from a local that
+// took its name, and the type cannot say which is which: a local holding a
+// function of one argument looks exactly like `upper`. The scope it was
+// written in settles it, so the checker records the occurrences that still
+// reach the builtin.
+func TestWhichOccurrencesReachABuiltin(t *testing.T) {
+	info, errs := check(t, `
+meow shadowed() litter {
+    nyan upper = paw(s) { bring s + "!" }
+    bring lick(["a", "b"], upper)
+}
+nya(lick(["a", "b"], upper))
+`)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+
+	var reaching, taken int
+	for node := range info.ExprTypes {
+		id, isIdent := node.(*ast.Ident)
+		if !isIdent || id.Name != "upper" {
+			continue
+		}
+		if info.BuiltinRefs[id] {
+			reaching++
+			continue
+		}
+		taken++
+	}
+	if reaching != 1 || taken != 1 {
+		t.Errorf("%d occurrences reach the builtin and %d were taken over, want 1 of each", reaching, taken)
+	}
+}
