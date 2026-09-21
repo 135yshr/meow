@@ -564,4 +564,16 @@ func TestEveryAcceptedBuiltinCanBeNamedAsAValue(t *testing.T) {
 			t.Errorf("the checker accepts %q but codegen cannot name it as a value", name)
 		}
 	}
+	// And the other way: an entry left behind after the checker stops
+	// accepting a name would be arity bookkeeping for a builtin nothing can
+	// reach, and would go on claiming a runtime function that may be gone.
+	accepted := make(map[string]bool)
+	for _, name := range checker.BuiltinNames() {
+		accepted[name] = true
+	}
+	for _, name := range codegen.BuiltinValueNames() {
+		if !accepted[name] {
+			t.Errorf("codegen can name %q as a value but the checker does not accept it", name)
+		}
+	}
 }
