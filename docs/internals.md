@@ -261,13 +261,15 @@ classDiagram
 
 ### Pre-Passes, Then Checking
 
-`Check` walks the top-level statements several times before it checks anything:
+`Check` walks the top-level statements five times before it checks anything:
 
 1. **Top-level names**: Records the name of every top-level `nyan` binding, so a function written above a binding it reads can still name it
 2. **Imports**: Records each `nab` under its effective name and reports two imports claiming the same name
-3. **Declaration registration**: Registers `breed`, `collar`, `kitty` and `pose` names, and records each top-level `meow`/`trill` signature in `FuncTypes`
+3. **Declaration registration**: Registers `breed`, `collar`, `kitty` and `pose` names as placeholders whose underlying type is still `AnyType`, and records each top-level `meow`/`trill` signature in `FuncTypes`
 4. **Collisions**: Reports a top-level definition that shadows an imported package
-5. **Type checking**: Walks the AST, verifying type annotations, checking function calls, and recording expression types in `ExprTypes`
+5. **Underlying types**: Now that every name exists, resolves what each `breed`, `collar`, `kitty` and `pose` actually stands for, so a declaration may refer forward to one written below it. A fixup follows, replacing a snapshot taken before the type it wrapped had itself been resolved — `breed A = B` resolved ahead of `breed B = int` holds a stale `B`
+
+Only then does the third pass check the statements: verifying type annotations, checking calls, and recording every expression's type in `ExprTypes`.
 
 ### TypeInfo
 
@@ -640,7 +642,7 @@ The interpreter reuses `runtime/meowrt` extensively:
 
 ### Limitations
 
-- `nab` is not supported in either form. Meow's own packages want OS-level APIs the browser does not have, and `nab go` wants a Go toolchain there is none of. Reaching one raises `Hiss! nab "..." is not supported in the playground, nya~`, naming the import the way the program wrote it
+- `nab` is not supported in either form. Meow's own packages want OS-level APIs the browser does not have, and `nab go` wants a Go toolchain, which the browser does not have either. Reaching one raises `Hiss! nab "..." is not supported in the playground, nya~`, naming the import the way the program wrote it
 - Method registry is global — `ClearMethods()` is called at the start of each `Run` to avoid accumulation across invocations
 
 ## WASM Playground (`cmd/playground/`, `playground/`)
