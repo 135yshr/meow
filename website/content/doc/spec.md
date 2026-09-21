@@ -484,6 +484,23 @@ nya(3 |=| double)              # => 6
 nya(lick([1, 2, 3], double))   # => [2, 4, 6]
 ```
 
+A builtin named rather than called is the builtin itself, in the same way. The
+number of arguments it takes travels with it, so one called through the name
+that holds it answers with a `Furball` when handed the wrong number:
+
+```meow
+nyan f = upper
+nya(f("hi"))                    # => HI
+nya("meow" |=| upper)           # => MEOW
+nya(lick(["a", "b"], upper))    # => [A, B]
+
+nyan g = lower
+nya(g() ~> "wrong count")       # => wrong count
+```
+
+A binding takes a builtin's name over where the name is read. Where it is
+called, the builtin answers whatever the binding holds.
+
 A binding takes the name over for as long as it is in scope, whatever it holds
 and whether the name is read or called. Which declaration a name reaches is
 settled where it is written, so a local holding a function of its own shape is
