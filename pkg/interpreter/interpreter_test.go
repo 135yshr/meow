@@ -1690,12 +1690,12 @@ func TestTheBuiltinTableAndTheCheckerAgree(t *testing.T) {
 	}
 
 	for name := range accepted {
-		if _, ok := builtins[name]; !ok {
+		if _, ok := builtinTable[name]; !ok {
 			t.Errorf("the checker accepts %q but the interpreter has no builtin for it: "+
 				"a program using it type-checks and then dies in the playground", name)
 		}
 	}
-	for name := range builtins {
+	for name := range builtinTable {
 		if !accepted[name] {
 			t.Errorf("the interpreter implements %q but the checker does not accept it: "+
 				"a program using it is rejected before it ever runs", name)
@@ -1777,5 +1777,45 @@ nya(f())
 	want := "Hiss! upper requires 1 argument(s), got 0, nya~"
 	if !strings.Contains(got, want) {
 		t.Errorf("got %q, want it to contain %q", got, want)
+	}
+}
+
+// The playground checks a program before it interprets one — `runMeow` does
+// what `cmd/playground` does — so a builtin called with the wrong number of
+// arguments never reaches dispatch at all. It used to: the interpreter counted
+// them itself and answered with a Furball, while the CLI handed the same
+// program to the Go compiler and got a build failure naming `meow.Lower`
+// (#155). One count, reported in one place, is what makes the two agree.
+func TestABuiltinCalledWithTheWrongNumberOfArgumentsIsRefusedBeforeRunning(t *testing.T) {
+	l := lexer.New(`nya(lower() ~> "x")`, "test.nyan")
+	p := parser.New(l.Tokens())
+	prog, parseErrs := p.Parse()
+	if len(parseErrs) > 0 {
+		t.Fatalf("parse errors: %v", parseErrs)
+	}
+
+	_, checkErrs := checker.New().Check(prog)
+	if len(checkErrs) != 1 {
+		t.Fatalf("expected one checker error, got %d: %v", len(checkErrs), checkErrs)
+	}
+	if got := checkErrs[0].Message; !strings.Contains(got, "lower requires 1 argument(s), got 0") {
+		t.Errorf("says %q, want the count the runtime would have said", got)
+	}
+}
+
+// The wording is not a second reading of what a wrong count means: a builtin
+// held as a value answers with the same sentence, from the runtime, when it is
+// called through the name holding it.
+func TestTheArityWordingIsTheRuntimesOwn(t *testing.T) {
+	got := runMeow(t, `nyan g = lower
+nya(g() ~> "caught")`)
+	if got != "caught\n" {
+		t.Fatalf("got %q, want the Furball to be catchable", got)
+	}
+
+	said := runMeowError(t, `nyan g = lower
+nya(g())`)
+	if !strings.Contains(said, "lower requires 1 argument(s), got 0") {
+		t.Errorf("says %q, want the same sentence the checker says", said)
 	}
 }

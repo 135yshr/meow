@@ -507,3 +507,57 @@ func TestAPackageMeowDoesNotHaveSaysWhatThereIs(t *testing.T) {
 		}
 	}
 }
+
+// Calling a builtin with the wrong number of arguments used to reach the Go
+// compiler, which answered `not enough arguments in call to meow.Lower` — a
+// function the program never wrote, at a line of a file it cannot see. The
+// playground meanwhile counted the arguments itself and answered with a
+// Furball `~>` could catch, so the same program was a build failure on one
+// backend and a recoverable value on the other (#155). Counted by the checker,
+// it is refused in Meow's own words before either backend is handed it.
+func TestABuiltinCalledWithTheWrongNumberOfArgumentsIsRefusedInMeowsWords(t *testing.T) {
+	c := compiler.New(nil)
+
+	_, err := c.CompileToGo(`nya(lower() ~> "x")`, "wrong.nyan")
+
+	if err == nil {
+		t.Fatal("got no error, want one about the number of arguments")
+	}
+	said := err.Error()
+	if !strings.Contains(said, "lower requires 1 argument(s), got 0") {
+		t.Errorf("says %q, want it to say what lower takes and what it got", said)
+	}
+	if strings.Contains(said, "meow.Lower") {
+		t.Errorf("says %q, want it to name lower rather than the Go function", said)
+	}
+	if !strings.Contains(said, "wrong.nyan:1:5") {
+		t.Errorf("says %q, want the position of the call in the .nyan file", said)
+	}
+}
+
+// A pipe hands the builtin on its right the value on its left, so that value
+// counts: `|=| round` reaches round with one argument where it wants two. This
+// used to be `not enough arguments in call to meow.Round` for the same reason.
+func TestAPipeIntoABuiltinWantingMoreIsRefused(t *testing.T) {
+	c := compiler.New(nil)
+
+	_, err := c.CompileToGo(`nya(3.14159 |=| round)`, "wrong.nyan")
+
+	if err == nil {
+		t.Fatal("got no error, want one about the number of arguments")
+	}
+	if said := err.Error(); !strings.Contains(said, "round requires 2 argument(s), got 1") {
+		t.Errorf("says %q, want it to count the piped value", said)
+	}
+}
+
+// And the form the tutorial teaches still compiles: the piped value is the
+// argument lick is missing, not one too many.
+func TestAPipedChainStillCompiles(t *testing.T) {
+	c := compiler.New(nil)
+
+	src := "[1, 2, 3]\n  |=| picky(paw(x) { x % 2 == 0 })\n  |=| lick(paw(x) { x * x })\n  |=| nya"
+	if _, err := c.CompileToGo(src, "chain.nyan"); err != nil {
+		t.Errorf("got %v, want the chain to compile", err)
+	}
+}
