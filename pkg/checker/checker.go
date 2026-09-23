@@ -963,28 +963,34 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 	case *ast.Ident:
 		name := fn.Name
 		switch {
+		case c.info.FuncRefs[fn]:
+			// A name reaching a top-level function is that function's to
+			// answer for, whatever else is named that. A `meow gag` takes the
+			// builtin's name now (#154), so asking the builtin's purity about
+			// this call would be asking about a declaration the call does not
+			// reach — and exempting it as "taken by a binding" would ask
+			// nobody at all, letting a trill body call a non-trill function
+			// doing I/O.
+			if !c.pureFuncs[name] {
+				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
+			}
 		case c.info.TakenByBinding[fn]:
-			// The name reaches a binding, not the builtin it is named after,
-			// so the builtin's purity says nothing about this call. What the
-			// binding holds is checked where it is written — a lambda's body is
-			// walked there — which is the same reason a name a local took over
-			// from a top-level function is left alone below. Judging by the
-			// name rather than by the declaration it reaches is what #137 and
-			// #138 fixed for functions; a builtin gets the same treatment now
-			// that a binding can take its name (#154).
+			// The name reaches a binding rather than the builtin or the
+			// constructor it is named after, so neither of those has anything
+			// to say about this call. What the binding holds is checked where
+			// it is written — a lambda's body is walked there — which is the
+			// same reason an in-scope function value is left alone below.
+			// Judging by the name rather than by the declaration it reaches is
+			// what #137 and #138 fixed for functions; a builtin gets the same
+			// treatment now that a binding can take its name (#154).
 		case impureBuiltins[name]:
 			c.addError(e.Token.Pos, "pure function %s must not call impure builtin %s", fnName, name)
 		case pureBuiltins[name]:
 			// allowed
 		default:
-			// A known user-defined function must itself be pure. Unknown idents
-			// (kitty/collar constructors, in-scope function values) are left
-			// alone — they carry no impure top-level function to leak, and a
-			// name a local took over reaches no top-level function at all,
-			// which is what the recorded resolution says.
-			if c.info.FuncRefs[fn] && !c.pureFuncs[name] {
-				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
-			}
+			// Everything left is an unknown ident — a kitty or collar
+			// constructor, or an in-scope function value — and carries no
+			// impure top-level function to leak.
 		}
 	case *ast.MemberExpr:
 		// A member call is either an imported-package call (file.snoop(...)) or

@@ -41,3 +41,15 @@ nya(describe(1, [1, 2]))
 # always did.
 nya(lower("LOUD"))
 nya([3, 1, 2] |=| sort)
+
+# A call that reaches a binding still has a type the checker knows, and a typed
+# context wants that type rather than a boxed value. Handing the untyped path
+# the whole call dropped the unboxing every other dynamically dispatched call
+# gets, and valid Meow reached `go build` as "cannot use meow.Call(...) (value
+# of interface type meowrt.Value) as string value".
+meow typed_context() string {
+  nyan upper = paw(s) { "unboxed" }
+  nyan answer string = upper("hi")
+  bring answer
+}
+nya(typed_context())

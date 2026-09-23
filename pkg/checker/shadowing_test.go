@@ -169,3 +169,38 @@ nya(p.x)`)
 		t.Errorf("recorded %v, want nothing taken", names)
 	}
 }
+
+// A top-level function named after a builtin is reached by a call now (#154),
+// so it is the function's purity that the call must answer to — not the
+// builtin's, and not nothing at all. Exempting every name a binding has taken
+// would exempt this one too, and a `trill` body could call a non-`trill`
+// function doing I/O with no diagnostic anywhere.
+func TestAPureFunctionMayNotCallAnImpureFunctionNamedAfterABuiltin(t *testing.T) {
+	_, errs := check(t, `meow gag(s string) string {
+  nya("side effect")
+  bring s
+}
+trill meow f(s string) string {
+  bring gag(s)
+}`)
+	if len(errs) != 1 {
+		t.Fatalf("expected one error, got %d: %v", len(errs), errs)
+	}
+	if want := "must not call non-pure function gag"; !strings.Contains(errs[0].Message, want) {
+		t.Errorf("says %q, want %q", errs[0].Message, want)
+	}
+}
+
+// And a pure one of the same shape is allowed, so the check is about the
+// declaration the call reaches rather than about the name.
+func TestAPureFunctionMayCallAPureFunctionNamedAfterABuiltin(t *testing.T) {
+	src := `trill meow gag(s string) string {
+  bring s
+}
+trill meow f(s string) string {
+  bring gag(s)
+}`
+	if _, errs := check(t, src); len(errs) > 0 {
+		t.Errorf("unexpected errors: %v", errs)
+	}
+}

@@ -1143,10 +1143,12 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return g.genCall(e)
 	}
 
-	// A name a binding has taken over is not this table's to answer either; the
-	// untyped path knows how to call whatever is bound.
+	// A name a binding has taken over is not this table's to answer either. It
+	// takes the path everything else dynamically dispatched takes, unboxing
+	// included: a typed context wants the type the checker knows this call
+	// has, not a boxed value that Go will refuse.
 	if g.takenByBinding(ident) {
-		return g.genCall(e)
+		return g.genDispatchedCall(e)
 	}
 
 	// Builtin functions that need boxing
@@ -1281,10 +1283,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		}
 	}
 
-	// Anything left dispatches through meow.Call and answers with a boxed
-	// value: a nested `meow`, a lambda, a partial application. Where the
-	// checker knows what type that value has, a typed context wants it
-	// unboxed — the same thing the builtin table above does.
+	return g.genDispatchedCall(e)
+}
+
+// genDispatchedCall emits a call that goes through meow.Call and answers with
+// a boxed value: a nested `meow`, a lambda, a partial application, or a name a
+// binding has taken from a builtin. Where the checker knows what type that
+// value has, a typed context wants it unboxed — the same thing the builtin
+// table in genTypedCall does.
+func (g *Generator) genDispatchedCall(e *ast.CallExpr) string {
 	boxed := g.genCall(e)
 	if t := g.getExprType(e); t != nil && !types.IsAny(t) {
 		return unboxToNative(boxed, t)
