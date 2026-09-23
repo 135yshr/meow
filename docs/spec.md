@@ -507,13 +507,10 @@ nya(3.14159 |=| round)          # => Hiss! round requires 2 argument(s), got 1
 A pipe hands the value on its left to whatever stands on its right, so that
 value is one of the arguments counted.
 
-A binding takes a builtin's name over where the name is read. Where it is
-called, the builtin answers whatever the binding holds.
-
 A binding takes the name over for as long as it is in scope, whatever it holds
-and whether the name is read or called. Which declaration a name reaches is
-settled where it is written, so a local holding a function of its own shape is
-that function, and is checked as one:
+and whether the name is read, called, or piped into. Which declaration a name
+reaches is settled where it is written, so a local holding a function of its
+own shape is that function, and is checked as one:
 
 ```meow
 meow double(n int) int { bring n * 2 }
@@ -523,6 +520,28 @@ meow rename() string {
   bring double("x", "y")       # => x/y, and takes two arguments
 }
 ```
+
+This covers a builtin and a `kitty` or `collar` constructor as well as another
+declaration. A name bound over one of those reaches the binding, and the
+builtin or the constructor is out of reach for as long as the binding is in
+scope:
+
+```meow
+nyan upper = paw(s) { bring "shadowed:" + s }
+nya(upper("hi"))                # => shadowed:hi
+nya("hi" |=| upper)             # => shadowed:hi
+
+kitty Point { x: int }
+nyan Point = paw(n) { bring "not the constructor" }
+nya(Point(2))                   # => not the constructor
+```
+
+A parameter and a loop variable are bindings too, so each takes the name for
+the body it names. Taking a builtin's name this way is legal and quiet, so
+`meow lint` warns about it where the binding is written.
+
+Only the cat words are beyond reach: `nya`, `hiss`, `lick`, `picky` and `curl`
+are keywords, so nothing can be bound under them.
 
 #### Nested Functions
 

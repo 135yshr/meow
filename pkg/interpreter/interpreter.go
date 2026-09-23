@@ -728,7 +728,7 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 	// backends drift: the pipe's copy read the name as a variable and so could
 	// not see a builtin at all.
 	if ident, ok := e.Fn.(*ast.Ident); ok {
-		return interp.evalCallByName(ident.Name, args, env)
+		return interp.evalCallByName(ident, args, env)
 	}
 
 	// First-class function call (e.g. variable holding a Func)
@@ -886,7 +886,7 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 
 		// Handle ident call
 		if ident, ok := call.Fn.(*ast.Ident); ok {
-			return interp.evalCallByName(ident.Name, args, env)
+			return interp.evalCallByName(ident, args, env)
 		}
 
 		fnVal := interp.evalExpr(call.Fn, env)
@@ -905,7 +905,7 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 	// die with "undefined variable nya", because a builtin lives in the call
 	// dispatch and never in the environment.
 	if ident, ok := e.Right.(*ast.Ident); ok {
-		return interp.evalCallByName(ident.Name, []meowrt.Value{left}, env)
+		return interp.evalCallByName(ident, []meowrt.Value{left}, env)
 	}
 
 	fnVal := interp.evalExpr(e.Right, env)
@@ -915,32 +915,32 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 	panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 }
 
-func (interp *Interpreter) evalCallByName(name string, args []meowrt.Value, env *Environment) meowrt.Value {
-	// A builtin is consulted before the environment, which is the order the
-	// compiled path resolves a call in: codegen answers a builtin name from
-	// its own table before it looks at what the program bound. Keeping the
-	// order means a program that shadows a builtin's name reads the same
-	// either side of the playground.
-	if val, ok := interp.dispatchBuiltin(name, args); ok {
-		return val
-	}
+func (interp *Interpreter) evalCallByName(ident *ast.Ident, args []meowrt.Value, env *Environment) meowrt.Value {
+	name := ident.Name
 
-	// A constructor is consulted before the environment, for the same reason:
-	// codegen answers a kitty or collar name with its constructor whatever the
-	// program has bound to that name.
-	//
-	// Kitty constructor
-	if ks, ok := interp.kittyDefs[name]; ok {
-		fieldNames := make([]string, len(ks.Fields))
-		for i, f := range ks.Fields {
-			fieldNames[i] = f.Name
+	// A name a binding has taken over reaches that binding, and neither the
+	// builtin nor the constructor it is named after. Both backends used to
+	// answer from their own tables first, leaving `nyan upper = paw(s) {...}`
+	// unreachable (#154); the checker settles it once, in the scope the call
+	// was written in, and codegen reads the same answer.
+	if interp.typeInfo == nil || !interp.typeInfo.TakenByBinding[ident] {
+		if val, ok := interp.dispatchBuiltin(name, args); ok {
+			return val
 		}
-		return meowrt.NewKitty(name, fieldNames, args...)
-	}
 
-	// Collar constructor
-	if _, ok := interp.collarDefs[name]; ok {
-		return meowrt.NewKitty(name, []string{"value"}, args...)
+		// Kitty constructor
+		if ks, ok := interp.kittyDefs[name]; ok {
+			fieldNames := make([]string, len(ks.Fields))
+			for i, f := range ks.Fields {
+				fieldNames[i] = f.Name
+			}
+			return meowrt.NewKitty(name, fieldNames, args...)
+		}
+
+		// Collar constructor
+		if _, ok := interp.collarDefs[name]; ok {
+			return meowrt.NewKitty(name, []string{"value"}, args...)
+		}
 	}
 
 	if env.Has(name) {

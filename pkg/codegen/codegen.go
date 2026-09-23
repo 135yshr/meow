@@ -1143,6 +1143,14 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return g.genCall(e)
 	}
 
+	// A name a binding has taken over is not this table's to answer either. It
+	// takes the path everything else dynamically dispatched takes, unboxing
+	// included: a typed context wants the type the checker knows this call
+	// has, not a boxed value that Go will refuse.
+	if g.takenByBinding(ident) {
+		return g.genDispatchedCall(e)
+	}
+
 	// Builtin functions that need boxing
 	switch ident.Name {
 	case "nya":
@@ -1275,10 +1283,15 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		}
 	}
 
-	// Anything left dispatches through meow.Call and answers with a boxed
-	// value: a nested `meow`, a lambda, a partial application. Where the
-	// checker knows what type that value has, a typed context wants it
-	// unboxed — the same thing the builtin table above does.
+	return g.genDispatchedCall(e)
+}
+
+// genDispatchedCall emits a call that goes through meow.Call and answers with
+// a boxed value: a nested `meow`, a lambda, a partial application, or a name a
+// binding has taken from a builtin. Where the checker knows what type that
+// value has, a typed context wants it unboxed — the same thing the builtin
+// table in genTypedCall does.
+func (g *Generator) genDispatchedCall(e *ast.CallExpr) string {
 	boxed := g.genCall(e)
 	if t := g.getExprType(e); t != nil && !types.IsAny(t) {
 		return unboxToNative(boxed, t)
@@ -1864,6 +1877,14 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 	argStr := strings.Join(args, ", ")
 
 	if isIdent {
+		// A name a binding has taken over reaches that binding, not the builtin
+		// or the constructor it is named after. The checker settles this in the
+		// scope the call was written in, because the name alone cannot: `upper`
+		// is the builtin's name whether or not a lambda is bound under it.
+		if g.takenByBinding(ident) {
+			return g.genCallOfBoundName(ident, e.Args, args, argStr)
+		}
+
 		switch ident.Name {
 		case "nya":
 			return fmt.Sprintf("meow.Nya(%s)", argStr)
@@ -1949,39 +1970,57 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 				return fmt.Sprintf("meow.NewKitty(%q, []string{\"value\"}, %s)",
 					ident.Name, argStr)
 			}
-			if g.typeInfo != nil {
-				if ft, ok := g.namedFunc(ident); ok {
-					if len(e.Args) < len(ft.Params) {
-						return g.genPartialCall(ident.Name, ft, e.Args)
-					}
-					if len(e.Args) == len(ft.Params) && isFullyTypedFuncType(ft) {
-						nativeArgs := make([]string, len(e.Args))
-						for i, a := range e.Args {
-							if isLiteralExpr(a) {
-								nativeArgs[i] = g.genTypedExpr(a)
-							} else {
-								nativeArgs[i] = unboxToNative(args[i], ft.Params[i])
-							}
-						}
-						call := fmt.Sprintf("%s(%s)", ident.Name, strings.Join(nativeArgs, ", "))
-						return boxNativeCall(call, ft.Return)
-					}
-				} else {
-					// Not in FuncTypes → must be a variable holding a function
-					// value (e.g. partial application result or lambda).
-					// The checker populates FuncTypes for all `meow` function
-					// declarations, so any identifier absent from FuncTypes is
-					// a runtime value that requires meow.Call for dispatch.
-					if argStr != "" {
-						return fmt.Sprintf("meow.Call(%s, %s)", ident.Name, argStr)
-					}
-					return fmt.Sprintf("meow.Call(%s)", ident.Name)
-				}
-			}
-			return fmt.Sprintf("%s(%s)", ident.Name, argStr)
+			return g.genCallOfBoundName(ident, e.Args, args, argStr)
 		}
 	}
 	return fmt.Sprintf("meow.Call(%s, %s)", g.genExpr(e.Fn), argStr)
+}
+
+// takenByBinding reports whether a bare name in call position has been taken
+// over by a binding, so that genCall's builtin switch and its constructor
+// lookups are not this call's to answer from.
+//
+// Without the checker there is nothing to go on, and those tables answer as
+// they always did.
+func (g *Generator) takenByBinding(ident *ast.Ident) bool {
+	return g.typeInfo != nil && g.typeInfo.TakenByBinding[ident]
+}
+
+// genCallOfBoundName emits a call of a bare name that is neither a builtin nor
+// a constructor here: a top-level function the name still reaches, or a value
+// holding a function — a lambda, a partial application, or a binding that has
+// taken a builtin's name.
+func (g *Generator) genCallOfBoundName(ident *ast.Ident, rawArgs []ast.Expr, args []string, argStr string) string {
+	if g.typeInfo != nil {
+		if ft, ok := g.namedFunc(ident); ok {
+			if len(rawArgs) < len(ft.Params) {
+				return g.genPartialCall(ident.Name, ft, rawArgs)
+			}
+			if len(rawArgs) == len(ft.Params) && isFullyTypedFuncType(ft) {
+				nativeArgs := make([]string, len(rawArgs))
+				for i, a := range rawArgs {
+					if isLiteralExpr(a) {
+						nativeArgs[i] = g.genTypedExpr(a)
+					} else {
+						nativeArgs[i] = unboxToNative(args[i], ft.Params[i])
+					}
+				}
+				call := fmt.Sprintf("%s(%s)", ident.Name, strings.Join(nativeArgs, ", "))
+				return boxNativeCall(call, ft.Return)
+			}
+		} else {
+			// Not in FuncTypes → must be a variable holding a function value
+			// (e.g. partial application result or lambda). The checker
+			// populates FuncTypes for all `meow` function declarations, so any
+			// identifier absent from FuncTypes is a runtime value that requires
+			// meow.Call for dispatch.
+			if argStr != "" {
+				return fmt.Sprintf("meow.Call(%s, %s)", ident.Name, argStr)
+			}
+			return fmt.Sprintf("meow.Call(%s)", ident.Name)
+		}
+	}
+	return fmt.Sprintf("%s(%s)", ident.Name, argStr)
 }
 
 func (g *Generator) genMemberCall(member *ast.MemberExpr, rawArgs []ast.Expr) string {

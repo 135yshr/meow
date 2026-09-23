@@ -32,22 +32,33 @@ type TypeInfo struct {
 	// FuncRefs is, and for the same reason: a local holding a function of one
 	// argument has the type `upper` has.
 	BuiltinRefs map[*ast.Ident]bool
+	// TakenByBinding holds the identifier occurrences, in call position, whose
+	// name a binding has taken over from a builtin or from a kitty or collar
+	// constructor.
+	//
+	// A backend cannot work this out from the name: `upper` is the builtin's
+	// name whether or not something is bound under it, and both backends used
+	// to answer a call from their own tables before looking at what the program
+	// bound, which is what #154 was. Recorded here, the scope the call was
+	// written in settles it once for both of them.
+	TakenByBinding map[*ast.Ident]bool
 }
 
 // NewTypeInfo creates an empty TypeInfo.
 func NewTypeInfo() *TypeInfo {
 	return &TypeInfo{
-		ExprTypes:   make(map[ast.Expr]types.Type),
-		VarTypes:    make(map[string]types.Type),
-		FuncTypes:   make(map[string]types.FuncType),
-		KittyTypes:  make(map[string]types.KittyType),
-		AliasTypes:  make(map[string]types.AliasType),
-		CollarTypes: make(map[string]types.CollarType),
-		TrickTypes:  make(map[string]types.TrickType),
-		LearnImpls:  make(map[string]map[string]types.FuncType),
-		ImportNames: make(map[string]string),
-		FuncRefs:    make(map[*ast.Ident]bool),
-		BuiltinRefs: make(map[*ast.Ident]bool),
+		ExprTypes:      make(map[ast.Expr]types.Type),
+		VarTypes:       make(map[string]types.Type),
+		FuncTypes:      make(map[string]types.FuncType),
+		KittyTypes:     make(map[string]types.KittyType),
+		AliasTypes:     make(map[string]types.AliasType),
+		CollarTypes:    make(map[string]types.CollarType),
+		TrickTypes:     make(map[string]types.TrickType),
+		LearnImpls:     make(map[string]map[string]types.FuncType),
+		ImportNames:    make(map[string]string),
+		FuncRefs:       make(map[*ast.Ident]bool),
+		BuiltinRefs:    make(map[*ast.Ident]bool),
+		TakenByBinding: make(map[*ast.Ident]bool),
 	}
 }
 
@@ -165,25 +176,42 @@ func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
 // still read it once it runs — topLevelNames is the pre-pass that already
 // knows this, for the same reason reachesTopLevelFunc does not need it.
 //
-// Note that this is about a name written as a value: a *called* name reaches
-// the builtin whatever is bound, which is #154's business and not settled
-// here.
+// This answers for a name wherever it is written. A call used to reach the
+// builtin whatever was bound — both backends read their own tables first — so
+// `nyan upper = paw(s) { ... }` left the lambda unreachable while the spec said
+// the binding won. One rule now covers the read and the call (#154).
 func (c *Checker) reachesBuiltin(name string) bool {
 	return builtins.Known(name) && !c.bound(name) && !c.topLevelNames[name]
 }
 
-// callReachesBuiltin reports whether a bare name written in call position
-// reaches the builtin of that name.
+// reachesConstructor reports whether a name still reaches the kitty or collar
+// constructor of that name here.
 //
-// Today it always does. Codegen answers a builtin's name from its own table
-// before it looks at what the program bound, and the interpreter's dispatch
-// does the same, so a binding takes a builtin's name where the name is read
-// and not where it is called. Whether that is the right rule is #154's
-// question, not this one's — what matters here is that the count a call is
-// held to is the count of whatever the call actually reaches, so the question
-// is asked in one place and has one line to change.
-func (c *Checker) callReachesBuiltin(name string) bool {
-	return builtins.Known(name)
+// A constructor is declared in no scope either — it is registered by its kitty
+// or collar statement — so the same rule a builtin gets applies: anything bound
+// under the name, at any depth or at the top level, has taken it over.
+func (c *Checker) reachesConstructor(name string) bool {
+	if _, ok := c.info.KittyTypes[name]; !ok {
+		if _, ok := c.info.CollarTypes[name]; !ok {
+			return false
+		}
+	}
+	return !c.bound(name) && !c.topLevelNames[name]
+}
+
+// noteCallResolution records a call whose bare name a binding has taken over
+// from a builtin or a constructor, so that neither backend answers it from its
+// own table.
+func (c *Checker) noteCallResolution(ident *ast.Ident) {
+	shadowable := builtins.Known(ident.Name)
+	if !shadowable {
+		_, isKitty := c.info.KittyTypes[ident.Name]
+		_, isCollar := c.info.CollarTypes[ident.Name]
+		shadowable = isKitty || isCollar
+	}
+	if shadowable && !c.reachesBuiltin(ident.Name) && !c.reachesConstructor(ident.Name) {
+		c.info.TakenByBinding[ident] = true
+	}
 }
 
 // checkBuiltinArity reports a builtin called with the wrong number of
@@ -197,7 +225,7 @@ func (c *Checker) callReachesBuiltin(name string) bool {
 // `~>` could catch. That was the same program being a build failure on one
 // backend and a recoverable value on the other (#155).
 func (c *Checker) checkBuiltinArity(ident *ast.Ident, got int) {
-	if !c.callReachesBuiltin(ident.Name) {
+	if !c.reachesBuiltin(ident.Name) {
 		return
 	}
 	if want, wrong := builtins.Wrong(ident.Name, got); wrong {
@@ -935,19 +963,34 @@ func (c *Checker) checkPurityCall(fnName string, e *ast.CallExpr) {
 	case *ast.Ident:
 		name := fn.Name
 		switch {
+		case c.info.FuncRefs[fn]:
+			// A name reaching a top-level function is that function's to
+			// answer for, whatever else is named that. A `meow gag` takes the
+			// builtin's name now (#154), so asking the builtin's purity about
+			// this call would be asking about a declaration the call does not
+			// reach — and exempting it as "taken by a binding" would ask
+			// nobody at all, letting a trill body call a non-trill function
+			// doing I/O.
+			if !c.pureFuncs[name] {
+				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
+			}
+		case c.info.TakenByBinding[fn]:
+			// The name reaches a binding rather than the builtin or the
+			// constructor it is named after, so neither of those has anything
+			// to say about this call. What the binding holds is checked where
+			// it is written — a lambda's body is walked there — which is the
+			// same reason an in-scope function value is left alone below.
+			// Judging by the name rather than by the declaration it reaches is
+			// what #137 and #138 fixed for functions; a builtin gets the same
+			// treatment now that a binding can take its name (#154).
 		case impureBuiltins[name]:
 			c.addError(e.Token.Pos, "pure function %s must not call impure builtin %s", fnName, name)
 		case pureBuiltins[name]:
 			// allowed
 		default:
-			// A known user-defined function must itself be pure. Unknown idents
-			// (kitty/collar constructors, in-scope function values) are left
-			// alone — they carry no impure top-level function to leak, and a
-			// name a local took over reaches no top-level function at all,
-			// which is what the recorded resolution says.
-			if c.info.FuncRefs[fn] && !c.pureFuncs[name] {
-				c.addError(e.Token.Pos, "pure function %s must not call non-pure function %s", fnName, name)
-			}
+			// Everything left is an unknown ident — a kitty or collar
+			// constructor, or an in-scope function value — and carries no
+			// impure top-level function to leak.
 		}
 	case *ast.MemberExpr:
 		// A member call is either an imported-package call (file.snoop(...)) or
@@ -1196,6 +1239,9 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		case *ast.CallExpr:
 			c.pipedInto[right] = true
 		case *ast.Ident:
+			// A bare name piped into is called, so it resolves the way a call
+			// does — the binding wins if it has taken the name.
+			c.noteCallResolution(right)
 			c.checkBuiltinArity(right, 1)
 		}
 		rightType := c.inferExpr(e.Right)
@@ -1410,67 +1456,70 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 	}
 
 	if ident, ok := e.Fn.(*ast.Ident); ok {
+		c.noteCallResolution(ident)
 		c.checkBuiltinArity(ident, len(e.Args)+c.pipedArgs(e))
 
-		// Check built-in functions
-		switch ident.Name {
-		case "to_int":
-			return types.IntType{}
-		case "to_float":
-			return types.FloatType{}
-		case "to_string":
-			return types.StringType{}
-		case "to_bytes":
-			return types.ListType{Elem: types.ByteType{}}
-		case "to_runes":
-			return types.ListType{Elem: types.StringType{}}
-		case "is_furball":
-			return types.BoolType{}
-		case "len":
-			return types.IntType{}
-		case "whiff":
-			return types.BoolType{}
-		case "track":
-			return types.IntType{}
-		case "shred":
-			return types.ListType{Elem: types.StringType{}}
-		case "tangle", "nibble":
-			return types.StringType{}
-		case "upper", "lower", "trim", "replace", "pad":
-			return types.StringType{}
-		case "sort", "reverse":
-			return types.ListType{Elem: types.AnyType{}}
-		// round answers with the same kind of number it was handed, so that
-		// round(42, 2) still prints as 42 rather than 42.0. That leaves it
-		// without one static type to promise: calling it float made a typed
-		// function unbox an Int as a float and stop with "expected float but
-		// got Int".
-		case "round":
-			return types.AnyType{}
-		case "nya", "hiss", "gag":
-			return types.AnyType{}
-		// scram does not come back, so it has no result worth a type. It still
-		// answers with a Furball when the status it was given is not one a
-		// process can report.
-		case "scram":
-			return types.AnyType{}
-		case "head":
-			return types.AnyType{}
-		// These build a litter out of a litter. Reporting `any` for them made
-		// `purr` over their result compile to a counting loop, so say what they
-		// actually return. The element type is left open because none of them
-		// promises to preserve it — lick maps to whatever its lambda returns.
-		case "tail", "append", "lick", "picky":
-			return types.ListType{Elem: types.AnyType{}}
-		// curl folds a litter down to a single value of the caller's choosing.
-		case "curl":
-			return types.AnyType{}
-		case "judge", "expect", "refuse":
-			return types.AnyType{}
+		// Check built-in functions, when the name still reaches one here.
+		if c.reachesBuiltin(ident.Name) {
+			switch ident.Name {
+			case "to_int":
+				return types.IntType{}
+			case "to_float":
+				return types.FloatType{}
+			case "to_string":
+				return types.StringType{}
+			case "to_bytes":
+				return types.ListType{Elem: types.ByteType{}}
+			case "to_runes":
+				return types.ListType{Elem: types.StringType{}}
+			case "is_furball":
+				return types.BoolType{}
+			case "len":
+				return types.IntType{}
+			case "whiff":
+				return types.BoolType{}
+			case "track":
+				return types.IntType{}
+			case "shred":
+				return types.ListType{Elem: types.StringType{}}
+			case "tangle", "nibble":
+				return types.StringType{}
+			case "upper", "lower", "trim", "replace", "pad":
+				return types.StringType{}
+			case "sort", "reverse":
+				return types.ListType{Elem: types.AnyType{}}
+			// round answers with the same kind of number it was handed, so that
+			// round(42, 2) still prints as 42 rather than 42.0. That leaves it
+			// without one static type to promise: calling it float made a typed
+			// function unbox an Int as a float and stop with "expected float but
+			// got Int".
+			case "round":
+				return types.AnyType{}
+			case "nya", "hiss", "gag":
+				return types.AnyType{}
+			// scram does not come back, so it has no result worth a type. It still
+			// answers with a Furball when the status it was given is not one a
+			// process can report.
+			case "scram":
+				return types.AnyType{}
+			case "head":
+				return types.AnyType{}
+			// These build a litter out of a litter. Reporting `any` for them made
+			// `purr` over their result compile to a counting loop, so say what they
+			// actually return. The element type is left open because none of them
+			// promises to preserve it — lick maps to whatever its lambda returns.
+			case "tail", "append", "lick", "picky":
+				return types.ListType{Elem: types.AnyType{}}
+			// curl folds a litter down to a single value of the caller's choosing.
+			case "curl":
+				return types.AnyType{}
+			case "judge", "expect", "refuse":
+				return types.AnyType{}
+			}
 		}
 
-		// Check collar constructors
-		if ct, ok := c.info.CollarTypes[ident.Name]; ok {
+		// Check collar constructors, when the name still reaches one.
+		if ct, ok := c.info.CollarTypes[ident.Name]; ok && c.reachesConstructor(ident.Name) {
 			if len(e.Args) != 1 {
 				c.addError(e.Token.Pos, "%s expects 1 argument but got %d",
 					ident.Name, len(e.Args))
@@ -1486,8 +1535,8 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 			return ct
 		}
 
-		// Check kitty constructors
-		if kt, ok := c.info.KittyTypes[ident.Name]; ok {
+		// Check kitty constructors, when the name still reaches one.
+		if kt, ok := c.info.KittyTypes[ident.Name]; ok && c.reachesConstructor(ident.Name) {
 			if len(e.Args) != len(kt.Fields) {
 				c.addError(e.Token.Pos, "%s expects %d fields but got %d",
 					ident.Name, len(kt.Fields), len(e.Args))
