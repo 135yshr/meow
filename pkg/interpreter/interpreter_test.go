@@ -3,6 +3,8 @@ package interpreter
 import (
 	"bytes"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -1610,33 +1612,78 @@ nya(a.value)
 	}
 }
 
-// A builtin is answered before a binding of the same name, in a pipe as in a
-// call. That is the order the compiled path resolves in — codegen reaches its
-// own table first — and the point here is that the two agree, not which of
-// them is the happier rule.
-func TestABuiltinPipeTargetOutranksABindingOfTheSameName(t *testing.T) {
+// A binding takes a builtin's name wherever the name is written — read,
+// called, or piped into. The builtin used to win the call and the pipe while
+// losing the read, so the same name meant two different things in one scope
+// (#154). The compiled path answers the same way, from the same record.
+func TestABindingTakesABuiltinsNameInEveryPosition(t *testing.T) {
 	got := runMeow(t, `
 nyan upper = paw(s) { bring s + "!" }
 nya(upper("hi"))
 nya("hi" |=| upper)
+nyan held = upper
+nya(held("hi"))
 `)
-	if got != "HI\nHI\n" {
-		t.Errorf("got %q, want %q", got, "HI\nHI\n")
+	want := "hi!\nhi!\nhi!\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
-// A constructor is answered before a binding of the same name, in a pipe as in
-// a call, because that is what codegen does. Unifying call resolution is what
-// made this worth pinning: reaching the environment first would quietly turn a
-// constructor into whatever the program had bound, and only in the playground.
-func TestAConstructorOutranksABindingOfTheSameName(t *testing.T) {
+// And a builtin nothing has bound over is still the builtin.
+func TestABuiltinNothingHasBoundOverIsStillTheBuiltin(t *testing.T) {
+	got := runMeow(t, `
+nya(upper("hi"))
+nya("hi" |=| upper)
+`)
+	want := "HI\nHI\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A binding made inside a body takes the name only there.
+func TestABindingTakesTheNameOnlyWhereItIsInScope(t *testing.T) {
+	got := runMeow(t, `
+meow shout(s string) string {
+  nyan upper = paw(x) { bring x + "!" }
+  bring upper(s)
+}
+nya(shout("hi"))
+nya(upper("hi"))
+`)
+	want := "hi!\nHI\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A binding takes a kitty or collar constructor's name too, by the same rule.
+func TestABindingTakesAConstructorsName(t *testing.T) {
 	got := runMeow(t, `
 kitty Point {
   x: int
 }
 collar Age = int
 nyan Point = paw(n) { bring "not the constructor" }
-nyan Age = paw(n) { bring "not the constructor" }
+nyan Age = paw(n) { bring "not the constructor either" }
+nya(Point(2))
+nya(Age(7))
+nya(3 |=| Point)
+`)
+	want := "not the constructor\nnot the constructor either\nnot the constructor\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// And a constructor nothing has bound over still builds its kitty or collar.
+func TestAConstructorNothingHasBoundOverStillBuilds(t *testing.T) {
+	got := runMeow(t, `
+kitty Point {
+  x: int
+}
+collar Age = int
 nyan p = Point(2)
 nyan a = Age(7)
 nyan q = 3 |=| Point
@@ -1817,5 +1864,23 @@ nya(g() ~> "caught")`)
 nya(g())`)
 	if !strings.Contains(said, "lower requires 1 argument(s), got 0") {
 		t.Errorf("says %q, want the same sentence the checker says", said)
+	}
+}
+
+// The program that pins this rule for the compiled path prints the same thing
+// here, byte for byte. #154 was the two backends agreeing with each other and
+// disagreeing with the spec; the fix is worth nothing if they stop agreeing,
+// and the golden file is what the compiled path is held to.
+func TestTheShadowingGoldenPrintsTheSameUnderTheInterpreter(t *testing.T) {
+	src, err := os.ReadFile(filepath.Join("..", "..", "testdata", "binding_shadows_builtin.nyan"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile(filepath.Join("..", "..", "testdata", "binding_shadows_builtin.golden"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := runMeow(t, string(src)); got != string(want) {
+		t.Errorf("the interpreter prints\n%s\nthe compiled program prints\n%s", got, want)
 	}
 }

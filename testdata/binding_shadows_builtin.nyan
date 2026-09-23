@@ -1,0 +1,43 @@
+# A binding takes the name over from the builtin or the constructor it is
+# named after, wherever the name is written — read, called, or piped into.
+#
+# Both backends used to answer a call and a pipe from their own tables before
+# looking at what the program bound, so the lambda below was unreachable while
+# a read of the same name was the lambda (#154). What this file prints is what
+# the interpreter prints for it, byte for byte.
+
+nyan upper = paw(s) { bring "shadowed:" + s }
+nya(upper("hi"))
+nya("hi" |=| upper)
+nyan held = upper
+nya(held("hi"))
+
+# A binding made inside a body takes the name only there.
+meow scoped(s string) string {
+  nyan trim = paw(x) { bring "mine:" + x }
+  bring trim(s)
+}
+nya(scoped(" a "))
+nya(trim(" a "))
+
+# A kitty or collar constructor is taken over by the same rule.
+kitty Point {
+  x: int
+}
+collar Age = int
+nyan Point = paw(n) { bring "not the constructor" }
+nyan Age = paw(n) { bring "not the collar" }
+nya(Point(2))
+nya(Age(7))
+nya(3 |=| Point)
+
+# A parameter is a binding too, so it takes the name for the body it names.
+meow describe(round int, xs litter) string {
+  bring to_string(round) + "/" + to_string(len(xs))
+}
+nya(describe(1, [1, 2]))
+
+# Nothing bound, nothing taken: the builtin and the constructor answer as they
+# always did.
+nya(lower("LOUD"))
+nya([3, 1, 2] |=| sort)

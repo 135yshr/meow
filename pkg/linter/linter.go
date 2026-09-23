@@ -54,6 +54,7 @@ func New() *Linter {
 			&UnusedVarRule{},
 			&UnreachableCodeRule{},
 			&EmptyBlockRule{},
+			&ShadowsBuiltinRule{},
 		},
 	}
 }

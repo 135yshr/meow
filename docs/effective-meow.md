@@ -426,3 +426,10 @@ meow lint .       # lint all .nyan files
 
 Current lint rules:
 - `snake-case` — identifiers must be snake_case
+- `unused-var` — a binding that is declared and never read
+- `unreachable-code` — statements after a `bring`
+- `empty-block` — a function, `sniff` or `purr` body with nothing in it
+- `shadows-builtin` — a binding, parameter or loop variable that takes a
+  builtin's name, or the name of a `kitty` or `collar` constructor. Doing so is
+  legal and silent — the name reaches the binding from then on — so the warning
+  is where the name is taken
