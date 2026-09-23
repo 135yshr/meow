@@ -1,3 +1,8 @@
+# [v0.24.0](https://github.com/135yshr/meow/compare/v0.23.0...v0.24.0) (2026-09-23)
+
+## ✨ New Features
+- [`4259edb`](https://github.com/135yshr/meow/commit/4259edb)  feat: Count a builtin&#x27;s arguments where they are written (#157) (Issues: [`#157`](https://github.com/135yshr/meow/issues/157))
+
 # [v0.23.0](https://github.com/135yshr/meow/compare/v0.22.3...v0.23.0) (2026-09-21)
 
 ## ✨ New Features
