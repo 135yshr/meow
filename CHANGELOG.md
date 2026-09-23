@@ -1,3 +1,8 @@
+# [v0.25.0](https://github.com/135yshr/meow/compare/v0.24.0...v0.25.0) (2026-09-23)
+
+## ✨ New Features
+- [`d1b27bc`](https://github.com/135yshr/meow/commit/d1b27bc)  feat: Let a binding take a builtin&#x27;s name where it is called (#158) (Issues: [`#158`](https://github.com/135yshr/meow/issues/158))
+
 # [v0.24.0](https://github.com/135yshr/meow/compare/v0.23.0...v0.24.0) (2026-09-23)
 
 ## ✨ New Features
