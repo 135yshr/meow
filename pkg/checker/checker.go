@@ -2,10 +2,9 @@ package checker
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 
 	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/builtins"
 	"github.com/135yshr/meow/pkg/token"
 	"github.com/135yshr/meow/pkg/types"
 )
@@ -79,6 +78,11 @@ type Checker struct {
 	// loop outside is not one the body can bolt from — Go would reject the
 	// generated break, and the interpreter would unwind past the loop.
 	loopDepth int
+	// pipedInto holds the calls that a pipe hands its left-hand value to. That
+	// value is an argument the call does not write down, so counting a
+	// builtin's arguments has to know about it: `xs |=| lick(f)` reaches lick
+	// with two, not the one that is written.
+	pipedInto map[*ast.CallExpr]bool
 }
 
 // enterLoop counts a loop for bolt and slink, returning a function that
@@ -102,6 +106,7 @@ func New() *Checker {
 		info:          NewTypeInfo(),
 		pureFuncs:     make(map[string]bool),
 		topLevelNames: make(map[string]bool),
+		pipedInto:     make(map[*ast.CallExpr]bool),
 	}
 	c.pushScope()
 	return c
@@ -164,7 +169,49 @@ func (c *Checker) reachesTopLevelFunc(name string, ft types.FuncType) bool {
 // the builtin whatever is bound, which is #154's business and not settled
 // here.
 func (c *Checker) reachesBuiltin(name string) bool {
-	return builtinNames[name] && !c.bound(name) && !c.topLevelNames[name]
+	return builtins.Known(name) && !c.bound(name) && !c.topLevelNames[name]
+}
+
+// callReachesBuiltin reports whether a bare name written in call position
+// reaches the builtin of that name.
+//
+// Today it always does. Codegen answers a builtin's name from its own table
+// before it looks at what the program bound, and the interpreter's dispatch
+// does the same, so a binding takes a builtin's name where the name is read
+// and not where it is called. Whether that is the right rule is #154's
+// question, not this one's — what matters here is that the count a call is
+// held to is the count of whatever the call actually reaches, so the question
+// is asked in one place and has one line to change.
+func (c *Checker) callReachesBuiltin(name string) bool {
+	return builtins.Known(name)
+}
+
+// checkBuiltinArity reports a builtin called with the wrong number of
+// arguments.
+//
+// The wording is the one `meowrt.BuiltinFunc` uses for a builtin held as a
+// value, so a program is told the same thing wherever the count is noticed.
+// Said here it also carries a position in the .nyan file, where the CLI used
+// to let the Go compiler answer — `not enough arguments in call to meow.Lower`
+// naming a line of generated code — and the playground answered with a Furball
+// `~>` could catch. That was the same program being a build failure on one
+// backend and a recoverable value on the other (#155).
+func (c *Checker) checkBuiltinArity(ident *ast.Ident, got int) {
+	if !c.callReachesBuiltin(ident.Name) {
+		return
+	}
+	if want, wrong := builtins.Wrong(ident.Name, got); wrong {
+		c.addError(ident.Token.Pos, "%s requires %d argument(s), got %d", ident.Name, want, got)
+	}
+}
+
+// pipedArgs counts the arguments a call is handed that are not written in it:
+// one, when a pipe hands it the value on the pipe's left.
+func (c *Checker) pipedArgs(e *ast.CallExpr) int {
+	if c.pipedInto[e] {
+		return 1
+	}
+	return 0
 }
 
 func (c *Checker) lookup(name string) types.Type {
@@ -216,35 +263,22 @@ func (c *Checker) known(name string) bool {
 	if c.topLevelNames[name] {
 		return true
 	}
-	return builtinNames[name]
-}
-
-// builtinNames are the functions callable without a `nab`. Keep in step with
-// the switch in inferCall, which decides what each of them returns.
-var builtinNames = map[string]bool{
-	"nya": true, "hiss": true, "gag": true, "is_furball": true, "len": true,
-	"head": true, "tail": true, "append": true,
-	"lick": true, "picky": true, "curl": true,
-	"to_int": true, "to_float": true, "to_string": true,
-	"to_bytes": true, "to_runes": true,
-	"whiff": true, "track": true, "shred": true, "tangle": true, "nibble": true,
-	"upper": true, "lower": true, "trim": true, "replace": true, "pad": true,
-	"sort": true, "reverse": true, "round": true,
-	"scram": true,
-	"judge": true, "expect": true, "refuse": true, "seed": true,
+	return builtins.Known(name)
 }
 
 // BuiltinNames reports, in order, every function a program may call without a
 // nab.
 //
-// The checker only decides that a name is allowed; something else has to give
-// it a meaning — `pkg/codegen` for a compiled program, `pkg/interpreter` for
-// one the playground runs. A name accepted here and implemented by neither
+// The names themselves live in `pkg/builtins` now, alongside the arity the
+// checker reports a call against. This stays because it is the question a
+// backend's test asks — what does the checker accept? — and because the
+// checker only decides that a name is allowed: something else has to give it a
+// meaning, `pkg/codegen` for a compiled program and `pkg/interpreter` for one
+// the playground runs. A name accepted here and implemented by neither
 // type-checks and then dies at run time, which is what happened to judge,
-// expect, refuse and seed. Exported so a backend's test can hold its own table
-// against this one instead of a copy of it.
+// expect, refuse and seed.
 func BuiltinNames() []string {
-	return slices.Sorted(maps.Keys(builtinNames))
+	return builtins.Names()
 }
 
 func (c *Checker) addError(pos token.Position, format string, args ...any) {
@@ -1154,6 +1188,16 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		return types.AnyType{}
 	case *ast.PipeExpr:
 		c.inferExpr(e.Left)
+		// The value on the left is handed to whatever stands on the right, so
+		// a call written there reaches its function with one argument more
+		// than it writes down, and a bare name there is a call of it with
+		// exactly that one.
+		switch right := e.Right.(type) {
+		case *ast.CallExpr:
+			c.pipedInto[right] = true
+		case *ast.Ident:
+			c.checkBuiltinArity(right, 1)
+		}
 		rightType := c.inferExpr(e.Right)
 		if ft, ok := rightType.(types.FuncType); ok {
 			return ft.Return
@@ -1366,6 +1410,8 @@ func (c *Checker) inferCall(e *ast.CallExpr) types.Type {
 	}
 
 	if ident, ok := e.Fn.(*ast.Ident); ok {
+		c.checkBuiltinArity(ident, len(e.Args)+c.pipedArgs(e))
+
 		// Check built-in functions
 		switch ident.Name {
 		case "to_int":

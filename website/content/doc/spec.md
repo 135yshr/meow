@@ -498,6 +498,19 @@ nyan g = lower
 nya(g() ~> "wrong count")       # => wrong count
 ```
 
+A builtin *called* with the wrong number of arguments is refused where it is
+written, rather than run. The count is part of what the name means, so it is
+settled while the program is checked and the failure carries the position of
+the call:
+
+```meow
+nya(lower())                    # => Hiss! lower requires 1 argument(s), got 0
+nya(3.14159 |=| round)          # => Hiss! round requires 2 argument(s), got 1
+```
+
+A pipe hands the value on its left to whatever stands on its right, so that
+value is one of the arguments counted.
+
 A binding takes a builtin's name over where the name is read. Where it is
 called, the builtin answers whatever the binding holds.
 

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/135yshr/meow/pkg/ast"
+	"github.com/135yshr/meow/pkg/builtins"
 	"github.com/135yshr/meow/pkg/checker"
 	"github.com/135yshr/meow/pkg/token"
 	"github.com/135yshr/meow/runtime/meowrt"
@@ -547,7 +548,7 @@ func (interp *Interpreter) evalBinary(e *ast.BinaryExpr, env *Environment) meowr
 // failure are the ones a direct call gets, and there is no second reading of
 // what the name means to drift out of step.
 func (interp *Interpreter) builtinValue(name string) (*meowrt.Func, bool) {
-	fn, ok := builtins[name]
+	fn, ok := builtinTable[name]
 	if !ok {
 		return nil, false
 	}
@@ -567,9 +568,26 @@ func requireArgs(name string, args []meowrt.Value, count int) {
 // captured output — can reach it; the rest ignore it.
 type builtinFn func(interp *Interpreter, args []meowrt.Value) meowrt.Value
 
+// agreesWithTable holds an adapter's count against the one in `pkg/builtins`,
+// which is the count the checker reports a call against and the count codegen
+// builds a builtin value with. Two numbers for one builtin is what #155 was;
+// this makes a third impossible to write, since every entry below is built at
+// package initialisation and a disagreement stops the interpreter before it
+// can run a program on the wrong count.
+func agreesWithTable(name string, arity int) {
+	want, ok := builtins.Arity(name)
+	if !ok {
+		panic(fmt.Sprintf("interpreter has a builtin %q that pkg/builtins does not name", name))
+	}
+	if want != arity {
+		panic(fmt.Sprintf("interpreter takes %d argument(s) for %q, pkg/builtins says %d", arity, name, want))
+	}
+}
+
 // unary, binary and ternary wrap a runtime function of a fixed arity, checking
 // the count before it is handed its arguments.
 func unary(name string, fn func(meowrt.Value) meowrt.Value) builtinFn {
+	agreesWithTable(name, 1)
 	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		requireArgs(name, args, 1)
 		return fn(args[0])
@@ -577,6 +595,7 @@ func unary(name string, fn func(meowrt.Value) meowrt.Value) builtinFn {
 }
 
 func binary(name string, fn func(a, b meowrt.Value) meowrt.Value) builtinFn {
+	agreesWithTable(name, 2)
 	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		requireArgs(name, args, 2)
 		return fn(args[0], args[1])
@@ -584,6 +603,7 @@ func binary(name string, fn func(a, b meowrt.Value) meowrt.Value) builtinFn {
 }
 
 func ternary(name string, fn func(a, b, c meowrt.Value) meowrt.Value) builtinFn {
+	agreesWithTable(name, 3)
 	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		requireArgs(name, args, 3)
 		return fn(args[0], args[1], args[2])
@@ -592,13 +612,23 @@ func ternary(name string, fn func(a, b, c meowrt.Value) meowrt.Value) builtinFn 
 
 // variadic wraps a runtime function that takes any number of arguments and
 // decides for itself whether it was given enough.
-func variadic(fn func(args ...meowrt.Value) meowrt.Value) builtinFn {
+func variadic(name string, fn func(args ...meowrt.Value) meowrt.Value) builtinFn {
+	agreesWithTable(name, builtins.Variadic)
 	return func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		return fn(args...)
 	}
 }
 
-// builtins is every function a program can use without a nab, keyed by the
+// counts itself wraps a builtin that needs the interpreter, or the run's
+// output, or to leave by panicking, and so cannot be one of the adapters
+// above. It takes no arguments of a fixed number, so the table is held to
+// saying exactly that.
+func countsItself(name string, fn builtinFn) builtinFn {
+	agreesWithTable(name, builtins.Variadic)
+	return fn
+}
+
+// builtinTable is every function a program can use without a nab, keyed by the
 // name it is written under.
 //
 // A table rather than a switch, so that the set of names is something that can
@@ -608,18 +638,18 @@ func variadic(fn func(args ...meowrt.Value) meowrt.Value) builtinFn {
 // judge, expect, refuse and seed came to be accepted, compiled, and undefined
 // here. The test holding these two tables to each other can only be honest
 // because both are enumerable.
-var builtins = map[string]builtinFn{
-	"nya": func(interp *Interpreter, args []meowrt.Value) meowrt.Value {
+var builtinTable = map[string]builtinFn{
+	"nya": countsItself("nya", func(interp *Interpreter, args []meowrt.Value) meowrt.Value {
 		return interp.builtinNya(args)
-	},
-	"hiss": variadic(meowrt.Hiss),
-	"scram": func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
+	}),
+	"hiss": variadic("hiss", meowrt.Hiss),
+	"scram": countsItself("scram", func(_ *Interpreter, args []meowrt.Value) meowrt.Value {
 		code, fb := meowrt.ScramCode(args...)
 		if fb != nil {
 			return fb
 		}
 		panic(meowrt.ScramSignal{Code: code})
-	},
+	}),
 	"len":        unary("len", meowrt.Len),
 	"to_int":     unary("to_int", meowrt.ToInt),
 	"to_float":   unary("to_float", meowrt.ToFloat),
@@ -657,22 +687,22 @@ var builtins = map[string]builtinFn{
 	// act on, and it is the same wording and the same stopping point a
 	// compiled program gives. An assertion that holds stays silent, as it does
 	// under `meow test`, where only the enclosing test's PASS line is printed.
-	"judge":  variadic(meowtest.Judge),
-	"expect": variadic(meowtest.Expect),
-	"refuse": variadic(meowtest.Refuse),
+	"judge":  variadic("judge", meowtest.Judge),
+	"expect": variadic("expect", meowtest.Expect),
+	"refuse": variadic("refuse", meowtest.Refuse),
 
 	// seed states one entry of a fuzz corpus. Only `meow test -fuzz` has
 	// anything to do with one — it reads the calls out of the test's body
 	// before the body is generated — and everywhere else codegen compiles a
 	// seed call to catnap. The playground cannot fuzz, so everywhere else is
 	// all there is here.
-	"seed": func(_ *Interpreter, _ []meowrt.Value) meowrt.Value {
+	"seed": countsItself("seed", func(_ *Interpreter, _ []meowrt.Value) meowrt.Value {
 		return meowrt.NewNil()
-	},
+	}),
 }
 
 func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (meowrt.Value, bool) {
-	fn, ok := builtins[name]
+	fn, ok := builtinTable[name]
 	if !ok {
 		return nil, false
 	}
