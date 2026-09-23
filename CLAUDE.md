@@ -30,6 +30,8 @@ go test ./pkg/parser/ -run TestParseLambda -v
 
 Pre-commit runs go-fmt, `go vet`, `golangci-lint run --new-from-rev=origin/main`, and `go test ./...`. Commit messages use gitmoji prefixes (e.g. `✨ feat: ...`, `📝 docs: ...`).
 
+Open pull requests ready for review, not as drafts — the review bots skip a draft, so a draft only delays the first round.
+
 ## The `meow` CLI vs `go test`
 
 Two separate test systems — don't confuse them:
