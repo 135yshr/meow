@@ -1,3 +1,11 @@
+// Package linter reads a Meow program and reports what is legal but probably
+// not meant: a name declared and never used, a statement after a `bring`, a
+// body with nothing in it, a binding that quietly takes a builtin's name.
+//
+// Nothing here refuses a program. `pkg/checker` decides what a program may
+// say; this says what a reader of it would raise an eyebrow at, and `meow
+// lint` prints the result. Each rule lives in its own file and implements
+// [Rule].
 package linter
 
 import (
