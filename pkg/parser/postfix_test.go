@@ -87,7 +87,7 @@ func TestAPostfixFollowsAnyOperand(t *testing.T) {
 
 // Every chain that parsed before parses to the same tree. The backends key a
 // great deal off these shapes — a builtin is dispatched by the name a call is
-// made through, a nab'd package's member is recognised by its object being that
+// made through, a nab'd package's member is recognized by its object being that
 // package's name, a groom method by the object's type — so the refactor is only
 // safe if none of them moves.
 func TestAPostfixThatParsedBeforeParsesTheSame(t *testing.T) {
