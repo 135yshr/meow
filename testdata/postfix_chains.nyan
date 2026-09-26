@@ -59,7 +59,8 @@ nya(paw(x) { bring x + 100 }(5))
 # rather than a boxed one. A member read, a subscript, a pipe and a catch were
 # all generated boxed and handed to Go where a string or an int belonged, so
 # valid Meow failed at `go build` — `c.name` off a local kitty and `xs[0]` off a
-# local list did before #153 made `make().name` another way to reach it.
+# local list did before #153 made `make().name` another way to reach it. A call
+# through anything but a name comes back boxed the same way.
 meow typed_member() string { bring make().name }
 meow typed_local_member() string {
   nyan k = Cat("sora", 1, Point(0, 0))
@@ -76,6 +77,10 @@ meow typed_index() int {
 meow double(n int) int { bring n * 2 }
 meow typed_pipe() int { bring 3 |=| double }
 meow typed_catch() string { bring to_string(1) ~> "fallback" }
+meow typed_lambda_call() int { bring paw(x int) { x * 2 }(5) }
+meow typed_index_call() int { bring handlers[0](3) }
+meow typed_call_of_call() int { bring adder(1)(2) }
+meow typed_grouped_call() string { bring (upper)("mike") }
 
 nya(typed_member())
 nya(typed_local_member())
@@ -86,3 +91,7 @@ nya(typed_grouped())
 nya(typed_index())
 nya(typed_pipe())
 nya(typed_catch())
+nya(typed_lambda_call())
+nya(typed_index_call())
+nya(typed_call_of_call())
+nya(typed_grouped_call())

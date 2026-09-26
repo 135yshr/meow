@@ -1166,9 +1166,12 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return call
 	}
 
+	// A call through anything but a name — a lambda written in place, a
+	// subscript, another call's result — is dynamically dispatched, so its
+	// result comes back boxed and a typed context has to unbox it.
 	ident, isIdent := e.Fn.(*ast.Ident)
 	if !isIdent {
-		return g.genCall(e)
+		return g.genDispatchedCall(e)
 	}
 
 	// A name a binding has taken over is not this table's to answer either. It
