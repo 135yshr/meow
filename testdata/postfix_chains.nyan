@@ -1,0 +1,88 @@
+# A member read, a call and a subscript can follow any operand, in any order and
+# as many times as they are written.
+#
+# A subscript always could. A member and a call were read only straight after a
+# name, once each, so a chain could not get past its first link that was not a
+# name: `(c).name`, `(f)(4)`, `cats[0].name` and `make().name` were all refused
+# by the parser (#153). What this file prints is what the interpreter prints for
+# it, byte for byte.
+
+kitty Point {
+  x: int
+  y: int
+}
+kitty Cat {
+  name: string
+  age: int
+  home: Point
+}
+collar Age = int
+groom Cat {
+  meow shout() string { bring upper(self.name) }
+  meow older() Cat { bring Cat(self.name, self.age + 1, self.home) }
+  meow street() int { bring self.home.x }
+}
+
+nyan c = Cat("tama", 2, Point(1, 2))
+nyan cats = [c, Cat("mike", 5, Point(3, 4))]
+meow make() Cat { bring Cat("kuro", 3, Point(5, 6)) }
+meow make_age() Age { bring Age(7) }
+nyan adder = paw(n) { bring paw(m) { bring n + m } }
+nyan handlers = [paw(v) { bring v * 10 }]
+nyan f = paw(x) { bring x * 2 }
+
+# The forms #153 names.
+nya((c).name)
+nya((f)(4))
+nya((c).shout())
+nya((1 |=| paw(n) { bring Point(n, n + 1) }).y)
+
+# A chain that starts somewhere other than a name.
+nya(cats[1].name)
+nya(cats[1].shout())
+nya(make().name)
+nya(make().shout())
+nya(make().older().older().age)
+
+# A member of a member, and a call of a call.
+nya(c.home.x)
+nya(cats[1].home.y)
+nya(make().home.x)
+nya(c.street())
+nya(adder(1)(2))
+
+# A call through a subscript, and a lambda called where it is written.
+nya(handlers[0](3))
+nya(paw(x) { bring x + 100 }(5))
+
+# Inside a fully typed function, where a value is wanted as a native Go value
+# rather than a boxed one. A member read, a subscript, a pipe and a catch were
+# all generated boxed and handed to Go where a string or an int belonged, so
+# valid Meow failed at `go build` — `c.name` off a local kitty and `xs[0]` off a
+# local list did before #153 made `make().name` another way to reach it.
+meow typed_member() string { bring make().name }
+meow typed_local_member() string {
+  nyan k = Cat("sora", 1, Point(0, 0))
+  bring k.name
+}
+meow typed_arith() int { bring make().age + 1 }
+meow typed_chain() int { bring make().older().older().age }
+meow typed_collar() int { bring make_age().value * 2 }
+meow typed_grouped() string { bring (make()).name }
+meow typed_index() int {
+  nyan xs = [7, 8]
+  bring xs[0]
+}
+meow double(n int) int { bring n * 2 }
+meow typed_pipe() int { bring 3 |=| double }
+meow typed_catch() string { bring to_string(1) ~> "fallback" }
+
+nya(typed_member())
+nya(typed_local_member())
+nya(typed_arith())
+nya(typed_chain())
+nya(typed_collar())
+nya(typed_grouped())
+nya(typed_index())
+nya(typed_pipe())
+nya(typed_catch())

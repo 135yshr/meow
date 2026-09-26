@@ -1883,6 +1883,9 @@ func TestTheseGoldensPrintTheSameUnderTheInterpreter(t *testing.T) {
 		// judge, expect and refuse work outside `meow test`, and seed's
 		// arguments are evaluated (#151).
 		"assertions_anywhere",
+		// A member read, a call and a subscript follow any operand, and a
+		// native-typed one is unboxed inside a typed function (#153).
+		"postfix_chains",
 	} {
 		t.Run(name, func(t *testing.T) {
 			src, err := os.ReadFile(filepath.Join("..", "..", "testdata", name+".nyan"))
