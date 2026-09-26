@@ -1,0 +1,45 @@
+# judge, expect and refuse are ordinary builtins that answer with a Furball,
+# and they work wherever a program is written — not only under `meow test`.
+#
+# They used to compile to `meow_testing.Judge(...)` in a file that never
+# imported the package, so `meow run` answered with raw Go: `undefined:
+# meow_testing`, naming no line of the .nyan file. The checker accepted them
+# everywhere and the interpreter ran them everywhere, so the CLI was the odd one
+# out (#151). What this file prints is what the interpreter prints for it, byte
+# for byte.
+
+# An assertion that holds answers with catnap, as it does under `meow test`,
+# where only the enclosing test's PASS line is printed.
+nya(judge(1 == 1, "one is one"))
+nya(expect(2 + 2, 4, "two and two"))
+nya(refuse(1 == 2, "one is not two"))
+
+# One that fails is a Furball, so `~>` can catch it and the message is the one
+# the assertion was given.
+nya(judge(1 == 2, "one is not two") ~> "caught the judge")
+nya(expect(2 + 2, 5, "two and two are not five") ~> "caught the expect")
+nya(refuse(1 == 1, "one is one after all") ~> "caught the refuse")
+
+# Held as a value, an assertion is still the assertion — the wrapper #152 gave
+# every builtin needs the same import.
+nyan held = judge
+nya(held(1 == 1, "still one"))
+
+# Inside a function, where the Furball propagates as any other does.
+meow check(n int) furball {
+  bring judge(n > 0, "n must be positive")
+}
+nya(check(1))
+nya(check(-1) ~> "caught from a function")
+
+# seed states one entry of a fuzz corpus. Only `meow test -fuzz` has anything to
+# do with one, and everywhere else it answers with catnap — but its arguments
+# are arguments, and Meow evaluates those. Codegen used to splice them into
+# nothing at all, so a side effect written in one never happened while the
+# interpreter ran it.
+nya(seed(nya("evaluated")))
+
+# An argument that fails is passed on, the way nya passes one on, so a seed
+# whose argument failed says so rather than answering catnap as if nothing had
+# happened. Both backends call the same runtime function for this.
+nya(seed(judge(1 == 2, "a seed argument failed")) ~> "caught the seed argument")

@@ -1867,20 +1867,35 @@ nya(g())`)
 	}
 }
 
-// The program that pins this rule for the compiled path prints the same thing
-// here, byte for byte. #154 was the two backends agreeing with each other and
-// disagreeing with the spec; the fix is worth nothing if they stop agreeing,
-// and the golden file is what the compiled path is held to.
-func TestTheShadowingGoldenPrintsTheSameUnderTheInterpreter(t *testing.T) {
-	src, err := os.ReadFile(filepath.Join("..", "..", "testdata", "binding_shadows_builtin.nyan"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want, err := os.ReadFile(filepath.Join("..", "..", "testdata", "binding_shadows_builtin.golden"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := runMeow(t, string(src)); got != string(want) {
-		t.Errorf("the interpreter prints\n%s\nthe compiled program prints\n%s", got, want)
+// The golden programs written to pin a rule for the compiled path print the
+// same thing here, byte for byte. Each of these rules was a place where the two
+// backends disagreed; the fixes are worth nothing if they drift again, and the
+// golden file is what the compiled path is held to.
+//
+// Only the goldens whose programs the interpreter can run belong here: most of
+// the corpus reaches for `nab`, a file or a clock, and the playground has none
+// of those.
+func TestTheseGoldensPrintTheSameUnderTheInterpreter(t *testing.T) {
+	for _, name := range []string{
+		// A binding takes a builtin's or a constructor's name wherever it is
+		// written (#154).
+		"binding_shadows_builtin",
+		// judge, expect and refuse work outside `meow test`, and seed's
+		// arguments are evaluated (#151).
+		"assertions_anywhere",
+	} {
+		t.Run(name, func(t *testing.T) {
+			src, err := os.ReadFile(filepath.Join("..", "..", "testdata", name+".nyan"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := os.ReadFile(filepath.Join("..", "..", "testdata", name+".golden"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := runMeow(t, string(src)); got != string(want) {
+				t.Errorf("the interpreter prints\n%s\nthe compiled program prints\n%s", got, want)
+			}
+		})
 	}
 }

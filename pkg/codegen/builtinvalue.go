@@ -8,10 +8,6 @@ import (
 	"github.com/135yshr/meow/pkg/builtins"
 )
 
-// seedCall stands where a runtime function would, for the one builtin that has
-// none: a call to seed outside a fuzz run answers with catnap.
-const seedCall = "__seed"
-
 // builtinCalls says how to reach a builtin's runtime function when the builtin
 // is named rather than called: the Go expression that invokes it.
 //
@@ -30,8 +26,10 @@ var builtinCalls = map[string]string{
 	"hiss":  "meow.Hiss",
 	"scram": "meow.Scram",
 	// seed marks a fuzz corpus entry and is read off the AST before a body is
-	// generated, so outside a fuzz run it is the no-op genCall also emits.
-	"seed":       seedCall,
+	// generated, so outside a fuzz run it is the catnap genCall also answers
+	// with — a runtime function of its own now, so that naming seed as a value
+	// needs no special case here.
+	"seed":       "meow.Seed",
 	"gag":        "meow.Gag",
 	"is_furball": "meow.IsFurball",
 	"len":        "meow.Len",
@@ -98,8 +96,6 @@ func (g *Generator) genBuiltinValue(name string) (string, bool) {
 
 	var body string
 	switch {
-	case call == seedCall:
-		body = "meow.NewNil()"
 	case arity == builtins.Variadic:
 		body = fmt.Sprintf("%s(__a...)", call)
 	default:

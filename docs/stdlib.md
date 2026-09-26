@@ -1069,14 +1069,24 @@ Import with `nab "testing"`. Provides test assertions and test execution.
 - Functions named `catwalk_*` are output verification tests — they capture stdout and compare it to an expected string.
 - Test functions must take no parameters.
 
+`judge`, `expect` and `refuse` are builtins: they need no `nab` and work
+anywhere a program is written, not only under `meow test`. An assertion that
+holds answers with `catnap`. One that fails answers with a `Furball` carrying
+its message, so it propagates like any other failure and `~>` can catch it;
+under `meow test` that is what fails the enclosing test.
+
+```meow
+nya(judge(1 == 1, "one is one"))              # => catnap
+nya(judge(1 == 2, "nope") ~> "caught")        # => caught
+```
+
 ### `testing.judge(condition [, message])`
 
 Assert that a condition is truthy.
 
 - **condition**: Value to check for truthiness.
 - **message** (string, optional): Custom failure message.
-- **Returns**: `catnap`.
-- **Panics (test failure)**: If condition is falsy.
+- **Returns**: `catnap` if the condition is truthy, otherwise a `Furball` carrying the message.
 
 ```meow
 judge(1 + 1 == 2)
@@ -1090,8 +1100,7 @@ Assert that two values are equal (compared by string representation).
 - **actual**: The value to check.
 - **expected**: The expected value.
 - **message** (string, optional): Custom failure message.
-- **Returns**: `catnap`.
-- **Panics (test failure)**: If values are not equal.
+- **Returns**: `catnap` if the values are equal, otherwise a `Furball` carrying the message.
 
 ```meow
 expect(1 + 1, 2, "basic addition")
@@ -1104,8 +1113,7 @@ Assert that a condition is falsy.
 
 - **condition**: Value to check for falsiness.
 - **message** (string, optional): Custom failure message.
-- **Returns**: `catnap`.
-- **Panics (test failure)**: If condition is truthy.
+- **Returns**: `catnap` if the condition is falsy, otherwise a `Furball` carrying the message.
 
 ```meow
 refuse(1 == 2)

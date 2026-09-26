@@ -503,6 +503,18 @@ func (g *Generator) emitTest() string {
 	return b.String()
 }
 
+// ensureImport records that the generator itself needs one of Meow's own
+// packages, because it is about to emit a selector into it — `meow_testing` for
+// an assertion, and nothing else so far.
+//
+// That is why the package is marked used here rather than where the selector is
+// written. A `nab` import is the opposite case: the program asks for the
+// package and may never call into it, so usedImports keeps it out of the import
+// block until markPackageUsed says a selector was emitted. Registering without
+// marking is what left `judge` compiling to `meow_testing.Judge(...)` in a file
+// that imported nothing — raw Go, `undefined: meow_testing`, under `meow run`
+// while `meow test` worked (#151). Only the test wrapper named the package as
+// used, and it did so by hand.
 func (g *Generator) ensureImport(name string) {
 	if g.imports == nil {
 		g.imports = make(map[string]string)
@@ -512,6 +524,7 @@ func (g *Generator) ensureImport(name string) {
 			g.imports[name] = path
 		}
 	}
+	g.markPackageUsed(name)
 }
 
 func (g *Generator) needsMeowImport() bool {
@@ -1955,8 +1968,12 @@ func (g *Generator) genCall(e *ast.CallExpr) string {
 		case "refuse":
 			g.ensureImport("testing")
 			return fmt.Sprintf("meow_testing.Refuse(%s)", argStr)
+		// seed's arguments are arguments: meow.Seed answers with catnap and
+		// evaluating them is what calling it does. Answering with the catnap
+		// alone spliced them into nothing, so a side effect written in one
+		// never happened here while the interpreter ran it (#151).
 		case "seed":
-			return "meow.NewNil()"
+			return fmt.Sprintf("meow.Seed(%s)", argStr)
 		default:
 			if ks, ok := g.kittyDefs[ident.Name]; ok {
 				fieldNames := make([]string, len(ks.Fields))

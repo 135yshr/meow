@@ -693,12 +693,13 @@ var builtinTable = map[string]builtinFn{
 
 	// seed states one entry of a fuzz corpus. Only `meow test -fuzz` has
 	// anything to do with one — it reads the calls out of the test's body
-	// before the body is generated — and everywhere else codegen compiles a
-	// seed call to catnap. The playground cannot fuzz, so everywhere else is
-	// all there is here.
-	"seed": countsItself("seed", func(_ *Interpreter, _ []meowrt.Value) meowrt.Value {
-		return meowrt.NewNil()
-	}),
+	// before the body is generated — and everywhere else it answers with
+	// catnap. It is the runtime's own function rather than a catnap written
+	// here, so that an argument which failed is passed on the way codegen
+	// passes it on: this answered catnap whatever it was handed, and
+	// `seed(judge(false, "x")) ~> "caught"` printed catnap here and "caught"
+	// from a compiled program (#151).
+	"seed": variadic("seed", meowrt.Seed),
 }
 
 func (interp *Interpreter) dispatchBuiltin(name string, args []meowrt.Value) (meowrt.Value, bool) {
