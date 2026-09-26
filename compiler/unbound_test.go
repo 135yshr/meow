@@ -17,7 +17,7 @@ import (
 
 // runCompiled builds source and runs it, giving what it printed and the
 // failure it reported, if any, from the file name on.
-func runCompiled(t *testing.T, source string) (string, string) {
+func runCompiled(t *testing.T, source string) (output, failure string) {
 	t.Helper()
 	dir := t.TempDir()
 	nyanPath := filepath.Join(dir, "prog.nyan")
@@ -32,7 +32,7 @@ func runCompiled(t *testing.T, source string) (string, string) {
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	_ = cmd.Run()
-	failure := strings.TrimSpace(stderr.String())
+	failure = strings.TrimSpace(stderr.String())
 	// The path is the temporary directory's, so only the file name and what
 	// follows it are compared.
 	if i := strings.LastIndex(failure, "prog.nyan:"); i >= 0 {
@@ -42,7 +42,7 @@ func runCompiled(t *testing.T, source string) (string, string) {
 }
 
 // runInterpreted runs source the way the playground does.
-func runInterpreted(t *testing.T, source string) (string, string) {
+func runInterpreted(t *testing.T, source string) (output, failure string) {
 	t.Helper()
 	prog, errs := parser.New(lexer.New(source, "prog.nyan").Tokens()).Parse()
 	if len(errs) > 0 {
@@ -55,7 +55,6 @@ func runInterpreted(t *testing.T, source string) (string, string) {
 	var stdout bytes.Buffer
 	in := interpreter.New(&stdout)
 	in.SetTypeInfo(ti)
-	failure := ""
 	if err := in.RunSafe(prog); err != nil {
 		failure = err.Error()
 	}
