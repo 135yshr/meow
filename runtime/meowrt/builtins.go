@@ -6,6 +6,27 @@ import (
 	"strings"
 )
 
+// Seed states one entry of a fuzz corpus, and answers with catnap.
+//
+// Only `meow test -fuzz` has anything to do with a seed call: it reads the
+// calls out of a fuzz target's body before that body is generated. Everywhere
+// else the call is this, which exists so that the arguments are arguments —
+// evaluated where they are written, the way Meow evaluates every other call's.
+// Codegen used to answer a seed call with the catnap alone and splice the
+// argument expressions into nothing, so a side effect written in one never
+// happened, while the playground's interpreter ran it (#151).
+//
+// An unhandled Furball among them is passed on rather than swallowed, as Nya
+// does, so a seed whose argument failed says so.
+func Seed(args ...Value) Value {
+	for _, a := range args {
+		if f, ok := a.(*Furball); ok && !f.Handled {
+			return f
+		}
+	}
+	return NewNil()
+}
+
 // Nya prints a value (the Meow print function). If any argument is an
 // unhandled Furball, Nya returns it without printing so the error
 // propagates instead of being stringified and silently swallowed.
