@@ -1,3 +1,8 @@
+# [v0.26.0](https://github.com/135yshr/meow/compare/v0.25.1...v0.26.0) (2026-09-26)
+
+## ✨ New Features
+- [`4027208`](https://github.com/135yshr/meow/commit/4027208)  feat: Let a member, a call and a subscript follow any operand (#160) (Issues: [`#160`](https://github.com/135yshr/meow/issues/160) [`#153`](https://github.com/135yshr/meow/issues/153))
+
 # [v0.25.1](https://github.com/135yshr/meow/compare/v0.25.0...v0.25.1) (2026-09-26)
 
 ## 🐛 Bug Fixes
