@@ -560,6 +560,30 @@ func (c *Checker) resolveTypeExpr(te ast.TypeExpr) types.Type {
 	}
 }
 
+// completeType answers a kitty or collar type with its full definition.
+//
+// A type written in a signature is resolved in the first pass, when a kitty is
+// only a name: `meow make() Cat` records a Cat with no fields, because Cat's
+// fields are filled in by the second pass, into the table rather than into the
+// copies already handed out. Reading a member off such a value then said `Cat
+// has no field or method name` about a Cat that plainly had one. It was there
+// for `nyan m = make()` followed by `m.name`, and #153 made it the first thing
+// anyone would write: `make().name`. The table has the whole definition by the
+// time any expression is inferred, so it is asked again here.
+func (c *Checker) completeType(t types.Type) types.Type {
+	switch tt := t.(type) {
+	case types.KittyType:
+		if full, ok := c.info.KittyTypes[tt.Name]; ok {
+			return full
+		}
+	case types.CollarType:
+		if full, ok := c.info.CollarTypes[tt.Name]; ok {
+			return full
+		}
+	}
+	return t
+}
+
 func (c *Checker) checkStmt(stmt ast.Stmt) {
 	switch s := stmt.(type) {
 	case *ast.VarStmt:
@@ -1306,7 +1330,7 @@ func (c *Checker) inferExprInner(expr ast.Expr) types.Type {
 		}
 		return types.AnyType{}
 	case *ast.MemberExpr:
-		objType := types.Unwrap(c.inferExpr(e.Object))
+		objType := c.completeType(types.Unwrap(c.inferExpr(e.Object)))
 		if ct, ok := objType.(types.CollarType); ok {
 			if e.Member == "value" {
 				return ct.Underlying

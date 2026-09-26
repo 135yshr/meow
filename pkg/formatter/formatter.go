@@ -442,9 +442,12 @@ func needsSpaceBefore(toks []token.Token, idx int, prev token.TokenType) bool {
 		return !opensABasket(previousNonTriviaType(toks, brace-1))
 	}
 	// LPAREN: part of an opening rather than a call — `sniff (c)`, `purr (c)`,
-	// and the `purr i (5)` whose loop variable sits between the two.
+	// and the `purr i (5)` whose loop variable sits between the two — or the
+	// start of an expression after `bring`, which is never called. Pulled tight
+	// against bring, `bring (make()).name` read as a call of bring whose result
+	// had a member taken.
 	if cur == token.LPAREN {
-		return isBlockKeyword(prev) || opensALoopSubject(toks, idx)
+		return isBlockKeyword(prev) || prev == token.BRING || opensALoopSubject(toks, idx)
 	}
 	// LBRACKET: an index reaches back into whatever it follows, so it sits
 	// tight against it — `resp["body"]`, not `resp ["body"]`. Opening a litter

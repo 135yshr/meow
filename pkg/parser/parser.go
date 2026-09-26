@@ -467,21 +467,15 @@ func (p *Parser) parseLearnStmt() *ast.LearnStmt {
 
 func (p *Parser) parseSelfExpr() ast.Expr {
 	tok := p.advance() // consume self
-	selfExpr := &ast.SelfExpr{Token: tok}
-	if p.cur.Type == token.DOT {
-		return p.parseMemberAccess(selfExpr)
-	}
-	return selfExpr
+	return &ast.SelfExpr{Token: tok}
 }
 
-func (p *Parser) parseMemberAccess(object ast.Expr) ast.Expr {
+// parseMember reads `.name` after an operand. What follows it — a call, a
+// subscript, another member — is parsePostfix's to read, not this one's.
+func (p *Parser) parseMember(object ast.Expr) ast.Expr {
 	dot := p.advance() // consume .
 	member := p.expectMemberName()
-	expr := &ast.MemberExpr{Token: dot, Object: object, Member: member.Literal}
-	if p.cur.Type == token.LPAREN {
-		return p.finishCall(expr)
-	}
-	return expr
+	return &ast.MemberExpr{Token: dot, Object: object, Member: member.Literal}
 }
 
 // expectMemberName reads the name after a dot.
@@ -624,15 +618,13 @@ func (p *Parser) parsePrefix() ast.Expr {
 		tok := p.advance()
 		return &ast.NilLit{Token: tok}
 	case token.IDENT:
-		return p.parseIdentOrCall()
+		return p.parseIdent()
 	case token.SELF:
 		return p.parseSelfExpr()
 	case token.NYA:
-		return p.parseNyaCall()
-	case token.HISS:
-		return p.parseBuiltinCall()
-	case token.LICK, token.PICKY, token.CURL:
-		return p.parseBuiltinCall()
+		return p.parseKeywordName("nya")
+	case token.HISS, token.LICK, token.PICKY, token.CURL:
+		return p.parseKeywordName(p.cur.Literal)
 	case token.LPAREN:
 		return p.parseGrouped()
 	case token.MINUS, token.NOT:
@@ -749,35 +741,19 @@ func unescape(lit string) (string, error) {
 	return b.String(), nil
 }
 
-func (p *Parser) parseIdentOrCall() ast.Expr {
+// parseIdent reads a name. A call, a member or a subscript written after it is
+// parsePostfix's to read, as it is after any other operand.
+func (p *Parser) parseIdent() ast.Expr {
 	tok := p.advance()
-	ident := &ast.Ident{Token: tok, Name: tok.Literal}
-	if p.cur.Type == token.DOT {
-		return p.parseMemberAccess(ident)
-	}
-	if p.cur.Type == token.LPAREN {
-		return p.finishCall(ident)
-	}
-	// Subscripts are applied by parsePostfix, so that they can chain.
-	return ident
+	return &ast.Ident{Token: tok, Name: tok.Literal}
 }
 
-func (p *Parser) parseNyaCall() ast.Expr {
-	tok := p.advance() // consume nya
-	ident := &ast.Ident{Token: tok, Name: "nya"}
-	if p.cur.Type == token.LPAREN {
-		return p.finishCall(ident)
-	}
-	return ident
-}
-
-func (p *Parser) parseBuiltinCall() ast.Expr {
+// parseKeywordName reads a builtin spelled as a keyword — nya, hiss, lick,
+// picky, curl — as the name it is. The keyword's own literal is the name for
+// all of them but nya, whose token is kept for its position alone.
+func (p *Parser) parseKeywordName(name string) ast.Expr {
 	tok := p.advance()
-	ident := &ast.Ident{Token: tok, Name: tok.Literal}
-	if p.cur.Type == token.LPAREN {
-		return p.finishCall(ident)
-	}
-	return ident
+	return &ast.Ident{Token: tok, Name: name}
 }
 
 func (p *Parser) finishCall(fn ast.Expr) ast.Expr {
@@ -881,18 +857,35 @@ func (p *Parser) parseMapLit() ast.Expr {
 	return &ast.MapLit{Token: tok, Keys: keys, Vals: vals}
 }
 
-// parsePostfix applies subscripts to an already-parsed operand, repeatedly, so
-// that indexing chains and indexing of any expression — not just a bare
-// identifier — are accepted: grid[1][0], data["items"][1], f()[0], [1, 2][0].
+// parsePostfix applies the postfix forms to an already-parsed operand —
+// `[i]`, `.name` and `(args)` — in whatever order they are written and as many
+// times as they are: grid[1][0], cats[0].name, make().shout(), f(1)(2),
+// (5 |=| Point).x.
 //
-// A subscript only ever continues the current expression, because the lexer
-// emits a NEWLINE between statements; a line that opens with '[' therefore
-// starts a fresh list literal rather than indexing the line above.
+// Subscripts were always read here, so they chained after anything. A member
+// and a call were read only straight after a name, once each, so a chain could
+// not get past its first link that was not a name: `(c).name`, `(f)(4)`,
+// `cats[0].name` and `make().name` were all refused (#153). They are postfix
+// forms like the subscript, and are read like it.
+//
+// A postfix only ever continues the current expression, because the lexer
+// emits a NEWLINE between statements. That matters most for `(`: a line that
+// opens with one starts a parenthesised expression of its own rather than
+// calling whatever ended the line above, and a line that opens with `[` starts
+// a list literal rather than indexing it.
 func (p *Parser) parsePostfix(left ast.Expr) ast.Expr {
-	for p.cur.Type == token.LBRACKET {
-		left = p.parseIndex(left)
+	for {
+		switch p.cur.Type {
+		case token.LBRACKET:
+			left = p.parseIndex(left)
+		case token.DOT:
+			left = p.parseMember(left)
+		case token.LPAREN:
+			left = p.finishCall(left)
+		default:
+			return left
+		}
 	}
-	return left
 }
 
 func (p *Parser) parseIndex(left ast.Expr) ast.Expr {
@@ -931,10 +924,13 @@ func (p *Parser) parsePattern() ast.Pattern {
 		tok := p.advance()
 		return &ast.WildcardPattern{Token: tok}
 	}
-	expr := p.parsePrefix()
+	// A pattern could always be written with a member or a call after a name,
+	// because the name's own parser read them. That is parsePostfix's work now,
+	// so it is applied here as it is in parseExpr.
+	expr := p.parsePostfix(p.parsePrefix())
 	if p.cur.Type == token.DOTDOT {
 		tok := p.advance()
-		high := p.parsePrefix()
+		high := p.parsePostfix(p.parsePrefix())
 		return &ast.RangePattern{Token: tok, Low: expr, High: high}
 	}
 	return &ast.LiteralPattern{Token: expr.(ast.Node).Pos().AsToken(), Value: expr}

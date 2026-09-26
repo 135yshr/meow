@@ -191,6 +191,48 @@ func TestFormatIndexBracketHugsItsSubject(t *testing.T) {
 	}
 }
 
+// A call and a member belong to what they follow, as an index does, and can
+// follow any operand now (#153). None of these may come back with a space
+// between the operand and its `(`, `.` or `[`.
+func TestFormatAPostfixHugsAnyOperand(t *testing.T) {
+	for _, src := range []string{
+		"nya((c).name)\n",
+		"nya((f)(4))\n",
+		"nya((5 |=| mk).x)\n",
+		"nya(cats[0].name)\n",
+		"nya(cats[0].shout())\n",
+		"nya(make().older().age)\n",
+		"nya(adder(1)(2))\n",
+		"nya(handlers[0](3))\n",
+		"nya(paw(x) { x * 2 }(5))\n",
+		"nya(c.home.x)\n",
+	} {
+		t.Run(strings.TrimSpace(src), func(t *testing.T) {
+			if got := format(t, src); got != src {
+				t.Errorf("got %q, want it unchanged", got)
+			}
+		})
+	}
+}
+
+// bring is never called, so a parenthesis after it opens an expression and
+// keeps its space. Pulled tight, `bring (make()).name` came back as
+// `bring(make()).name` — reading as a call of bring whose result has a member
+// taken — and `bring (x + 1) * 2` as `bring(x + 1) * 2`. #153 made the first a
+// natural thing to write.
+func TestFormatBringKeepsTheSpaceBeforeAParenthesis(t *testing.T) {
+	for _, src := range []string{
+		"meow f() string {\n  bring (make()).name\n}\n",
+		"meow g(x int) int {\n  bring (x + 1) * 2\n}\n",
+	} {
+		t.Run(strings.Fields(src)[4], func(t *testing.T) {
+			if got := format(t, src); got != src {
+				t.Errorf("got %q, want it unchanged", got)
+			}
+		})
+	}
+}
+
 func TestFormatEmptyInput(t *testing.T) {
 	got := format(t, "")
 	if got != "" {

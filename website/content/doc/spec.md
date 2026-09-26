@@ -358,11 +358,36 @@ nya("the cat" |=| swap.replace)        # => the nyan
 nya(lick(["cat", "dog"], swap.replace))
 ```
 
-This is what a language of values has in place of a chain of calls. Rather than
-following one call with another, a member is taken as a function and the value
-is passed into it, which reads left to right and needs nothing to come after a
-closing bracket. A member that is not there fails where it is written rather
-than where the function it would have been is called.
+A member taken as a function can be passed along like this — piped into,
+mapped over a list — and read left to right with the value going in. A member
+that is not there fails where it is written rather than where the function it
+would have been is called.
+
+#### Chains
+
+A call, a subscript and a member are postfix forms, and each can follow any
+operand: a name, a literal, a parenthesised expression, or another postfix form.
+They chain in any order, as many times as they are written, and read left to
+right:
+
+```meow
+nya(make().name)                # a member of what a call returned
+nya(cats[0].shout())            # a method of a subscripted element
+nya(c.home.x)                   # a member of a member
+nya(adder(1)(2))                # a call of what a call returned
+nya(handlers[0](3))             # a call through a subscript
+nya((5 |=| Point).x)            # a member of a parenthesised expression
+nya(paw(x) { x * 2 }(5))        # a lambda called where it is written
+```
+
+A postfix form binds tighter than any operator, so it attaches to the operand
+beside it: `a - b.c` subtracts `b.c`, and `-f(1)` negates the call. To reach
+into the result of an operator, parenthesise it, as `(5 |=| Point).x` does.
+
+A postfix form continues the expression only on the line it is written on. A
+line that opens with `(` starts a parenthesised expression of its own rather
+than calling whatever ended the line above, and a line that opens with `[`
+starts a list literal.
 
 A member may be named after a keyword. Nothing but a member can follow a dot,
 so there is nothing for `x.string` to be ambiguous with, and a Go method named

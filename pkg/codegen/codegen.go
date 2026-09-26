@@ -949,7 +949,22 @@ func (g *Generator) genTypedExpr(expr ast.Expr) string {
 	case *ast.CallExpr:
 		return g.genTypedCall(e)
 	default:
-		return g.genExprBoxed(expr)
+		// Everything else is generated boxed — a member read, a subscript, a
+		// pipe, a catch. Where the checker knows the result is a native type,
+		// the caller wants that type and Go will take nothing else, so it is
+		// unboxed here, as a match expression is above.
+		//
+		// Handing the boxed value back was what made `bring c.name` off a local
+		// kitty, `bring xs[0]` off a local list, `bring 3 |=| double` and
+		// `bring s ~> "x"` fail at `go build` inside any fully typed function —
+		// valid Meow answered with "cannot use meow.GetMember(...) as string".
+		// #153 let a member and a call follow any operand, which made
+		// `make().name` one more way to reach it.
+		boxed := g.genExprBoxed(expr)
+		if isNativeType(t) {
+			return unboxToNative(boxed, t)
+		}
+		return boxed
 	}
 }
 
@@ -1151,9 +1166,12 @@ func (g *Generator) genTypedCall(e *ast.CallExpr) string {
 		return call
 	}
 
+	// A call through anything but a name — a lambda written in place, a
+	// subscript, another call's result — is dynamically dispatched, so its
+	// result comes back boxed and a typed context has to unbox it.
 	ident, isIdent := e.Fn.(*ast.Ident)
 	if !isIdent {
-		return g.genCall(e)
+		return g.genDispatchedCall(e)
 	}
 
 	// A name a binding has taken over is not this table's to answer either. It
