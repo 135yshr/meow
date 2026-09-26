@@ -468,6 +468,25 @@ nyan x int = 42
 nyan name = "Nyantyu"
 ```
 
+A binding written at the top level of the program belongs to the whole program,
+so a function can read it even when the function is written above it. Its value
+exists only once its line has run, though, and a function called before then
+reaches a binding with nothing in it yet:
+
+```meow
+meow greet() string { bring label }
+nyan label = "tama"
+nya(greet())                    # => tama
+
+meow early() string { bring later }
+nya(early())                    # => Hiss! later is used before it is bound
+nyan later = "too late"
+```
+
+That failure is a Furball like any other, so `~>` can catch it. A name that is
+bound nowhere at all is refused before the program runs, as an undefined
+variable.
+
 ### Reassignment
 
 ```ebnf

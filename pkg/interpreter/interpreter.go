@@ -44,20 +44,24 @@ type Interpreter struct {
 	kittyDefs  map[string]*ast.KittyStmt
 	collarDefs map[string]*ast.CollarStmt
 	funcDefs   map[string]*ast.FuncStmt
-	stepCount  int64
-	stepLimit  int64
-	exitCode   int
+	// topLevelBindings names what a `nyan` binds at the top level of the
+	// program, known before any of it runs; see notYetBound.
+	topLevelBindings map[string]bool
+	stepCount        int64
+	stepLimit        int64
+	exitCode         int
 }
 
 // New creates a new Interpreter that writes output to w.
 func New(w io.Writer) *Interpreter {
 	return &Interpreter{
-		globals:    NewEnvironment(),
-		output:     w,
-		kittyDefs:  make(map[string]*ast.KittyStmt),
-		collarDefs: make(map[string]*ast.CollarStmt),
-		funcDefs:   make(map[string]*ast.FuncStmt),
-		stepLimit:  10_000_000,
+		globals:          NewEnvironment(),
+		output:           w,
+		kittyDefs:        make(map[string]*ast.KittyStmt),
+		collarDefs:       make(map[string]*ast.CollarStmt),
+		funcDefs:         make(map[string]*ast.FuncStmt),
+		topLevelBindings: make(map[string]bool),
+		stepLimit:        10_000_000,
 	}
 }
 
@@ -134,6 +138,8 @@ func (interp *Interpreter) Run(prog *ast.Program) {
 			interp.registerFunc(s, interp.globals)
 		case *ast.LearnStmt:
 			interp.registerLearnMethods(s)
+		case *ast.VarStmt:
+			interp.topLevelBindings[s.Name] = true
 		case *ast.BreedStmt, *ast.TrickStmt:
 			// type-level declarations, nothing to do at runtime
 		}
@@ -442,8 +448,12 @@ func (interp *Interpreter) evalExpr(expr ast.Expr, env *Environment) meowrt.Valu
 		return meowrt.NewNil()
 	case *ast.Ident:
 		// A binding takes the name in value position, so it is asked first;
-		// only a name nothing has bound reaches the builtin.
+		// only a name nothing has bound reaches the builtin. A top-level
+		// binding has the name before its line has run, too.
 		if !env.Has(e.Name) {
+			if f, ok := interp.notYetBound(e.Name); ok {
+				return f
+			}
 			if fn, ok := interp.builtinValue(e.Name); ok {
 				return fn
 			}
@@ -952,7 +962,30 @@ func (interp *Interpreter) evalCallByName(ident *ast.Ident, args []meowrt.Value,
 		panic(fmt.Sprintf("Hiss! %s is not callable, nya~", fnVal.Type()))
 	}
 
+	if f, ok := interp.notYetBound(name); ok {
+		return f
+	}
+
 	panic(fmt.Sprintf("Hiss! undefined function %s, nya~", name))
+}
+
+// notYetBound answers a name that a top-level `nyan` binds but that has not
+// been bound yet, because the program reached it before the binding's line
+// ran — from a function called too early, or from the top level above it.
+//
+// The name is defined, further down, so saying it is undefined sent the reader
+// looking for a missing declaration rather than at the order of the lines, and
+// a call said "undefined function" where the compiled program said "undefined
+// variable" (#161). The compiled program starts every top-level binding as
+// this Furball, so it is a value here too, one `~>` can catch.
+//
+// It is asked only once the environment has nothing under the name: anything
+// bound in the meantime, at any depth, is what the name reaches.
+func (interp *Interpreter) notYetBound(name string) (meowrt.Value, bool) {
+	if !interp.topLevelBindings[name] {
+		return nil, false
+	}
+	return meowrt.NewFurball("Hiss! %s is used before it is bound, nya~", name), true
 }
 
 // --- Catch ---

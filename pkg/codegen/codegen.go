@@ -595,9 +595,13 @@ func (g *Generator) genGlobalDecls() string {
 		// Reaching one from a function that runs before the binding does is a
 		// real mistake, and a bare declaration would make it a nil dereference
 		// with nothing to read. Starting it as the same Furball the playground
-		// interpreter raises keeps the two backends saying the same thing.
+		// interpreter answers keeps the two backends saying the same thing.
+		//
+		// It says the binding is not there yet rather than that the name is
+		// undefined: the name is defined, further down, and a real undefined
+		// name never gets this far — the checker refuses it (#161).
 		fmt.Fprintf(&b,
-			"var %s meow.Value = meow.NewFurball(\"Hiss! undefined variable %s, nya~\")\n",
+			"var %s meow.Value = meow.NewFurball(\"Hiss! %s is used before it is bound, nya~\")\n",
 			name, name)
 	}
 	b.WriteString("\n")
