@@ -123,6 +123,34 @@ func TestABindingUsedBeforeItIsBoundSaysSo(t *testing.T) {
 			"prog.nyan:1:1: Hiss! upper is used before it is bound, nya~",
 		},
 		{
+			// A call through anything but a name reads the name as a value
+			// first, and calling the Furball that gives has to hand it on as
+			// the compiled program's meow.Call does, not refuse it as
+			// something that cannot be called.
+			"called through a subscript",
+			"nya([later][0]())\nnyan later = paw() { bring 1 }\n",
+			"",
+			"prog.nyan:1:1: Hiss! later is used before it is bound, nya~",
+		},
+		{
+			"called through parentheses",
+			"nya((later)())\nnyan later = paw() { bring 1 }\n",
+			"",
+			"prog.nyan:1:1: Hiss! later is used before it is bound, nya~",
+		},
+		{
+			"piped into through a subscript",
+			"nya(1 |=| [later][0])\nnyan later = paw(n) { bring n }\n",
+			"",
+			"prog.nyan:1:1: Hiss! later is used before it is bound, nya~",
+		},
+		{
+			"piped into a call through a subscript",
+			"nya(1 |=| [later][0](2))\nnyan later = paw(a, b) { bring a + b }\n",
+			"",
+			"prog.nyan:1:1: Hiss! later is used before it is bound, nya~",
+		},
+		{
 			// The checker lets the top level itself name a binding written
 			// further down, so it can get here without a function too.
 			"read at the top level, above the binding",

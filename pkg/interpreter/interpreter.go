@@ -743,7 +743,15 @@ func (interp *Interpreter) evalCall(e *ast.CallExpr, env *Environment) meowrt.Va
 	}
 
 	// First-class function call (e.g. variable holding a Func)
+	//
+	// A callee that evaluated to a Furball is handed on, as the compiled
+	// program's meow.Call does, rather than refused as something that cannot
+	// be called: `[later][0]()` reached before `nyan later` has run has to say
+	// that later is not bound yet, on both backends (#161).
 	fnVal := interp.evalExpr(e.Fn, env)
+	if f, ok := fnVal.(*meowrt.Furball); ok {
+		return f
+	}
 	if fn, ok := fnVal.(*meowrt.Func); ok {
 		return meowrt.Call(fn, args...)
 	}
@@ -900,7 +908,11 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 			return interp.evalCallByName(ident, args, env)
 		}
 
+		// A Furball target is handed on, as evalCall does.
 		fnVal := interp.evalExpr(call.Fn, env)
+		if f, ok := fnVal.(*meowrt.Furball); ok {
+			return f
+		}
 		if fn, ok := fnVal.(*meowrt.Func); ok {
 			return meowrt.Call(fn, args...)
 		}
@@ -919,7 +931,11 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 		return interp.evalCallByName(ident, []meowrt.Value{left}, env)
 	}
 
+	// A Furball target is handed on, as evalCall does.
 	fnVal := interp.evalExpr(e.Right, env)
+	if f, ok := fnVal.(*meowrt.Furball); ok {
+		return f
+	}
 	if fn, ok := fnVal.(*meowrt.Func); ok {
 		return meowrt.Call(fn, left)
 	}
