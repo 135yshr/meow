@@ -1,3 +1,8 @@
+# [v0.25.1](https://github.com/135yshr/meow/compare/v0.25.0...v0.25.1) (2026-09-26)
+
+## 🐛 Bug Fixes
+- [`b1c1407`](https://github.com/135yshr/meow/commit/b1c1407)  fix: Let judge, expect and refuse run outside meow test (#159) (Issues: [`#159`](https://github.com/135yshr/meow/issues/159) [`#151`](https://github.com/135yshr/meow/issues/151) [`#140`](https://github.com/135yshr/meow/issues/140) [`#158`](https://github.com/135yshr/meow/issues/158) [`#152`](https://github.com/135yshr/meow/issues/152))
+
 # [v0.25.0](https://github.com/135yshr/meow/compare/v0.24.0...v0.25.0) (2026-09-23)
 
 ## ✨ New Features
