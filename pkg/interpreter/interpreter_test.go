@@ -981,12 +981,13 @@ nya(show())`, "h1\nh2\n2\n"},
 }
 
 // Reaching a top-level binding from a function that runs before the binding
-// does is a mistake, and both backends have to name it the same way.
+// does is a mistake, and both backends have to name it the same way — as a
+// binding not there yet, not as an undefined name (#161).
 func TestGlobalBindingBeforeItIsBound(t *testing.T) {
 	got := runMeowError(t, `meow f() int { bring to_int(limit) }
 nya(f())
 nyan limit = 5`)
-	if !strings.Contains(got, "undefined variable limit") {
+	if !strings.Contains(got, "limit is used before it is bound") {
 		t.Errorf("got %q, want it to name the unbound variable", got)
 	}
 }
