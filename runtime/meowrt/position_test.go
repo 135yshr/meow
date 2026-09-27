@@ -41,3 +41,50 @@ func TestHereIsWhatWhereReports(t *testing.T) {
 		t.Errorf("got %q, want b.nyan:2:2", got)
 	}
 }
+
+// A call that comes back goes back to where it was made from, whatever type its
+// result is.
+func TestReturningGoesBackToTheCaller(t *testing.T) {
+	atPosition(t, "prog.nyan:3:3")
+
+	if got := Returning("prog.nyan:5:1", NewInt(1)); got.Val != 1 {
+		t.Errorf("got %v, want the value handed back unchanged", got)
+	}
+	if got := Where(); got != "prog.nyan:5:1" {
+		t.Errorf("after a boxed result the program is at %q, want the caller's prog.nyan:5:1", got)
+	}
+
+	Here("prog.nyan:3:3")
+	Returning("prog.nyan:5:1", "native")
+	if got := Where(); got != "prog.nyan:5:1" {
+		t.Errorf("after a native result the program is at %q, want the caller's prog.nyan:5:1", got)
+	}
+}
+
+// A boxed body hands its failure back as a value. That is a call that failed,
+// so the program stays where it failed instead of going back to the caller,
+// which would blame the failure on the line that called the function (#163).
+func TestReturningAFailureStaysWhereItFailed(t *testing.T) {
+	atPosition(t, "prog.nyan:3:3")
+
+	failure := NewFurball("Hiss! boom, nya~")
+	if got := Returning[Value]("prog.nyan:5:1", failure); got != failure {
+		t.Errorf("got %v, want the Furball handed back unchanged", got)
+	}
+	if got := Where(); got != "prog.nyan:3:3" {
+		t.Errorf("after a failure the program is at %q, want where it failed, prog.nyan:3:3", got)
+	}
+}
+
+// A failure that was caught is a value like any other, so the program goes back
+// to the caller as it does for any result.
+func TestReturningACaughtFailureGoesBackToTheCaller(t *testing.T) {
+	atPosition(t, "prog.nyan:3:3")
+
+	caught := NewFurball("Hiss! boom, nya~")
+	caught.Handled = true
+	Returning[Value]("prog.nyan:5:1", caught)
+	if got := Where(); got != "prog.nyan:5:1" {
+		t.Errorf("after a caught failure the program is at %q, want the caller's prog.nyan:5:1", got)
+	}
+}
