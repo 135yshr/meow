@@ -527,15 +527,6 @@ const (
 	precCall  // () []
 )
 
-func (p *Parser) prefixPrec(typ token.TokenType) int {
-	switch typ {
-	case token.MINUS, token.NOT:
-		return precUnary
-	default:
-		return precNone
-	}
-}
-
 func (p *Parser) infixPrec(typ token.TokenType) int {
 	switch typ {
 	case token.OR:
