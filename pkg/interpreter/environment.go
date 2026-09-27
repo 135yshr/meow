@@ -27,6 +27,18 @@ func (e *Environment) Define(name string, val meowrt.Value) {
 	e.vars[name] = val
 }
 
+// Set updates an existing variable, walking up the scope chain.
+// Panics if the variable is not found.
+func (e *Environment) Set(name string, val meowrt.Value) {
+	for env := e; env != nil; env = env.parent {
+		if _, ok := env.vars[name]; ok {
+			env.vars[name] = val
+			return
+		}
+	}
+	panic(fmt.Sprintf("Hiss! undefined variable %s, nya~", name))
+}
+
 // Get retrieves a variable, walking up the scope chain.
 // Panics if the variable is not found.
 func (e *Environment) Get(name string) meowrt.Value {
