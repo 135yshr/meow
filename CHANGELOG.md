@@ -1,3 +1,8 @@
+# [v0.26.2](https://github.com/135yshr/meow/compare/v0.26.1...v0.26.2) (2026-09-27)
+
+## 🐛 Bug Fixes
+- [`38a0651`](https://github.com/135yshr/meow/commit/38a0651)  fix: Blame a failure a boxed body returns on the line that failed (#164) (Issues: [`#164`](https://github.com/135yshr/meow/issues/164) [`#163`](https://github.com/135yshr/meow/issues/163) [`#159`](https://github.com/135yshr/meow/issues/159))
+
 # [v0.26.1](https://github.com/135yshr/meow/compare/v0.26.0...v0.26.1) (2026-09-27)
 
 ## 🐛 Bug Fixes
