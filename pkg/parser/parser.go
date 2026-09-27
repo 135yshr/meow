@@ -80,11 +80,6 @@ func (p *Parser) Parse() (*ast.Program, []*ParseError) {
 	return prog, nil
 }
 
-// Errors returns parser errors.
-func (p *Parser) Errors() []*ParseError {
-	return p.errs
-}
-
 func (p *Parser) parseStmt() ast.Stmt {
 	switch p.cur.Type {
 	case token.NYAN:
@@ -526,15 +521,6 @@ const (
 	precUnary // ! -
 	precCall  // () []
 )
-
-func (p *Parser) prefixPrec(typ token.TokenType) int {
-	switch typ {
-	case token.MINUS, token.NOT:
-		return precUnary
-	default:
-		return precNone
-	}
-}
 
 func (p *Parser) infixPrec(typ token.TokenType) int {
 	switch typ {

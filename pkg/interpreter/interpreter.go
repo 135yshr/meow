@@ -916,7 +916,7 @@ func (interp *Interpreter) evalPipe(e *ast.PipeExpr, env *Environment) meowrt.Va
 		if fn, ok := fnVal.(*meowrt.Func); ok {
 			return meowrt.Call(fn, args...)
 		}
-		panic(fmt.Sprintf("Hiss! pipe target is not callable, nya~"))
+		panic("Hiss! pipe target is not callable, nya~")
 	}
 
 	// x |=| f → f(x).

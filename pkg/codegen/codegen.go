@@ -2158,7 +2158,7 @@ func (g *Generator) genPartialCall(fnName string, ft types.FuncType, suppliedArg
 		}
 		for i := range remaining {
 			callArgs = append(callArgs,
-				fmt.Sprintf("%s", unboxToNative(fmt.Sprintf("args[%d]", i), ft.Params[len(suppliedArgs)+i])))
+				unboxToNative(fmt.Sprintf("args[%d]", i), ft.Params[len(suppliedArgs)+i]))
 		}
 		call := fmt.Sprintf("%s(%s)", fnName, strings.Join(callArgs, ", "))
 		boxed := boxNativeCall(call, ft.Return)
