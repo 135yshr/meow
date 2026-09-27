@@ -40,10 +40,19 @@ func Located(message string) string {
 // failure later in the same statement would be blamed on the callee's last
 // line, which is code that worked.
 //
-// It restores only on the way back from a call that returned. A call that fails
-// never reaches it, so the innermost position — where the failure actually
-// happened — is the one that survives.
+// It restores only on the way back from a call that succeeded, the rule Call
+// keeps too. A typed body that fails panics and never reaches it, but a boxed
+// body hands its failure back as a value — an unhandled Furball — and that
+// comes through here like any result. Restoring then blamed a failure inside a
+// lambda, or inside any function whose result is boxed, on the line that
+// called it (#163), so the innermost position — where the failure actually
+// happened — is left to survive.
 func Returning[T any](pos string, v T) T {
+	if value, ok := any(v).(Value); ok {
+		if _, failed := AsFurball(value); failed {
+			return v
+		}
+	}
 	Here(pos)
 	return v
 }
