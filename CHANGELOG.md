@@ -1,3 +1,8 @@
+# [v0.26.1](https://github.com/135yshr/meow/compare/v0.26.0...v0.26.1) (2026-09-27)
+
+## 🐛 Bug Fixes
+- [`9268c24`](https://github.com/135yshr/meow/commit/9268c24)  fix: Say a top-level binding reached too early is not bound yet (#162) (Issues: [`#162`](https://github.com/135yshr/meow/issues/162) [`#161`](https://github.com/135yshr/meow/issues/161) [`#154`](https://github.com/135yshr/meow/issues/154))
+
 # [v0.26.0](https://github.com/135yshr/meow/compare/v0.25.1...v0.26.0) (2026-09-26)
 
 ## ✨ New Features
