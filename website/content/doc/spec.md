@@ -491,14 +491,6 @@ That failure is a Furball like any other, so `~>` can catch it. A name that is
 bound nowhere at all is refused before the program runs, as an undefined
 variable.
 
-### Reassignment
-
-```ebnf
-AssignStmt = identifier "=" Expr newline .
-```
-
-Rebinds an existing variable to a new value.
-
 ### Function Declaration
 
 ```ebnf
