@@ -491,16 +491,6 @@ func AsString(v Value) string {
 	return s
 }
 
-// AsList extracts a *List from a Value. Panics on Furball input or type
-// mismatch (see AsInt for the rationale).
-func AsList(v Value) *List {
-	l, f := TryAsList(v)
-	if f != nil {
-		panic(f.Message)
-	}
-	return l
-}
-
 // AsBool extracts a bool from a Value. Panics on Furball input or type
 // mismatch (see AsInt for the rationale).
 func AsBool(v Value) bool {
