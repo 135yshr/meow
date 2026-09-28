@@ -458,15 +458,22 @@ peek(n) {
 ### Variable Declaration
 
 ```ebnf
-VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr newline .
+VarStmt = "nyan" identifier [ TypeExpr ] "=" Expr newline
+        | identifier "=" Expr newline .
 ```
 
-Declares a variable and binds it to a value.
+Declares a variable and binds it to a value. The `nyan` keyword may be left
+out when the name has no type annotation, so `x = 42` declares `x` just as
+`nyan x = 42` does.
 
 ```meow
 nyan x int = 42
 nyan name = "Nyantyu"
+count = 3
 ```
+
+A binding cannot be rebound. Writing `x = ...` for a name already bound in the
+same scope or an enclosing one is a compile error, not a reassignment.
 
 A binding written at the top level of the program belongs to the whole program,
 so a function can read it even when the function is written above it. Its value
