@@ -1,3 +1,5 @@
+# [v0.26.6](https://github.com/135yshr/meow/compare/v0.26.5...v0.26.6) (2026-11-23)
+
 # [v0.26.5](https://github.com/135yshr/meow/compare/v0.26.4...v0.26.5) (2026-10-19)
 
 # [v0.26.4](https://github.com/135yshr/meow/compare/v0.26.3...v0.26.4) (2026-10-12)
